@@ -1,14 +1,180 @@
-config DRIVERS_HDF_PLATFORM
-    bool "Enable HDF platform driver"
-    default n
-    depends on DRIVERS_HDF
+# none hdf driver configs
+choice
+    prompt "Enable Uart"
+    default DRIVERS_HDF_PLATFORM_UART
     help
-      Answer Y to enable HDF platform driver.
+      Enable simple uart (without vfs) only for litekernel.
+      Enable general uart (with vfs) for full code.
 
-source "../../vendor/hisi/hi35xx/platform/i2c/Kconfig"
-source "../../vendor/hisi/hi35xx/platform/spi/Kconfig"
-source "../../vendor/hisi/hi35xx/platform/gpio/Kconfig"
-source "../../vendor/hisi/hi35xx/platform/watchdog/Kconfig"
-source "../../vendor/hisi/hi35xx/platform/sdio/Kconfig"
-source "../../vendor/hisi/hi35xx/platform/rtc/Kconfig"
-source "../../vendor/hisi/hi35xx/platform/hisi_sdk/Kconfig"
+config DRIVERS_HDF_PLATFORM_UART
+    bool "Enable HDF platform uart driver"
+    depends on DRIVERS_HDF_PLATFORM
+    help
+      Answer Y to enable HDF platform uart driver.
+
+config PLATFORM_UART_WITHOUT_VFS
+    bool "Simple Uart"
+config PLATFORM_NO_UART
+    bool "NO Uart"
+endchoice
+
+config DRIVERS_HIEDMAC
+    bool "Enable HIEDMAC"
+    default n
+    depends on DRIVERS && PLATFORM_HI3559AV100
+    help
+      Answer Y to enable LiteOS support hiedmac.
+
+config DRIVERS_NETDEV
+    bool "Enable Net Device"
+    default y
+    depends on DRIVERS && NET_LWIP_SACK
+    help
+      Answer Y to enable LiteOS support net device.
+
+choice
+    depends on DRIVERS_NETDEV
+    prompt "MAC"
+    default n
+    help
+      Enable higmac for hi3516a hi3519 hi3559a_cortex-a53_aarch64.
+      Enable hieth-sf for hi3516cv300 hi3516ev200 and hi3518ev200.
+
+config DRIVERS_HIETH_SF
+    bool "Enable hieth-sf"
+    depends on DRIVERS_NETDEV && (PLATFORM_HI3518EV200 || PLATFORM_HI3731 || PLATFORM_HI3516CV300 || PLATFORM_HI3516CV500 || PLATFORM_HI3516DV300 || PLATFORM_HI3516EV200 || PLATFORM_HI3516EV300 || PLATFORM_HI3559V200 || PLATFORM_HI3516DV300 || PLATFORM_HI3518EV300)
+endchoice
+
+# mmc config start
+config DRIVERS_MMC
+    depends on DRIVERS
+    bool "Enable MMC"
+    default y
+    depends on DRIVERS && FS_VFS
+    help
+      Answer Y to enable LiteOS support MMC driver.
+
+config DRIVERS_SD_DETECT_BY_SW
+    depends on DRIVERS_MMC && (PLATFORM_HI3516EV200 || PLATFORM_HI3518EV300)
+    bool "Use software detection instead of hardware interrupt"
+    default n
+    help
+      Answer Y to enable software detection for the MMC/SD card.
+      if you choose Y, host driver will disable the insert/remove interrupt and use the sd protocol to detect the card.
+
+config DRIVERS_SD
+    depends on DRIVERS_MMC && (PLATFORM_HI3518EV200 || PLATFORM_HI3516EV200 || PLATFORM_HI3516EV300 || PLATFORM_HI3518EV300 || PLATFORM_HI3516DV300)
+    bool "Enable MMC0 support SD card type"
+
+config DRIVERS_EMMC
+    depends on DRIVERS_MMC && (PLATFORM_HI3518EV200 || PLATFORM_HI3516EV200 || PLATFORM_HI3516EV300 || PLATFORM_HI3518EV300 || PLATFORM_HI3516DV300 || PLATFORM_HI3556V200)
+    bool "Enable MMC0 support eMMC type"
+
+choice
+    depends on DRIVERS_EMMC && DRIVERS_MMC && FS_VFS
+    prompt "EMMC chip mode"
+    default DRIVERS_EMMC_HS200
+    help
+      select EMMC chip mode hs200.
+      select EMMC chip mode hs400.
+
+config DRIVERS_EMMC_HS200
+    depends on DRIVERS_EMMC
+    bool "Enable EMMC HS200 support"
+    help
+       If you connect the SDIO0 to EMMC chip, figure out which mode of chip and select the mode HS200
+
+config DRIVERS_EMMC_HS400
+    depends on DRIVERS_EMMC && (PLATFORM_HI3518EV200 || PLATFORM_HI3516EV300)
+    bool "Enable EMMC HS400 support"
+    help
+       If you connect the SDIO0 to EMMC chip figure out which mode of chip and select the mode HS400
+
+endchoice
+
+config DRIVERS_MMC_SPEEDUP
+    depends on DRIVERS_MMC && (PLATFORM_HI3519 || PLATFORM_HI3519V101 || PLATFORM_HI3559)
+    bool "Enable MMC support speedup"
+    default n
+    help
+      Answer Y to enable LiteOS support speedup.
+# mmc config end
+
+# mtd configs tart
+config DRIVERS_MTD
+    bool "Enable MTD"
+    default y
+    depends on DRIVERS && FS_VFS
+    help
+      Answer Y to enable LiteOS support jffs2 multipartion.
+
+# spi nor
+config DRIVERS_MTD_SPI_NOR
+    bool "Enable MTD spi_nor flash"
+    default y
+    depends on DRIVERS_MTD
+    help
+      Answer Y to support spi_nor flash.
+choice
+    depends on  DRIVERS_MTD_SPI_NOR
+    prompt "SpiNorFlash Chips"
+    default DRIVERS_MTD_SPI_NOR_HISFC350
+
+config DRIVERS_MTD_SPI_NOR_HISFC350
+    depends on PLATFORM_HI3516A || PLATFORM_HI3731
+    bool "Enable hisfc350"
+    help
+      Answer Y to support hisfc350.
+
+config DRIVERS_MTD_SPI_NOR_HIFMC100
+    depends on PLATFORM_HI3518EV200 || PLATFORM_HI3519 || PLATFORM_HI3519V101 || PLATFORM_HI3559  || PLATFORM_HI3516CV300 || PLATFORM_HI3559AV100ES || PLATFORM_HI3559AV100 || PLATFORM_HI3516CV500 || PLATFORM_HI3516DV300 || PLATFORM_HI3516EV200 || PLATFORM_HI3516EV300 || PLATFORM_HI3518EV300 || PLATFORM_HI3556V200 || PLATFORM_HI3559V200
+    bool "Enable hifmc100"
+    help
+      Answer Y to support hifmc100.
+endchoice
+
+#spi nand
+config DRIVERS_MTD_NAND
+    bool "Enable MTD nandflash"
+    default n
+    depends on DRIVERS_MTD
+    help
+      Answer Y to support nandflash.
+
+choice
+    depends    on DRIVERS_MTD_NAND
+    prompt "NandFlash Chips"
+    default DRIVERS_MTD_NAND_HINFC620
+
+config DRIVERS_MTD_NAND_HINFC620
+    depends on PLATFORM_HI3516A
+    bool "Enable hinfc620 for parallel nand"
+    help
+      Answer Y to support hinfc620.
+
+config DRIVERS_MTD_NAND_HISNFC100
+    depends on PLATFORM_HI3516A
+    bool "Enable hisnfc100 for spi nand"
+    help
+      Answer Y to support hisnfc100.
+
+config DRIVERS_MTD_NAND_HIFMC100
+    depends on PLATFORM_HI3518EV200 || PLATFORM_HI3519 || PLATFORM_HI3519V101 || PLATFORM_HI3559 || PLATFORM_HI3516CV300 || PLATFORM_HI3559AV100ES || PLATFORM_HI3516EV200 || PLATFORM_HI3516EV300 || PLATFORM_HI3518EV300 || PLATFORM_HI3559V200 || PLATFORM_HI3556V200 || PLATFORM_HI3516DV300 || PLATFORM_HI3516CV500
+    bool "Enable hifmc100 for spi nand"
+    help
+      Answer Y to support hifmc100.
+
+config DRIVERS_MTD_NAND_HIFMC100_PARALLEL
+    depends on PLATFORM_HI3519 || PLATFORM_HI3519V101 || PLATFORM_HI3559 || PLATFORM_HI3559AV100ES
+    bool "Enable hifmc100 for parallel nand"
+    help
+      Answer Y to support hifmc100.
+endchoice
+# mtd configs end
+
+config DRIVERS_HI3881
+    bool "Enable Hi3881 Host driver"
+    default n
+    depends on DRIVERS_HDF_WIFI
+    help
+      Answer Y to enable Hi3881 Host driver.

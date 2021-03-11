@@ -1,6 +1,0 @@
-config DRIVERS_HDF_PLATFORM_WATCHDOG
-    bool "Enable HDF platform watchdog driver"
-    default n
-    depends on DRIVERS_HDF_PLATFORM
-    help
-      Answer Y to enable HDF platform watchdog driver.

@@ -1,6 +1,0 @@
-config DRIVERS_HDF_PLATFORM_RTC
-    bool "Enable HDF platform rtc driver"
-    default n
-    depends on DRIVERS_HDF_PLATFORM
-    help
-      Answer Y to enable HDF platform rtc driver.
