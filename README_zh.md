@@ -14,21 +14,21 @@ HiSpark\_taurus（Hi3516DV300） 、HiSpark\_aries（Hi3518EV300）平台驱动�
 
 ## 对应仓库<a name="section641143415335"></a>
 
-hmf/device/hisilicon/build
+device/hisilicon/build
 
-**hmf/device/hisilicon/drivers**
+**device/hisilicon/drivers**
 
-hmf/device/hisilicon/hardware
+device/hisilicon/hardware
 
-hmf/device/hisilicon/hispark\_aries
+device/hisilicon/hispark\_aries
 
-hmf/device/hisilicon/hispark\_taurus
+device/hisilicon/hispark\_taurus
 
-hmf/device/hisilicon/modules
+device/hisilicon/modules
 
-hmf/device/hisilicon/third\_party/ffmpeg
+device/hisilicon/third\_party/ffmpeg
 
-hmf/device/hisilicon/third\_party/uboot
+device/hisilicon/third\_party/uboot
 
-hmf/vendor/hisilicon
+vendor/hisilicon
 
