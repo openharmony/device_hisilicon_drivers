@@ -276,12 +276,6 @@ static int32_t Hi35xxPollEvent(struct UartHost *host, void *filep, void *table)
 {
     struct UartDriverData *udd = NULL;
 
-    //if (filep == NULL || filep->f_vnode == NULL) {
-    //    return HDF_ERR_INVALID_PARAM;
-    //}
-    //struct drv_data *drv = (struct drv_data *)filep->f_vnode->data;
-    //host = (struct UartHost *)drv->priv;
-
     if (host == NULL || host->priv == NULL) {
         HDF_LOGE("%s: host is NULL", __func__);
         return HDF_FAILURE;
@@ -316,8 +310,7 @@ static int32_t UartGetConfigFromHcs(struct UartPl011Port *port, const struct Dev
 {
     uint32_t tmp, regPbase, iomemCount;
     struct UartDriverData *udd = port->udd;
-    struct DeviceResourceIface *iface = DeviceResourceGetIfaceInstance(HDF_CONFIG_SOURCE);
-
+    struct DeviceResourceIface *iface = DeviceResourceGetIfaceInstance(HDF_CONFIG_SOURCE); 
     if (iface == NULL || iface->GetUint32 == NULL) {
         HDF_LOGE("%s: face is invalid", __func__);
         return HDF_FAILURE;

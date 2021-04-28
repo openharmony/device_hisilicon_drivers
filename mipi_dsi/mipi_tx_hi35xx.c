@@ -1006,11 +1006,6 @@ static int MipiTxSetComboDevCfg(const ComboDevCfgTag *devCfg)
     MipiTxDrvSetControllerCfg(devCfg);
     /* set phy config */
     MipiTxDrvSetPhyCfg(devCfg);
-    /*ret = memcpy_s(&g_mipiTxDevCtx.devCfg, sizeof(ComboDevCfgTag), devCfg, sizeof(ComboDevCfgTag));
-    if (ret != EOK) {
-        return ret;
-    }
-    g_enDevCfg = TRUE;*/
     g_enCfg = true;
     return ret;
 }
@@ -1027,7 +1022,6 @@ int32_t Hi35xxSetCntlrCfg(struct MipiDsiCntlr *cntlr)
 
 static int MipiTxCheckSetCmdInfo(const CmdInfoTag *cmdInfo)
 {
-    //if (g_enDevCfg != TRUE) {
     if (!g_enCfg) {
         HDF_LOGE("mipi_tx dev has not config!\n");
         return -1;
