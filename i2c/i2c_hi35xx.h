@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef I2C_HIBVT_H
-#define I2C_HIBVT_H
+#ifndef I2C_HI35XX_H
+#define I2C_HI35XX_H
 
 
 #ifdef __cplusplus
@@ -26,36 +26,36 @@ extern "C" {
 /*
  * I2C Registers offsets
  */
-#define HIBVT_I2C_GLB       0x0
-#define HIBVT_I2C_SCL_H     0x4
-#define HIBVT_I2C_SCL_L     0x8
-#define HIBVT_I2C_DATA1     0x10
-#define HIBVT_I2C_TXF       0x20
-#define HIBVT_I2C_RXF       0x24
-#define HIBVT_I2C_CMD_BASE  0x30
-#define HIBVT_I2C_LOOP1     0xb0
-#define HIBVT_I2C_DST1      0xb4
-#define HIBVT_I2C_TX_WATER  0xc8
-#define HIBVT_I2C_RX_WATER  0xcc
-#define HIBVT_I2C_CTRL1     0xd0
-#define HIBVT_I2C_CTRL2     0xd4
-#define HIBVT_I2C_STAT      0xd8
-#define HIBVT_I2C_INTR_RAW  0xe0
-#define HIBVT_I2C_INTR_EN   0xe4
-#define HIBVT_I2C_INTR_STAT 0xe8
+#define HI35XX_I2C_GLB       0x0
+#define HI35XX_I2C_SCL_H     0x4
+#define HI35XX_I2C_SCL_L     0x8
+#define HI35XX_I2C_DATA1     0x10
+#define HI35XX_I2C_TXF       0x20
+#define HI35XX_I2C_RXF       0x24
+#define HI35XX_I2C_CMD_BASE  0x30
+#define HI35XX_I2C_LOOP1     0xb0
+#define HI35XX_I2C_DST1      0xb4
+#define HI35XX_I2C_TX_WATER  0xc8
+#define HI35XX_I2C_RX_WATER  0xcc
+#define HI35XX_I2C_CTRL1     0xd0
+#define HI35XX_I2C_CTRL2     0xd4
+#define HI35XX_I2C_STAT      0xd8
+#define HI35XX_I2C_INTR_RAW  0xe0
+#define HI35XX_I2C_INTR_EN   0xe4
+#define HI35XX_I2C_INTR_STAT 0xe8
 
 #ifndef BIT
 #define BIT(n) (1U << (n))
 #endif
 /*
- * I2C Global Config Register -- HIBVT_I2C_GLB
+ * I2C Global Config Register -- HI35XX_I2C_GLB
  * */
 #define GLB_EN_MASK         BIT(0)
 #define GLB_SDA_HOLD_MASK   0xffff00
 #define GLB_SDA_HOLD_SHIFT  8
 
 /*
- * I2C Timing CMD Register -- HIBVT_I2C_CMD_BASE + n * 4 (n = 0, 1, 2, ... 31)
+ * I2C Timing CMD Register -- HI35XX_I2C_CMD_BASE + n * 4 (n = 0, 1, 2, ... 31)
  */
 #define CMD_EXIT    0x0
 #define CMD_TX_S    0x1
@@ -73,7 +73,7 @@ extern "C" {
 #define CMD_TX_P    0x1f
 
 /*
- * I2C Control Register 1 -- HIBVT_I2C_CTRL1
+ * I2C Control Register 1 -- HI35XX_I2C_CTRL1
  */
 #define CTRL1_CMD_START_MASK    BIT(0)
 #define CTRL1_DMA_MASK          (BIT(9) | BIT(8))
@@ -81,14 +81,14 @@ extern "C" {
 #define CTRL1_DMA_W         (BIT(9))
 
 /*
- * I2C Status Register -- HIBVT_I2C_STAT
+ * I2C Status Register -- HI35XX_I2C_STAT
  */
 #define STAT_RXF_NOE_MASK   BIT(16) /* RX FIFO not empty flag */
 #define STAT_TXF_NOF_MASK   BIT(19) /* TX FIFO not full flag */
 
 /*
  * I2C Interrupt status and mask Register --
- * HIBVT_I2C_INTR_RAW, HIBVT_I2C_STAT, HIBVT_I2C_INTR_STAT
+ * HI35XX_I2C_INTR_RAW, HI35XX_I2C_STAT, HI35XX_I2C_INTR_STAT
  */
 #define INTR_ABORT_MASK     (BIT(0) | BIT(11))
 #define INTR_RX_MASK        BIT(2)
@@ -119,4 +119,4 @@ extern "C" {
 }
 #endif /* __cplusplus */
 #endif /* __cplusplus */
-#endif /* I2C_HIBVT_H */
+#endif /* I2C_HI35XX_H */
