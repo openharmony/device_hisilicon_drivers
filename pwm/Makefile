@@ -20,7 +20,7 @@ MODULE_NAME := hdf_pwm
 
 LOCAL_CFLAGS += $(HDF_INCLUDE)
 
-LOCAL_SRCS += pwm_hi35xx_liteos.c
+LOCAL_SRCS += pwm_hi35xx.c
 
 LOCAL_CFLAGS += -fstack-protector-strong -Wextra -Wall -Werror -fsigned-char -fno-strict-aliasing -fno-common
 
