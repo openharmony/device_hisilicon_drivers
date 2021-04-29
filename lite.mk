@@ -35,30 +35,22 @@ HDF_INCLUDE += -I $(LITEOSTOPDIR)/../../device/$(SOC_COMPANY)/$(SOC_BOARD)/sdk_l
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_I2C), y)
     LITEOS_BASELIB += -lhdf_i2c
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/i2c
-endif
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/i2c
 endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_SPI), y)
     LITEOS_BASELIB += -lhdf_spi
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/spi
-endif
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/spi
 endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_GPIO), y)
     LITEOS_BASELIB += -lhdf_gpio
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/gpio
-endif
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/gpio
 endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_WATCHDOG), y)
     LITEOS_BASELIB += -lhdf_watchdog
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/watchdog
-endif
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/watchdog
 endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_SDIO), y)
@@ -77,37 +69,27 @@ endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_RTC), y)
     LITEOS_BASELIB += -lhdf_rtc
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/rtc
-endif
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/rtc
 endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_UART), y)
     LITEOS_BASELIB += -lhdf_uart
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/uart
-endif
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/uart
 endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_PWM), y)
     LITEOS_BASELIB += -lhdf_pwm
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/pwm
-endif
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/pwm
 endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_HISI_SDK), y)
     LITEOS_BASELIB += -lhdf_hisi_sdk
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/hisi_sdk
-endif
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/hisi_sdk
 endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_DSI), y)
     LITEOS_BASELIB += -lhdf_mipi_dsi
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/mipi_dsi
-endif
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/mipi_dsi
 endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_DMAC), y)
