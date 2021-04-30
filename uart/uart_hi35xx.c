@@ -15,6 +15,8 @@
 
 #include "los_event.h"
 #include "device_resource_if.h"
+#include "fs/fs.h"
+#include "fs_poll_pri.h"
 #include "hdf_base.h"
 #include "hdf_log.h"
 #include "osal_io.h"
