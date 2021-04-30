@@ -114,9 +114,7 @@ static inline void Hi35xxI2cCfgIrq(const struct Hi35xxI2cCntlr *hi35xx, unsigned
 
 static inline void Hi35xxI2cClrIrq(const struct Hi35xxI2cCntlr *hi35xx)
 {
-    unsigned int val;
-
-    val = OSAL_READL(hi35xx->regBase + HI35XX_I2C_INTR_STAT);
+    (void)OSAL_READL(hi35xx->regBase + HI35XX_I2C_INTR_STAT);
     OSAL_WRITEL(INTR_ALL_MASK, hi35xx->regBase + HI35XX_I2C_INTR_RAW);
 }
 
