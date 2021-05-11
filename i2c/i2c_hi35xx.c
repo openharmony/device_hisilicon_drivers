@@ -24,6 +24,7 @@
 #include "i2c_dev.h"
 #include "osal_io.h"
 #include "osal_mem.h"
+#include "osal_spinlock.h"
 #include "osal_time.h"
 #include "plat_log.h"
 
@@ -42,6 +43,7 @@
 
 struct Hi35xxI2cCntlr {
     struct I2cCntlr cntlr;
+    OsalSpinlock spin;
     volatile unsigned char  *regBase;
     uint16_t regSize;
     int16_t bus;
@@ -480,8 +482,30 @@ static int32_t Hi35xxI2cTransfer(struct I2cCntlr *cntlr, struct I2cMsg *msgs, in
     return (td.index > 0) ? td.index : ret;
 }
 
-static struct I2cMethod g_method = {
+static const struct I2cMethod g_method = {
     .transfer = Hi35xxI2cTransfer,
+};
+
+static int32_t Hi35xxI2cLock(struct I2cCntlr *cntlr)
+{
+    struct Hi35xxI2cCntlr *hi35xx = (struct Hi35xxI2cCntlr *)cntlr;
+    if (hi35xx != NULL) {
+        return OsalSpinLock(&hi35xx->spin);
+    }
+    return HDF_SUCCESS;
+}
+
+static void Hi35xxI2cUnlock(struct I2cCntlr *cntlr)
+{
+    struct Hi35xxI2cCntlr *hi35xx = (struct Hi35xxI2cCntlr *)cntlr;
+    if (hi35xx != NULL) {
+        (void)OsalSpinUnlock(&hi35xx->spin);
+    }
+}
+
+static const struct I2cLockMethod g_lockOps = {
+    .lock = Hi35xxI2cLock,
+    .unlock = Hi35xxI2cUnlock,
 };
 
 static int32_t Hi35xxI2cReadDrs(struct Hi35xxI2cCntlr *hi35xx, const struct DeviceResourceNode *node)
@@ -564,9 +588,12 @@ static int32_t Hi35xxI2cParseAndInit(struct HdfDeviceObject *device, const struc
     hi35xx->cntlr.priv = (void *)node;
     hi35xx->cntlr.busId = hi35xx->bus;
     hi35xx->cntlr.ops = &g_method;
+    hi35xx->cntlr.lockOps = &g_lockOps;
+    (void)OsalSpinInit(&hi35xx->spin);
     ret = I2cCntlrAdd(&hi35xx->cntlr);
     if (ret != HDF_SUCCESS) {
         HDF_LOGE("%s: add i2c controller fail:%d!", __func__, ret);
+        (void)OsalSpinDestroy(&hi35xx->spin);
         goto __ERR__;
     }
 
@@ -634,6 +661,7 @@ static void Hi35xxI2cRemoveByNode(const struct DeviceResourceNode *node)
         I2cCntlrRemove(cntlr);
         hi35xx = (struct Hi35xxI2cCntlr *)cntlr;
         OsalIoUnmap((void *)hi35xx->regBase);
+        (void)OsalSpinDestroy(&hi35xx->spin);
         OsalMemFree(hi35xx);
     }
     return;
