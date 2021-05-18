@@ -816,7 +816,6 @@ static void SdhciSetEmmcDriver(struct SdhciHost *host, enum MmcBusTiming timing)
     }
 }
 
-
 static void SdhciSetMmcIoDriver(struct SdhciHost *host, enum MmcBusTiming timing)
 {
     uint32_t val;
@@ -1057,8 +1056,9 @@ static int32_t SdhciSetBusWidth(struct MmcCntlr *cntlr, enum MmcBusWidth width)
             val |= SDHCI_CTRL_8_BIT_BUS;
         }
     } else {
-        if (host->version >= SDHCI_HOST_SPEC_300)
+        if (host->version >= SDHCI_HOST_SPEC_300) {
             val &= (~SDHCI_CTRL_8_BIT_BUS);
+	}
         if (width == BUS_WIDTH4) {
             val |= SDHCI_CTRL_4_BIT_BUS;
         } else {
