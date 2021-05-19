@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef __PROC_ADAPTER__H__
-#define __PROC_ADAPTER__H__
+#ifndef SDHCI_PROC_H
+#define SDHCI_PROC_H
 
 int32_t ProcMciInit(void);
 

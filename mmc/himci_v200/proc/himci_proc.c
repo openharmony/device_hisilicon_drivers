@@ -21,6 +21,7 @@
 #define MCI_STATS_PROC   "mci_info"
 
 #define CLOCK_UINT_MAX_NUM 4
+#define HIMCI_HOST_NUM 3
 
 static struct ProcDirEntry *g_procMciDir = NULL;
 
@@ -300,7 +301,7 @@ static int32_t ProcStatsSeqPrint(struct SeqBuf *s)
     uint32_t hostId;
     struct MmcCntlr *mmc = NULL;
 
-    for (hostId = 0; hostId < MMC_CNTLR_NR_MAX; hostId++) {
+    for (hostId = 0; hostId < HIMCI_HOST_NUM; hostId++) {
         mmc = MmcCntlrGetByNr(hostId);
         if (mmc == NULL || mmc->priv == NULL) {
             status = LosBufPrintf(s, "\nMCI%d: invalid\n", hostId);

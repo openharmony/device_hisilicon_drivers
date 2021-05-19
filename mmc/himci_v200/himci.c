@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#include "mmc_hi3516_adapter.h"
-#include "proc_adapter.h"
+#include "himci.h"
+#include "himci_proc.h"
 #include "securec.h"
 
 #define HDF_LOG_TAG himci_adapter
@@ -1181,6 +1181,7 @@ static void HimciSetSapPhase(struct HimciHost *host, uint32_t phase)
     HIMCI_WRITEL(val, (uintptr_t)host->base + MMC_UHS_REG_EXT);
 }
 
+
 static void HimciEdgeTuningDisable(struct HimciHost *host)
 {
     uint32_t val;
@@ -1622,8 +1623,7 @@ static uint32_t HimciCmdIrq(struct HimciHost *host, uint32_t state)
         writeEvent = 1;
     }
 
-    /*
-     * If there is a response timeout(RTO) error,
+    /* If there is a response timeout(RTO) error,
      * then the DWC_mobile_storage does not attempt any data transfer and
      * the “Data Transfer Over” bit is never set.
      */

@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef MMC_HI3516_ADAPTER_H
-#define MMC_HI3516_ADAPTER_H
+#ifndef HIMCI_H
+#define HIMCI_H
 
 #include "asm/dma.h"
 #include "asm/io.h"
@@ -546,4 +546,4 @@ struct HimciTuneParam {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#endif /* MMC_HI3516_ADAPTER_H */
+#endif /* HIMCI_H */

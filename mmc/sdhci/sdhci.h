@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef MMC_HI3518_ADAPTER_H
-#define MMC_HI3518_ADAPTER_H
+#ifndef SDHCI_H
+#define SDHCI_H
 
 #include "asm/dma.h"
 #include "asm/io.h"
@@ -727,4 +727,4 @@ static inline uint8_t SdhciReadb(struct SdhciHost *host, int reg)
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#endif /* MMC_HI3518_ADAPTER_H */
+#endif /* SDHCI_H */
