@@ -17,7 +17,7 @@
 #include "himci_proc.h"
 #include "securec.h"
 
-#define HDF_LOG_TAG himci_adapter
+#define HDF_LOG_TAG himci_c
 
 #define HIMCI_PIN_NUM 6
 #define HIMCI_VOLT_SWITCH_TIMEOUT 10

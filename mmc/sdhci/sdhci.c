@@ -17,7 +17,7 @@
 #include "sdhci_proc.h"
 #include "securec.h"
 
-#define HDF_LOG_TAG sdhci_adapter
+#define HDF_LOG_TAG sdhci_c
 
 #define SDHCI_DMA_MAX_BUFF_SIZE 0x1000
 #define SDHCI_MAX_BLK_NUM 65535
