@@ -14,9 +14,12 @@
  */
 
 #include "device_resource_if.h"
+#include "dmac_core.h"
 #include "hdf_base.h"
+#include "los_vm_phys.h"
 #include "osal_io.h"
 #include "osal_mem.h"
+#include "osal_sem.h"
 #include "osal_time.h"
 #include "hdf_log.h"
 #include "spi_core.h"
@@ -28,6 +31,7 @@
 struct Pl022 {
     struct SpiCntlr *cntlr;
     struct DListHead deviceList;
+    volatile unsigned char *phyBase;
     volatile unsigned char *regBase;
     uint32_t busNum;
     uint32_t numCs;
@@ -92,28 +96,28 @@ static void Pl022Enable(const struct Pl022 *pl022)
 {
     uint32_t value;
 
-    value = OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_CR1);
+    value = OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_CR1);
     value |= SPI_CR1_SSE;
-    OSAL_WRITEL(value, (UINTPTR)(pl022->regBase) + REG_SPI_CR1);
+    OSAL_WRITEL(value, (uintptr_t)(pl022->regBase) + REG_SPI_CR1);
 }
 
 static void Pl022Disable(const struct Pl022 *pl022)
 {
     uint32_t value;
 
-    value = OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_CR1);
+    value = OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_CR1);
     value &= ~SPI_CR1_SSE;
-    OSAL_WRITEL(value, (UINTPTR)(pl022->regBase) + REG_SPI_CR1);
+    OSAL_WRITEL(value, (uintptr_t)(pl022->regBase) + REG_SPI_CR1);
 }
 
 static void Pl022ConfigCPSR(const struct Pl022 *pl022, uint32_t cpsdvsr)
 {
     uint32_t value;
 
-    value = OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_CPSR);
+    value = OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_CPSR);
     value &= ~SPI_CPSR_CPSDVSR;
     value |= cpsdvsr << SPI_CPSR_CPSDVSR_SHIFT;
-    OSAL_WRITEL(value, (UINTPTR)(pl022->regBase) + REG_SPI_CPSR);
+    OSAL_WRITEL(value, (uintptr_t)(pl022->regBase) + REG_SPI_CPSR);
 }
 
 static void Pl022ConfigCR0(const struct Pl022 *pl022, uint32_t scr)
@@ -121,7 +125,7 @@ static void Pl022ConfigCR0(const struct Pl022 *pl022, uint32_t scr)
     uint32_t tmp;
     uint32_t value;
 
-    value = OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_CR0);
+    value = OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_CR0);
     value &= ~SPI_CR0_DSS;
     value |= (pl022->bitsPerWord - 1) << SPI_CR0_DSS_SHIFT;
     value &= ~SPI_CR0_FRF;
@@ -133,7 +137,7 @@ static void Pl022ConfigCR0(const struct Pl022 *pl022, uint32_t scr)
     value |= tmp;
     value &= ~SPI_CR0_SCR;
     value |= (scr << SPI_CR0_SCR_SHIFT);
-    OSAL_WRITEL(value, (UINTPTR)(pl022->regBase) + REG_SPI_CR0);
+    OSAL_WRITEL(value, (uintptr_t)(pl022->regBase) + REG_SPI_CR0);
 }
 
 static void Pl022ConfigCR1(const struct Pl022 *pl022)
@@ -141,7 +145,7 @@ static void Pl022ConfigCR1(const struct Pl022 *pl022)
     uint32_t tmp;
     uint32_t value;
 
-    value = OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_CR1);
+    value = OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_CR1);
     value &= ~SPI_CR1_LBN;
     tmp = (!!(pl022->mode & SPI_MODE_LOOP)) ? (1 << SPI_CR1_LBN_SHIFT) : 0;
     value |= tmp;
@@ -151,10 +155,39 @@ static void Pl022ConfigCR1(const struct Pl022 *pl022)
     value |= tmp;
     value &= ~SPI_CR1_ALT;
     value |= 0x1 << SPI_CR1_ALT_SHIFT;
-    OSAL_WRITEL(value, (UINTPTR)(pl022->regBase) + REG_SPI_CR1);
+    OSAL_WRITEL(value, (uintptr_t)(pl022->regBase) + REG_SPI_CR1);
 }
 
-static int Pl022Config(struct Pl022 *pl022)
+static void Pl022ConfigDma(struct Pl022 *pl022)
+{
+    uint32_t value;
+    if (pl022->transferMode == SPI_DMA_TRANSFER) {
+        OSAL_WRITEL((0x1 << TX_DMA_EN_SHIFT) | (0x1 << RX_DMA_EN_SHIFT),
+            (uintptr_t)(pl022->regBase) + SPI_DMA_CR);
+
+        value = OSAL_READL((uintptr_t)(pl022->regBase) + SPI_TX_FIFO_CR);
+        value &= ~(TX_DMA_BR_SIZE_MASK << TX_DMA_BR_SIZE_SHIFT);
+        OSAL_WRITEL(value, (uintptr_t)(pl022->regBase) + SPI_TX_FIFO_CR);
+
+        value = OSAL_READL((uintptr_t)(pl022->regBase) + SPI_RX_FIFO_CR);
+        value &= ~(RX_DMA_BR_SIZE_MASK << RX_DMA_BR_SIZE_SHIFT);
+        OSAL_WRITEL(value, (uintptr_t)(pl022->regBase) + SPI_RX_FIFO_CR);
+    } else {
+        OSAL_WRITEL(0, (uintptr_t)(pl022->regBase) + SPI_DMA_CR);
+    }
+}
+
+static void Pl022ConfigIrq(struct Pl022 *pl022)
+{
+    if (pl022->transferMode == SPI_INTERRUPT_TRANSFER) {
+        OSAL_WRITEL(SPI_ALL_IRQ_ENABLE, (uintptr_t)(pl022->regBase) + REG_SPI_IMSC);
+    } else {
+        OSAL_WRITEL(SPI_ALL_IRQ_DISABLE, (uintptr_t)(pl022->regBase) + REG_SPI_IMSC);
+    }
+    OSAL_WRITEL(SPI_ALL_IRQ_CLEAR, (uintptr_t)(pl022->regBase) + REG_SPI_ICR);
+}
+
+static int32_t Pl022Config(struct Pl022 *pl022)
 {
     uint32_t tmp;
     uint32_t scr;
@@ -187,22 +220,26 @@ static int Pl022Config(struct Pl022 *pl022)
         cpsdvsr = CPSDVSR_MAX;
         scr = (tmp / cpsdvsr) - 1;
     }
-    /* config SPICPSR register */
-    Pl022ConfigCPSR(pl022, cpsdvsr);
     /* config SPICR0 register */
     Pl022ConfigCR0(pl022, scr);
     /* config SPICR1 register */
     Pl022ConfigCR1(pl022);
+    /* config SPICPSR register */
+    Pl022ConfigCPSR(pl022, cpsdvsr);
+    /* config irq */
+    Pl022ConfigIrq(pl022);
+    /* config dma */
+    Pl022ConfigDma(pl022);
     return 0;
 }
 
-static int Pl022CheckTimeout(const struct Pl022 *pl022)
+static int32_t Pl022CheckTimeout(const struct Pl022 *pl022)
 {
     uint32_t value;
     uint32_t tmp = 0;
 
     while (1) {
-        value = OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_SR);
+        value = OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_SR);
         if ((value & SPI_SR_TFE) && (!(value & SPI_SR_BSY))) {
             break;
         }
@@ -215,7 +252,7 @@ static int Pl022CheckTimeout(const struct Pl022 *pl022)
     return 0;
 }
 
-static int Pl022FlushFifo(const struct Pl022 *pl022)
+static int32_t Pl022FlushFifo(const struct Pl022 *pl022)
 {
     uint32_t value;
     uint32_t tmp;
@@ -225,7 +262,7 @@ static int Pl022FlushFifo(const struct Pl022 *pl022)
         return tmp;
     }
     while (1) {
-        value = OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_SR);
+        value = OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_SR);
         if (!(value & SPI_SR_RNE)) {
             break;
         }
@@ -233,12 +270,12 @@ static int Pl022FlushFifo(const struct Pl022 *pl022)
             HDF_LOGE("%s: spi transfer check rx fifo wait timeout", __func__);
             return HDF_ERR_TIMEOUT;
         }
-        OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_DR);
+        OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_DR);
     }
     return 0;
 }
 
-static int Pl022TxRx8(const struct Pl022 *pl022, const struct SpiMsg *msg)
+static int32_t Pl022TxRx8(const struct Pl022 *pl022, const struct SpiMsg *msg)
 {
     uint32_t len = msg->len;
     uint32_t tmpLen;
@@ -265,9 +302,9 @@ static int Pl022TxRx8(const struct Pl022 *pl022, const struct SpiMsg *msg)
             if (tx != NULL) {
                 value = *tx++;
             }
-            OSAL_WRITEL(value, (UINTPTR)(pl022->regBase) + REG_SPI_DR);
+            OSAL_WRITEL(value, (uintptr_t)(pl022->regBase) + REG_SPI_DR);
             count -= 1;
-            OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_SR);
+            OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_SR);
         }
         tmp = Pl022CheckTimeout(pl022);
         if (tmp != 0) {
@@ -276,18 +313,18 @@ static int Pl022TxRx8(const struct Pl022 *pl022, const struct SpiMsg *msg)
         /* read fifo */
         count = tmpLen;
         while (count > 0) {
-            value = OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_DR);
+            value = OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_DR);
             if (rx != NULL) {
                 *rx++ = value;
             }
             count -= 1;
-            OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_SR);
+            OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_SR);
         }
     }
     return 0;
 }
 
-static int Pl022TxRx16(const struct Pl022 *pl022, const struct SpiMsg *msg)
+static int32_t Pl022TxRx16(const struct Pl022 *pl022, const struct SpiMsg *msg)
 {
     uint32_t len = msg->len;
     uint32_t tmpLen;
@@ -315,7 +352,7 @@ static int Pl022TxRx16(const struct Pl022 *pl022, const struct SpiMsg *msg)
             if (tx != NULL) {
                 value = *tx++;
             }
-            OSAL_WRITEL(value, (UINTPTR)(pl022->regBase) + REG_SPI_DR);
+            OSAL_WRITEL(value, (uintptr_t)(pl022->regBase) + REG_SPI_DR);
             count -= TWO_BYTES;
         }
         tmp = Pl022CheckTimeout(pl022);
@@ -325,7 +362,7 @@ static int Pl022TxRx16(const struct Pl022 *pl022, const struct SpiMsg *msg)
         /* read fifo */
         count = tmpLen;
         while (count >= TWO_BYTES) {
-            value = OSAL_READL((UINTPTR)(pl022->regBase) + REG_SPI_DR);
+            value = OSAL_READL((uintptr_t)(pl022->regBase) + REG_SPI_DR);
             if (rx != NULL) {
                 *rx++ = value;
             }
@@ -335,7 +372,7 @@ static int Pl022TxRx16(const struct Pl022 *pl022, const struct SpiMsg *msg)
     return 0;
 }
 
-static int Pl022SetCs(struct Pl022 *pl022, uint32_t cs, uint32_t flag)
+static int32_t Pl022SetCs(struct Pl022 *pl022, uint32_t cs, uint32_t flag)
 {
     if (SpiCfgCs(pl022, cs)) {
         return HDF_FAILURE;
@@ -364,7 +401,7 @@ static struct SpiDev *Pl022FindDeviceByCsNum(const struct Pl022 *pl022, uint32_t
     return dev;
 }
 
-int32_t Pl022SetCfg(struct SpiCntlr *cntlr, struct SpiCfg *cfg)
+static int32_t Pl022SetCfg(struct SpiCntlr *cntlr, struct SpiCfg *cfg)
 {
     struct Pl022 *pl022 = NULL;
     struct SpiDev *dev = NULL;
@@ -393,7 +430,7 @@ int32_t Pl022SetCfg(struct SpiCntlr *cntlr, struct SpiCfg *cfg)
     return 0;
 }
 
-int32_t Pl022GetCfg(struct SpiCntlr *cntlr, struct SpiCfg *cfg)
+static int32_t Pl022GetCfg(struct SpiCntlr *cntlr, struct SpiCfg *cfg)
 {
     struct Pl022 *pl022 = NULL;
     struct SpiDev *dev = NULL;
@@ -411,20 +448,138 @@ int32_t Pl022GetCfg(struct SpiCntlr *cntlr, struct SpiCfg *cfg)
     return HDF_SUCCESS;
 }
 
+struct SpiDmaEvent {
+    const struct SpiMsg *spiMsg;
+    struct DmacMsg *dmaMsg;
+    struct OsalSem sem;
+    int32_t retValue;
+};
+
+static void Pl022DmaCallBack(void *data, int status)
+{
+    struct SpiDmaEvent *xEvent = (struct SpiDmaEvent *)data;
+
+    if (xEvent != NULL) {
+#ifdef SPI_HI35XX_DEBUG
+        HDF_LOGD("%s: dmamsg transfer %s!", __func__, status == DMAC_CHN_SUCCESS ? "Success!" : "Error!");
+#endif
+        if (status != DMAC_CHN_SUCCESS) {
+            xEvent->retValue = HDF_FAILURE;
+            HDF_LOGE("%s: dma msg transfer failed, status = %d", __func__, status);
+        }
+        (void)OsalSemPost(&xEvent->sem);
+    }
+}
+
+static struct DmaCntlr *GetDmaCntlr(void)
+{
+    static struct DmaCntlr *cntlr = NULL;
+
+    if (cntlr == NULL) {
+        cntlr = (struct DmaCntlr *)DevSvcManagerClntGetService("HDF_PLATFORM_DMAC0");
+        if (cntlr != NULL) {
+            HDF_LOGE("%s: get dmac0 success!", __func__);
+        } else {
+            HDF_LOGE("%s: get dmac0 fail!", __func__);
+        }
+    }
+    return cntlr;
+}
+
+#define PL022_ONE_BYTE 1
+#define PL022_TWO_BYTE 2
+static inline uint8_t Pl022ToByteWidth(uint8_t bitsPerWord)
+{
+    if (bitsPerWord <= BITS_PER_WORD_EIGHT) {
+        return PL022_ONE_BYTE; 
+    } else {
+        return PL022_TWO_BYTE;
+    }
+}
+
+static inline uintptr_t Pl022AllocBufPhy(size_t len)
+{
+    void *tmpBuf = OsalMemCalloc(len);
+    return tmpBuf == NULL ? 0 : (uintptr_t)LOS_PaddrQuery(tmpBuf);
+}
+
+static inline void Pl022RleaseBufPhy(uintptr_t buf)
+{
+    void *tmpBuf = NULL;
+
+    if (buf != 0) {
+        tmpBuf = LOS_PaddrToKVaddr((paddr_t)buf);
+        OsalMemFree(tmpBuf);
+    }
+}
+
+static int32_t Pl022TxRxDma(const struct Pl022 *pl022, const struct SpiMsg *msg)
+{
+    int32_t ret;
+    struct SpiDmaEvent rxEvent;
+    struct DmacMsg dmaMsgRx;
+    struct DmacMsg dmaMsgTx;
+    uintptr_t tmpBuf = 0;
+
+    rxEvent.dmaMsg = &dmaMsgRx;
+    rxEvent.spiMsg = msg;
+    rxEvent.retValue = HDF_SUCCESS;
+
+    (void)OsalSemInit(&rxEvent.sem, 0);
+
+    if (msg->rbuf == NULL || msg->wbuf == NULL) {
+        tmpBuf = Pl022AllocBufPhy(msg->len);
+        if (tmpBuf == 0) {
+            return HDF_ERR_MALLOC_FAIL;
+        }
+    }
+
+    dmaMsgRx.srcAddr = (uintptr_t)(pl022->phyBase + REG_SPI_DR);
+    dmaMsgRx.destAddr = (msg->rbuf == NULL) ? tmpBuf : (uintptr_t)(LOS_PaddrQuery(msg->rbuf));
+    dmaMsgRx.transLen = msg->len;
+    dmaMsgRx.transType = TRASFER_TYPE_P2M;
+    dmaMsgRx.cb = Pl022DmaCallBack;
+    dmaMsgRx.para = &rxEvent;
+    dmaMsgRx.srcWidth = dmaMsgRx.destWidth = Pl022ToByteWidth(pl022->bitsPerWord);
+
+    dmaMsgTx.srcAddr = (msg->wbuf == NULL) ? tmpBuf : (uintptr_t)(LOS_PaddrQuery(msg->wbuf));
+    dmaMsgTx.destAddr = (uintptr_t)(pl022->phyBase + REG_SPI_DR);
+    dmaMsgTx.transLen = msg->len;
+    dmaMsgTx.transType = TRASFER_TYPE_M2P;
+    dmaMsgTx.cb = NULL;
+    dmaMsgTx.para = NULL;
+    dmaMsgTx.srcWidth = dmaMsgTx.destWidth = dmaMsgRx.srcWidth;
+
+    ret = DmaCntlrTransfer(GetDmaCntlr(), &dmaMsgRx); 
+    if (ret != HDF_SUCCESS) {
+        HDF_LOGE("%s: rx dma trans fail : %d", __func__, ret);
+        goto __OUT;
+    }
+    ret = DmaCntlrTransfer(GetDmaCntlr(), &dmaMsgTx); 
+    if (ret != HDF_SUCCESS) {
+        HDF_LOGE("%s: tx dma trans fail : %d", __func__, ret);
+        goto __OUT;
+    }
+ 
+#ifdef SPI_HI35XX_DEBUG
+    HDF_LOGD("%s: trying to wait dma callback...", __func__);
+#endif
+    (void)OsalSemWait(&rxEvent.sem, HDF_WAIT_FOREVER);
+    ret = (rxEvent.retValue != HDF_SUCCESS) ? rxEvent.retValue : ret;
+
+__OUT:
+    (void)OsalSemDestroy(&rxEvent.sem);
+    Pl022RleaseBufPhy(tmpBuf);
+    return ret;
+}
+
 static int32_t Pl022TransferOneMessage(struct Pl022 *pl022, struct SpiMsg *msg)
 {
     int32_t ret;
 
-    if (msg->speed != 0) {
-        pl022->speed = msg->speed;
-    } else {
-        pl022->speed = DEFAULT_SPEED;
-    }
+    pl022->speed = (msg->speed) == 0 ? DEFAULT_SPEED : msg->speed;
+
     ret = Pl022Config(pl022);
-    if (ret != 0) {
-        return ret;
-    }
-    ret = Pl022SetCs(pl022, pl022->curCs, SPI_CS_ACTIVE);
     if (ret != 0) {
         return ret;
     }
@@ -432,7 +587,13 @@ static int32_t Pl022TransferOneMessage(struct Pl022 *pl022, struct SpiMsg *msg)
     if (ret != 0) {
         return ret;
     }
-    if (pl022->bitsPerWord <= BITS_PER_WORD_EIGHT) {
+    ret = Pl022SetCs(pl022, pl022->curCs, SPI_CS_ACTIVE);
+    if (ret != 0) {
+        return ret;
+    }
+    if (pl022->transferMode == SPI_DMA_TRANSFER) {
+        ret = Pl022TxRxDma(pl022, msg);
+    } else if (pl022->bitsPerWord <= BITS_PER_WORD_EIGHT) {
         ret = Pl022TxRx8(pl022, msg);
     } else {
         ret = Pl022TxRx16(pl022, msg);
@@ -443,17 +604,22 @@ static int32_t Pl022TransferOneMessage(struct Pl022 *pl022, struct SpiMsg *msg)
     return ret;
 }
 
-int32_t Pl022Transfer(struct SpiCntlr *cntlr, struct SpiMsg *msg, uint32_t count)
+static int32_t Pl022Transfer(struct SpiCntlr *cntlr, struct SpiMsg *msg, uint32_t count)
 {
-    int ret = HDF_FAILURE;
+    int32_t ret = HDF_FAILURE;
     uint32_t i;
     struct Pl022 *pl022 = NULL;
     struct SpiDev *dev = NULL;
 
-    if (cntlr == NULL || cntlr->priv == NULL || msg == NULL || count == 0) {
+    if (cntlr == NULL || cntlr->priv == NULL) {
+        HDF_LOGE("%s: invalid controller", __func__);
+        return HDF_ERR_INVALID_OBJECT;
+    }
+    if (msg == NULL || (msg->rbuf == NULL && msg->wbuf == NULL) || count == 0) {
         HDF_LOGE("%s: invalid parameter", __func__);
         return HDF_ERR_INVALID_PARAM;
     }
+
     pl022 = (struct Pl022 *)cntlr->priv;
     dev = Pl022FindDeviceByCsNum(pl022, cntlr->curCs);
     if (dev == NULL) {
@@ -487,9 +653,9 @@ int32_t Pl022Close(struct SpiCntlr *cntlr)
     return HDF_SUCCESS;
 }
 
-static int Pl022Probe(struct Pl022 *pl022)
+static int32_t Pl022Probe(struct Pl022 *pl022)
 {
-    int ret;
+    int32_t ret;
 
     ret = SpiHwInitCfg(pl022);
     if (ret != 0) {
@@ -606,7 +772,9 @@ static int32_t SpiGetRegCfgFromHcs(struct Pl022 *pl022, const struct DeviceResou
         HDF_LOGE("%s: read regBase fail", __func__);
         return HDF_FAILURE;
     }
-    pl022->regBase = (void *)(uintptr_t)(HDF_IO_DEVICE_ADDR(tmp));
+    pl022->phyBase = (void *)(uintptr_t)(tmp);
+    pl022->regBase = HDF_IO_DEVICE_ADDR(pl022->phyBase);
+
     if (iface->GetUint32(node, "REG_CRG_SPI", &pl022->regCrg, 0) != HDF_SUCCESS) {
         HDF_LOGE("%s: read regCrg fail", __func__);
         return HDF_FAILURE;
@@ -636,9 +804,9 @@ static int32_t SpiGetRegCfgFromHcs(struct Pl022 *pl022, const struct DeviceResou
     return 0;
 }
 
-static int Pl022Init(struct SpiCntlr *cntlr, const struct HdfDeviceObject *device)
+static int32_t Pl022Init(struct SpiCntlr *cntlr, const struct HdfDeviceObject *device)
 {
-    int ret;
+    int32_t ret;
     struct Pl022 *pl022 = NULL;
 
     if (device->property == NULL) {
@@ -695,9 +863,9 @@ static int32_t HdfSpiDeviceBind(struct HdfDeviceObject *device)
     return (SpiCntlrCreate(device) == NULL) ? HDF_FAILURE : HDF_SUCCESS;
 }
 
-int32_t HdfSpiDeviceInit(struct HdfDeviceObject *device)
+static int32_t HdfSpiDeviceInit(struct HdfDeviceObject *device)
 {
-    int ret;
+    int32_t ret;
     struct SpiCntlr *cntlr = NULL;
 
     HDF_LOGI("%s: entry", __func__);
@@ -723,7 +891,7 @@ int32_t HdfSpiDeviceInit(struct HdfDeviceObject *device)
     return ret;
 }
 
-void HdfSpiDeviceRelease(struct HdfDeviceObject *device)
+static void HdfSpiDeviceRelease(struct HdfDeviceObject *device)
 {
     struct SpiCntlr *cntlr = NULL;
 

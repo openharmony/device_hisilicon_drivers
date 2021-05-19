@@ -73,9 +73,12 @@ extern "C" {
 #define SPI_CPSR_CPSDVSR         (0xff << 0)  /* even 2~254 */
 
 #define REG_SPI_IMSC             0x14
+#define SPI_ALL_IRQ_DISABLE      0x0
+#define SPI_ALL_IRQ_ENABLE       0xF
 #define REG_SPI_RIS              0x18
 #define REG_SPI_MIS              0x1c
 #define REG_SPI_ICR              0x20
+#define SPI_ALL_IRQ_CLEAR        0x3
 
 #define MAX_WAIT                 5000
 #define DEFAULT_SPEED            2000000
@@ -92,6 +95,20 @@ extern "C" {
 #define BITS_PER_WORD_EIGHT      8
 #define BITS_PER_WORD_MAX        16
 #define HDF_IO_DEVICE_ADDR       IO_DEVICE_ADDR
+
+#define SPI_DMA_CR               0x24
+#define TX_DMA_EN_SHIFT          1
+#define RX_DMA_EN_SHIFT          0            
+
+#define SPI_TX_FIFO_CR           0x28
+#define TX_INT_SIZE_SHIFT        3
+#define TX_DMA_BR_SIZE_SHIFT     0
+#define TX_DMA_BR_SIZE_MASK      0x7
+
+#define SPI_RX_FIFO_CR           0x2C
+#define RX_INT_SIZE_SHIFT        3
+#define RX_DMA_BR_SIZE_SHIFT     0
+#define RX_DMA_BR_SIZE_MASK      0x7
 
 #ifdef __cplusplus
 #if __cplusplus
