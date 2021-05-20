@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 HiSilicon (Shanghai) Technologies CO., LIMITED.
+ * Copyright (c) 2020-2021 HiSilicon (Shanghai) Technologies CO., LIMITED.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,18 +13,18 @@
  * limitations under the License.
  */
 
+#include "spi_hi35xx.h"
 #include "device_resource_if.h"
 #include "dmac_core.h"
 #include "hdf_base.h"
+#include "hdf_log.h"
 #include "los_vm_phys.h"
 #include "osal_io.h"
 #include "osal_mem.h"
 #include "osal_sem.h"
 #include "osal_time.h"
-#include "hdf_log.h"
 #include "spi_core.h"
 #include "spi_dev.h"
-#include "spi_hi35xx.h"
 
 #define HDF_LOG_TAG spi_hi35xx
 
