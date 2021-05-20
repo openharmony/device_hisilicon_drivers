@@ -26,7 +26,7 @@ ifeq ($(SOC_BOARD), ipcamera_hi3518ev300_liteos)
 endif
 
 HISILICON_DRIVERS_ROOT := $(LITEOSTOPDIR)/../../device/$(SOC_COMPANY)/drivers/
-HISILICON_DRIVERS_SOURCE_ROOT := $(LITEOSTOPDIR)/../../device/$(SOC_COMPANY)/drivers/huawei_proprietary/
+HISILICON_DRIVERS_SOURCE_ROOT := $(LITEOSTOPDIR)/../../device/$(SOC_COMPANY)/drivers/source/
 
 BUILD_FROM_SOURCE := $(shell if [ -d $(HISILICON_DRIVERS_SOURCE_ROOT) ]; then echo y; else echo n; fi)
 
