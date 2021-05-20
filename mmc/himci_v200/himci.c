@@ -48,7 +48,7 @@ static void HimciDumpRegs(struct HimciHost *host)
         HIMCI_READL((uintptr_t)host->base + MMC_IDINTEN), HIMCI_READL((uintptr_t)host->base + MMC_CARDTHRCTL));
     HDF_LOGE(": DDR_REG:  0x%04x | ENABLE_SHIFT : 0x%08x",
         HIMCI_READL((uintptr_t)host->base + MMC_EMMC_DDR_REG), HIMCI_READL((uintptr_t)host->base + MMC_ENABLE_SHIFT));
-    HDF_LOGE(": =============================================\n");
+    HDF_LOGE(": =============================================");
 }
 
 static void HimciSetEmmcDrvCap(struct MmcCntlr *cntlr)
@@ -56,10 +56,10 @@ static void HimciSetEmmcDrvCap(struct MmcCntlr *cntlr)
     uint32_t i, j, val;
     uint32_t *pinDrvCap = NULL;
     /*  clk   cmd   data0  data1  data2  data3 */
-    uint32_t emmcHs200Drv[] = {0x2b0, 0x1c0, 0x1c0, 0x1c0, 0x1c0, 0x1c0};
-    uint32_t emmcHsDrv[] = {0x6b0, 0x5e0, 0x5e0, 0x5e0, 0x5e0, 0x5e0};
-    uint32_t emmcDsDrv[] = {0x6b0, 0x5f0, 0x5f0, 0x5f0, 0x5f0, 0x5f0};
-    uint32_t emmcDs400kDrv[] = {0x6c0, 0x5f0, 0x5f0, 0x5f0, 0x5f0, 0x5f0};
+    uint32_t emmcHs200Drv[] = { 0x2b0, 0x1c0, 0x1c0, 0x1c0, 0x1c0, 0x1c0 };
+    uint32_t emmcHsDrv[] = { 0x6b0, 0x5e0, 0x5e0, 0x5e0, 0x5e0, 0x5e0 };
+    uint32_t emmcDsDrv[] = { 0x6b0, 0x5f0, 0x5f0, 0x5f0, 0x5f0, 0x5f0 };
+    uint32_t emmcDs400kDrv[] = { 0x6c0, 0x5f0, 0x5f0, 0x5f0, 0x5f0, 0x5f0 };
 
     if (cntlr->curDev->workPara.timing == BUS_TIMING_MMC_HS200) {
         pinDrvCap = emmcHs200Drv;
@@ -91,12 +91,12 @@ static void HimciSetSdDrvCap(struct MmcCntlr *cntlr)
     uint32_t i, j, val;
     uint32_t *pinDrvCap = NULL;
     /*  clk   cmd   data0  data1  data2  data3 */
-    uint32_t sdSdr104Drv[] = {0x290, 0x1c0, 0x1c0, 0x1c0, 0x1c0, 0x1c0};
-    uint32_t sdSdr50Drv[] = {0x290, 0x1c0, 0x1c0, 0x1c0, 0x1c0, 0x1c0};
-    uint32_t sdSdr25Drv[] = {0x6b0, 0x5d0, 0x5d0, 0x5d0, 0x5d0, 0x5d0};
-    uint32_t sdSdr12Drv[] = {0x6b0, 0x5e0, 0x5e0, 0x5e0, 0x5e0, 0x5e0};
-    uint32_t sdHsDrv[] = {0x6d0, 0x5f0, 0x5f0, 0x5f0, 0x5f0, 0x5f0};
-    uint32_t sdDsDrv[] = {0x6b0, 0x5e0, 0x5e0, 0x5e0, 0x5e0, 0x5e0};
+    uint32_t sdSdr104Drv[] = { 0x290, 0x1c0, 0x1c0, 0x1c0, 0x1c0, 0x1c0 };
+    uint32_t sdSdr50Drv[] = { 0x290, 0x1c0, 0x1c0, 0x1c0, 0x1c0, 0x1c0 };
+    uint32_t sdSdr25Drv[] = { 0x6b0, 0x5d0, 0x5d0, 0x5d0, 0x5d0, 0x5d0 };
+    uint32_t sdSdr12Drv[] = { 0x6b0, 0x5e0, 0x5e0, 0x5e0, 0x5e0, 0x5e0 };
+    uint32_t sdHsDrv[] = { 0x6d0, 0x5f0, 0x5f0, 0x5f0, 0x5f0, 0x5f0 };
+    uint32_t sdDsDrv[] = { 0x6b0, 0x5e0, 0x5e0, 0x5e0, 0x5e0, 0x5e0 };
 
     if (cntlr->curDev->workPara.timing == BUS_TIMING_UHS_SDR104) {
         pinDrvCap = sdSdr104Drv;
@@ -130,12 +130,12 @@ static void HimciSetSdioDrvCap(struct MmcCntlr *cntlr)
     uint32_t i, j, val;
     uint32_t *pinDrvCap = NULL;
     /*  clk   cmd   data0  data1  data2  data3 */
-    uint32_t sdioSdr104Drv[] = {0x290, 0x1c0, 0x1c0, 0x1c0, 0x1c0, 0x1c0};
-    uint32_t sdioSdr50Drv[] = {0x290, 0x1c0, 0x1c0, 0x1c0, 0x1c0, 0x1c0};
-    uint32_t sdioSdr25Drv[] = {0x6b0, 0x5d0, 0x5d0, 0x5d0, 0x5d0, 0x5d0};
-    uint32_t sdioSdr12Drv[] = {0x6b0, 0x5e0, 0x5e0, 0x5e0, 0x5e0, 0x5e0};
-    uint32_t sdioHsDrv[] = {0x6d0, 0x5f0, 0x5f0, 0x5f0, 0x5f0, 0x5f0};
-    uint32_t sdioDsDrv[] = {0x6b0, 0x5e0, 0x5e0, 0x5e0, 0x5e0, 0x5e0};
+    uint32_t sdioSdr104Drv[] = { 0x290, 0x1c0, 0x1c0, 0x1c0, 0x1c0, 0x1c0 };
+    uint32_t sdioSdr50Drv[] = { 0x290, 0x1c0, 0x1c0, 0x1c0, 0x1c0, 0x1c0 };
+    uint32_t sdioSdr25Drv[] = { 0x6b0, 0x5d0, 0x5d0, 0x5d0, 0x5d0, 0x5d0 };
+    uint32_t sdioSdr12Drv[] = { 0x6b0, 0x5e0, 0x5e0, 0x5e0, 0x5e0, 0x5e0 };
+    uint32_t sdioHsDrv[] = { 0x6d0, 0x5f0, 0x5f0, 0x5f0, 0x5f0, 0x5f0 };
+    uint32_t sdioDsDrv[] = { 0x6b0, 0x5e0, 0x5e0, 0x5e0, 0x5e0, 0x5e0 };
 
     if (cntlr->curDev->workPara.timing == BUS_TIMING_UHS_SDR104) {
         pinDrvCap = sdioSdr104Drv;
@@ -183,7 +183,7 @@ static uint32_t HimciClkDiv(struct HimciHost *host, uint32_t clock)
 {
     uint32_t clkDiv = 0;
     uint32_t val, hostClk, debounce;
-    uint32_t regs[] = {PERI_CRG82, PERI_CRG88, PERI_CRG85};
+    uint32_t regs[] = { PERI_CRG82, PERI_CRG88, PERI_CRG85 };
 
     val = HIMCI_READL(regs[host->id]);
     val &= ~(HIMCI_CLK_SEL_MASK);
@@ -1157,7 +1157,7 @@ static bool HimciDevBusy(struct MmcCntlr *cntlr)
 static void HimciEdgeTuningEnable(struct HimciHost *host)
 {
     uint32_t val;
-    uint32_t regs[] = {PERI_CRG83, PERI_CRG89, PERI_CRG86};
+    uint32_t regs[] = { PERI_CRG83, PERI_CRG89, PERI_CRG86 };
 
     if (host->id >= MMC_CNTLR_NR_MAX) {
         HDF_LOGE("host%d id error", host->id);
@@ -1185,7 +1185,7 @@ static void HimciSetSapPhase(struct HimciHost *host, uint32_t phase)
 static void HimciEdgeTuningDisable(struct HimciHost *host)
 {
     uint32_t val;
-    uint32_t regs[] = {PERI_CRG83, PERI_CRG89, PERI_CRG86};
+    uint32_t regs[] = { PERI_CRG83, PERI_CRG89, PERI_CRG86 };
 
     if (host->id >= MMC_CNTLR_NR_MAX) {
         HDF_LOGE("host%d id error", host->id);
@@ -1256,7 +1256,7 @@ static void HimciTuningFeedback(struct MmcCntlr *cntlr)
 static uint32_t HimciGetSapDllTaps(struct HimciHost *host)
 {
     uint32_t val;
-    uint32_t regs[] = {PERI_CRG84, PERI_CRG90, PERI_CRG87};
+    uint32_t regs[] = { PERI_CRG84, PERI_CRG90, PERI_CRG87 };
 
     if (host->id >= MMC_CNTLR_NR_MAX) {
         HDF_LOGE("host%d id error", host->id);
@@ -1270,7 +1270,7 @@ static uint32_t HimciGetSapDllTaps(struct HimciHost *host)
 static void HimciSetDllElement(struct HimciHost *host, uint32_t element)
 {
     uint32_t val;
-    uint32_t regs[] = {PERI_CRG83, PERI_CRG89, PERI_CRG86};
+    uint32_t regs[] = { PERI_CRG83, PERI_CRG89, PERI_CRG86 };
 
     if (host->id >= MMC_CNTLR_NR_MAX) {
         HDF_LOGE("host%d id error", host->id);

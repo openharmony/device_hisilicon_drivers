@@ -602,7 +602,7 @@ _END:
 void SdhciResetDll(struct SdhciHost *host)
 {
     uint32_t reg, value;
-    uint32_t cfgArray[] = {PERI_CRG125, PERI_CRG139};
+    uint32_t cfgArray[] = { PERI_CRG125, PERI_CRG139 };
 
     if (host->hostId >= SDHCI_MAX_HOST_NUM) {
         return;
@@ -618,7 +618,7 @@ static uint32_t SdhciSelectClock(struct SdhciHost *host, uint32_t clock)
 {
     uint32_t reg, realClock, value;
     uint32_t temp = 0;
-    uint32_t cfgArray[] = {PERI_CRG125, PERI_CRG139};
+    uint32_t cfgArray[] = { PERI_CRG125, PERI_CRG139 };
 
     if (host->hostId >= SDHCI_MAX_HOST_NUM) {
         HDF_LOGE("host id=%d is not supported!", host->hostId);
@@ -669,7 +669,7 @@ static uint32_t SdhciSelectClock(struct SdhciHost *host, uint32_t clock)
 static void SdhciSetDrvPhase(uint32_t id, uint32_t phase)
 {
     uint32_t value;
-    uint32_t drv[] = {PERI_CRG127, PERI_CRG136};
+    uint32_t drv[] = { PERI_CRG127, PERI_CRG136 };
 
     if (id >= SDHCI_MAX_HOST_NUM) {
         return;
@@ -718,7 +718,7 @@ static void SdhciSetIodriver(uint32_t offset, uint32_t pull, uint32_t sr, uint32
 static void SdhciSetSdiodriver(struct SdhciHost *host)
 {
     uint32_t i, count;
-    uint32_t dataRegs[] = {REG_CTRL_SDIO_DATA0, REG_CTRL_SDIO_DATA1, REG_CTRL_SDIO_DATA2, REG_CTRL_SDIO_DATA3};
+    uint32_t dataRegs[] = { REG_CTRL_SDIO_DATA0, REG_CTRL_SDIO_DATA1, REG_CTRL_SDIO_DATA2, REG_CTRL_SDIO_DATA3 };
 
     count = sizeof(dataRegs) / sizeof(dataRegs[0]);
     if (host->mmc->caps.bits.cap4Bit == 0) {
@@ -735,7 +735,7 @@ static void SdhciSetSdiodriver(struct SdhciHost *host)
 static void SdhciSetSdDriver(struct SdhciHost *host, enum MmcBusTiming timing)
 {
     uint32_t i, count;
-    uint32_t dataRegs[] = {REG_CTRL_SD_DATA0, REG_CTRL_SD_DATA1, REG_CTRL_SD_DATA2, REG_CTRL_SD_DATA3};
+    uint32_t dataRegs[] = { REG_CTRL_SD_DATA0, REG_CTRL_SD_DATA1, REG_CTRL_SD_DATA2, REG_CTRL_SD_DATA3 };
 
     count = sizeof(dataRegs) / sizeof(dataRegs[0]);
     if (host->mmc->caps.bits.cap4Bit == 0) {
@@ -773,7 +773,7 @@ static void SdhciSetEmmcCtrl(struct SdhciHost *host)
 static void SdhciSetEmmcDriver(struct SdhciHost *host, enum MmcBusTiming timing)
 {
     uint32_t i, count;
-    uint32_t dataRegs[] = {REG_CTRL_EMMC_DATA0, REG_CTRL_EMMC_DATA1, REG_CTRL_EMMC_DATA2, REG_CTRL_EMMC_DATA3};
+    uint32_t dataRegs[] = { REG_CTRL_EMMC_DATA0, REG_CTRL_EMMC_DATA1, REG_CTRL_EMMC_DATA2, REG_CTRL_EMMC_DATA3 };
 
     count = sizeof(dataRegs) / sizeof(dataRegs[0]);
     switch (timing) {
@@ -1279,7 +1279,7 @@ static void SdhciWaitDrvDllLock(uint32_t id)
 static void SdhciEnableSamplDll(uint32_t id)
 {
     uint32_t val;
-    uint32_t offset[] = {PERI_CRG125, PERI_CRG139};
+    uint32_t offset[] = { PERI_CRG125, PERI_CRG139 };
 
     if (id >= (sizeof(offset) / sizeof(offset[0]))) {
         return;
@@ -1310,7 +1310,7 @@ static void SdhciPreTune(struct SdhciHost *host)
 static void SdhciEnableEdgeTune(struct SdhciHost *host)
 {
     uint32_t val;
-    uint32_t offset[] = {PERI_CRG126, PERI_CRG135};
+    uint32_t offset[] = { PERI_CRG126, PERI_CRG135 };
 
     if (host->hostId >= (sizeof(offset) / sizeof(offset[0]))) {
         return;
@@ -1326,7 +1326,7 @@ static void SdhciEnableEdgeTune(struct SdhciHost *host)
 
 void SdhciWaitSamplDllReady(uint32_t id)
 {
-    uint32_t offset[] = {PERI_SD_SAMPL_DLL_STATUS, PERI_SDIO_SAMPL_DLL_STATUS};
+    uint32_t offset[] = { PERI_SD_SAMPL_DLL_STATUS, PERI_SDIO_SAMPL_DLL_STATUS };
     uint32_t i, val;
 
     if (id >= (sizeof(offset) / sizeof(offset[0]))) {
