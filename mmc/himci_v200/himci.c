@@ -1181,7 +1181,6 @@ static void HimciSetSapPhase(struct HimciHost *host, uint32_t phase)
     HIMCI_WRITEL(val, (uintptr_t)host->base + MMC_UHS_REG_EXT);
 }
 
-
 static void HimciEdgeTuningDisable(struct HimciHost *host)
 {
     uint32_t val;
@@ -1219,7 +1218,6 @@ static int32_t HimciSendTuning(struct MmcCntlr *cntlr, uint32_t opcode)
     return err;
 }
 
-/* reset MMC host controler */
 static void HimciSysReset(struct HimciHost *host)
 {
     uint32_t value;
