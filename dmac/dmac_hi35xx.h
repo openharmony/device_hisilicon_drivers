@@ -40,7 +40,7 @@ enum HiDmacPeriphWidth {
     PERI_MODE_64BIT = 3,
 };
 
-/* UART ADDRESS INFO*/
+/* UART ADDRESS INFO */
 #define UART0_RX_ADDR                  (UART0_REG_BASE + 0x0)
 #define UART0_TX_ADDR                  (UART0_REG_BASE + 0x0)
 #define UART1_RX_ADDR                  (UART1_REG_BASE + 0x0)
@@ -48,7 +48,7 @@ enum HiDmacPeriphWidth {
 #define UART2_RX_ADDR                  (UART2_REG_BASE + 0x0)
 #define UART2_TX_ADDR                  (UART2_REG_BASE + 0x0)
 
-/* I2C ADDRESS INFO*/
+/* I2C ADDRESS INFO */
 #define I2C0_TX_FIFO                   (I2C0_REG_BASE + 0x20) 
 #define I2C0_RX_FIFO                   (I2C0_REG_BASE + 0x24) 
 #define I2C1_TX_FIFO                   (I2C1_REG_BASE + 0x20) 
@@ -56,7 +56,7 @@ enum HiDmacPeriphWidth {
 #define I2C2_TX_FIFO                   (I2C2_REG_BASE + 0x20) 
 #define I2C2_RX_FIFO                   (I2C2_REG_BASE + 0x24) 
 
-/* SPI ADDRESS INFO*/
+/* SPI ADDRESS INFO */
 #define SPI0_RX_FIFO                   (0x120c0000 + 0x8)
 #define SPI0_TX_FIFO                   (0x120c0000 + 0x8)
 #define SPI1_RX_FIFO                   (0x120c1000 + 0x8)

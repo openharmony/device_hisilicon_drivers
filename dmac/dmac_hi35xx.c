@@ -7,23 +7,24 @@
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
-#include "los_hw.h"
-#include "los_hwi.h"
-#include "los_vm_phys.h"
+#include "dmac_hi35xx.h"
 #include "device_resource_if.h"
+#include "dmac_core.h"
 #include "hdf_device_desc.h"
 #include "hdf_dlist.h"
 #include "hdf_log.h"
+#include "los_hw.h"
+#include "los_hwi.h"
+#include "los_vm_phys.h"
 #include "osal_io.h"
 #include "osal_mem.h"
 #include "osal_time.h"
-#include "dmac_core.h"
-#include "dmac_hi35xx.h"
 
 #define HDF_LOG_TAG dmac_hi35xx
 
@@ -208,6 +209,10 @@ static inline void HiDmacDisable(struct DmaCntlr *cntlr, uint16_t channel)
     }
 }
 
+
+#define HIDMAC_32BITS_MASK  0xFFFFFFFF
+#define HIDMAC_32BITS_SHIFT 32
+
 static int32_t HiDmacStartM2M(struct DmaCntlr *cntlr, struct DmacChanInfo *chanInfo,
     uintptr_t psrc, uintptr_t pdst, size_t len)
 {
@@ -220,16 +225,18 @@ static int32_t HiDmacStartM2M(struct DmaCntlr *cntlr, struct DmacChanInfo *chanI
         return HDF_ERR_INVALID_PARAM;
     }
 
-    OSAL_WRITEL(psrc & 0xFFFFFFFF, cntlr->remapBase + HIDMAC_CX_SRC_OFFSET_L(chanInfo->channel));
+    OSAL_WRITEL(psrc & HIDMAC_32BITS_MASK, cntlr->remapBase + HIDMAC_CX_SRC_OFFSET_L(chanInfo->channel));
 #ifdef LOSCFG_AARCH64
-    OSAL_WRITEL((psrc >> 32) & 0xFFFFFFFF, cntlr->remapBase + HIDMAC_CX_SRC_OFFSET_H(chanInfo->channel));
+    OSAL_WRITEL((psrc >> HIDMAC_32BITS_SHIFT) & HIDMAC_32BITS_MASK,
+        cntlr->remapBase + HIDMAC_CX_SRC_OFFSET_H(chanInfo->channel));
 #else
     OSAL_WRITEL(0, cntlr->remapBase + HIDMAC_CX_SRC_OFFSET_H(chanInfo->channel));
 #endif
 
-    OSAL_WRITEL(pdst & 0xFFFFFFFF, cntlr->remapBase + HIDMAC_CX_DST_OFFSET_L(chanInfo->channel));
+    OSAL_WRITEL(pdst & HIDMAC_32BITS_MASK, cntlr->remapBase + HIDMAC_CX_DST_OFFSET_L(chanInfo->channel));
 #ifdef LOSCFG_AARCH64
-    OSAL_WRITEL((pdst >> 32) & 0xFFFFFFFF, cntlr->remapBase + HIDMAC_CX_DST_OFFSET_H(chanInfo->channel));
+    OSAL_WRITEL((pdst >> HIDMAC_32BITS_SHIFT) & HIDMAC_32BITS_MASK,
+        cntlr->remapBase + HIDMAC_CX_DST_OFFSET_H(chanInfo->channel));
 #else
     OSAL_WRITEL(0, cntlr->remapBase + HIDMAC_CX_DST_OFFSET_H(chanInfo->channel));
 #endif
@@ -254,29 +261,26 @@ static int32_t HiDmacStartLli(struct DmaCntlr *cntlr, struct DmacChanInfo *chanI
     }
     plli = chanInfo->lli;
 
-    // low 32 bits
-    OSAL_WRITEL(plli->srcAddr & 0xFFFFFFFF, cntlr->remapBase + HIDMAC_CX_SRC_OFFSET_L(chanInfo->channel));
+    OSAL_WRITEL(plli->srcAddr & HIDMAC_32BITS_MASK, cntlr->remapBase + HIDMAC_CX_SRC_OFFSET_L(chanInfo->channel));
 #ifdef LOSCFG_AARCH64
-    //high 32 bits
-    OSAL_WRITEL((plli->srcAddr >> 32) & 0xFFFFFFFF, cntlr->remapBase + HIDMAC_CX_SRC_OFFSET_H(chanInfo->channel)); 
+    OSAL_WRITEL((plli->srcAddr >> HIDMAC_32BITS_SHIFT) & HIDMAC_32BITS_MASK,
+        cntlr->remapBase + HIDMAC_CX_SRC_OFFSET_H(chanInfo->channel)); 
 #else
     OSAL_WRITEL(0, cntlr->remapBase + HIDMAC_CX_SRC_OFFSET_H(chanInfo->channel)); 
 #endif
 
-    // low 32 bits
-    OSAL_WRITEL(plli->destAddr & 0xFFFFFFFF, cntlr->remapBase + HIDMAC_CX_DST_OFFSET_L(chanInfo->channel));
+    OSAL_WRITEL(plli->destAddr & HIDMAC_32BITS_MASK, cntlr->remapBase + HIDMAC_CX_DST_OFFSET_L(chanInfo->channel));
 #ifdef LOSCFG_AARCH64
-    //high 32 bits
-    OSAL_WRITEL((plli->destAddr >> 32) & 0xFFFFFFFF, cntlr->remapBase + HIDMAC_CX_DST_OFFSET_H(chanInfo->channel)); 
+    OSAL_WRITEL((plli->destAddr >> HIDMAC_32BITS_SHIFT) & HIDMAC_32BITS_MASK,
+        cntlr->remapBase + HIDMAC_CX_DST_OFFSET_H(chanInfo->channel)); 
 #else
     OSAL_WRITEL(0, cntlr->remapBase + HIDMAC_CX_DST_OFFSET_H(chanInfo->channel)); 
 #endif
 
-    // low 32 bits
-    OSAL_WRITEL(plli->nextLli & 0xFFFFFFFF, cntlr->remapBase + HIDMAC_CX_LLI_OFFSET_L(chanInfo->channel));
+    OSAL_WRITEL(plli->nextLli & HIDMAC_32BITS_MASK, cntlr->remapBase + HIDMAC_CX_LLI_OFFSET_L(chanInfo->channel));
 #ifdef LOSCFG_AARCH64
-    // high 32 bits
-    OSAL_WRITEL((plli->nextLli >> 32) & 0xFFFFFFFF, cntlr->remapBase + HIDMAC_CX_LLI_OFFSET_H(chanInfo->channel));
+    OSAL_WRITEL((plli->nextLli >> HIDMAC_32BITS_SHIFT) & HIDMAC_32BITS_MASK,
+        cntlr->remapBase + HIDMAC_CX_LLI_OFFSET_H(chanInfo->channel));
 #else
     OSAL_WRITEL(0, cntlr->remapBase + HIDMAC_CX_LLI_OFFSET_H(chanInfo->channel));
 #endif
@@ -440,7 +444,8 @@ static int32_t HiDmacBind(struct HdfDeviceObject *device)
     return HDF_SUCCESS;
 }
 
-static int32_t HiDmacInit(struct HdfDeviceObject *device) {
+static int32_t HiDmacInit(struct HdfDeviceObject *device)
+{
     int32_t ret;
     struct DmaCntlr *cntlr = NULL;
 
