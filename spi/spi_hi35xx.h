@@ -74,9 +74,11 @@ extern "C" {
 
 #define REG_SPI_IMSC             0x14
 #define SPI_ALL_IRQ_DISABLE      0x0
-#define SPI_ALL_IRQ_ENABLE       0xF
+#define SPI_ALL_IRQ_ENABLE       0x5
 #define REG_SPI_RIS              0x18
 #define REG_SPI_MIS              0x1c
+#define SPI_RX_INTR_MASK         (0x1 << 2)
+
 #define REG_SPI_ICR              0x20
 #define SPI_ALL_IRQ_CLEAR        0x3
 
@@ -107,6 +109,7 @@ extern "C" {
 
 #define SPI_RX_FIFO_CR           0x2C
 #define RX_INT_SIZE_SHIFT        3
+#define RX_INT_SIZE_MASK         0x7
 #define RX_DMA_BR_SIZE_SHIFT     0
 #define RX_DMA_BR_SIZE_MASK      0x7
 
