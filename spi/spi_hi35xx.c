@@ -182,7 +182,7 @@ static void Pl022ConfigDma(struct Pl022 *pl022)
 
 #define RX_INT_SIZE_VALUE      0x6
 #define RX_INT_FIFO_LEVEL      (256 - 128)
-#define RX_INT_WAIT_TIMEOUT    (1000) // ms
+#define RX_INT_WAIT_TIMEOUT    1000 // ms
 
 static void Pl022ConfigIrq(struct Pl022 *pl022)
 {
@@ -223,7 +223,7 @@ static int32_t Pl022Config(struct Pl022 *pl022)
     }
     /* compute spi speed, speed=clk/(cpsdvsr*(scr+1)) */
     tmp = (pl022->clkRate) / (pl022->speed);
-    cpsdvsr = (tmp < CPSDVSR_MIN) ? CPSDVSR_MIN : (tmp <= CPSDVSR_MAX) ? (tmp &(~0x1)) : CPSDVSR_MAX;
+    cpsdvsr = (tmp < CPSDVSR_MIN) ? CPSDVSR_MIN : (tmp <= CPSDVSR_MAX) ? (tmp & (~0x1)) : CPSDVSR_MAX;
     scr = (tmp < CPSDVSR_MIN) ? 0 : (tmp <= CPSDVSR_MAX);
 
     /* config SPICPSR register */
@@ -364,7 +364,7 @@ static int32_t Pl022TxRx(const struct Pl022 *pl022, const struct SpiMsg *msg)
         }
 
         Pl022ReadFifo(pl022, rx, tmpLen);
-        rx = (rx == NULL) ? NULL : rx + tmpLen;
+        rx = (rx == NULL) ? NULL : (rx + tmpLen);
     }
     return 0;
 }
