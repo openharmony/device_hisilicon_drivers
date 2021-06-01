@@ -11,9 +11,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import("//build/lite/config/component/lite_component.gni")
+if (defined(ohos_lite)) {
+  import("//build/lite/config/component/lite_component.gni")
+} else {
+  import("//build/ohos.gni")
+}
 
-copy("wifi_firmware") {
-  sources = [ "./hi3881" ]
-  outputs = [ "$root_out_dir/vendor/firmware/hi3881" ]
+if (defined(ohos_lite)) {
+  copy("wifi_firmware") {
+    sources = [ "./hi3881" ]
+    outputs = [ "$root_out_dir/vendor/firmware/hi3881" ]
+  }
+} else {
+  ohos_prebuilt_etc("wifi_cfg") {
+    source = "hi3881/wifi_cfg"
+    module_install_dir = "firmware/hi3881"
+    install_images = [ "vendor" ]
+    part_name = "hdf"
+  }
+  ohos_prebuilt_etc("wifi_fw_bin") {
+    source = "hi3881/hi3881_fw.bin"
+    module_install_dir = "firmware/hi3881"
+    install_images = [ "vendor" ]
+    part_name = "hdf"
+  }
+  group("wifi_firmware") {
+    deps = [
+      ":wifi_cfg",
+      ":wifi_fw_bin",
+    ]
+  }
 }

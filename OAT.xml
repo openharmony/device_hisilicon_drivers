@@ -61,13 +61,16 @@ Note:If the text contains special characters, please escape them according to th
             <policy name="projectPolicy" desc="">
                 <policyitem type="license" name="EULA" path=".*" desc="End User License Agreement"/>
                 <policyitem type="copyright" name="HiSilicon (Shanghai) Technologies CO.," path=".*" rule="may" group="defaultGroup" filefilter="copyrightPolicyFilter" desc="hisi codes"/>
+                <policyitem type="license" name="GPL-2.0+" path="wifi/driver/core/.*" desc="Kernel space code"/>
+                <policyitem type="license" name="GPL-2.0+" path="wifi/driver/hi3881/.*" desc="Kernel space code"/>
             </policy>
         </policylist>
         <filefilterlist>
             <filefilter name="defaultFilter" desc="Files not to check">
                 <filteritem type="filename" name="LICENSE" desc="End User License Agreement"/>
                 <filteritem type="filename" name="*.lds|*.pod"/>
-                <filteritem type="filename" name="*.a|*.d|*.o|*.cmd|*.hcb|*.swp"/>
+                <filteritem type="filename" name="*.a|*.d|*.o|*.cmd|*.hcb|*.swp|*.rules"/>
+                <filteritem type="filepath" name="firmware/common/wlan/hi3881/wifi_cfg" desc="WLAN fixed-format configuration"/>
                 <filteritem type="filepath" name="dir name underproject/.*" desc="Describe the reason for filtering scan results"/>
             </filefilter>
             <filefilter name="defaultPolicyFilter" desc="Filters for compatibility，license header policies">
@@ -91,7 +94,7 @@ Note:If the text contains special characters, please escape them according to th
                 <filteritem type="filepath" name="dir name underproject/.*" desc="Describe the reason for filtering scan results"/>
             </filefilter>
             <filefilter name="binaryFileTypePolicyFilter" desc="Filters for binary file policies" >
-                <filteritem type="filepath" name="dir name underproject/.*" desc="Describe the reason for filtering scan results"/>
+                <filteritem type="filepath" name="firmware/common/wlan/hi3881/hi3881_fw.bin" desc="HiSilicon Self-developed"/>
             </filefilter>
         </filefilterlist>
     </oatconfig>
