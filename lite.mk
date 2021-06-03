@@ -94,9 +94,7 @@ endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_DMAC), y)
     LITEOS_BASELIB += -lhdf_dmac
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/dmac
-endif
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/dmac
 endif
 
 ifeq ($(BUILD_FROM_SOURCE), y)
