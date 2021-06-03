@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 HiSilicon (Shanghai) Technologies CO., LIMITED.
+ * Copyright (c) 2020-2021 HiSilicon (Shanghai) Technologies CO., LIMITED.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -73,9 +73,14 @@ extern "C" {
 #define SPI_CPSR_CPSDVSR         (0xff << 0)  /* even 2~254 */
 
 #define REG_SPI_IMSC             0x14
+#define SPI_ALL_IRQ_DISABLE      0x0
+#define SPI_ALL_IRQ_ENABLE       0x5
 #define REG_SPI_RIS              0x18
 #define REG_SPI_MIS              0x1c
+#define SPI_RX_INTR_MASK         (0x1 << 2)
+
 #define REG_SPI_ICR              0x20
+#define SPI_ALL_IRQ_CLEAR        0x3
 
 #define MAX_WAIT                 5000
 #define DEFAULT_SPEED            2000000
@@ -92,6 +97,21 @@ extern "C" {
 #define BITS_PER_WORD_EIGHT      8
 #define BITS_PER_WORD_MAX        16
 #define HDF_IO_DEVICE_ADDR       IO_DEVICE_ADDR
+
+#define SPI_DMA_CR               0x24
+#define TX_DMA_EN_SHIFT          1
+#define RX_DMA_EN_SHIFT          0            
+
+#define SPI_TX_FIFO_CR           0x28
+#define TX_INT_SIZE_SHIFT        3
+#define TX_DMA_BR_SIZE_SHIFT     0
+#define TX_DMA_BR_SIZE_MASK      0x7
+
+#define SPI_RX_FIFO_CR           0x2C
+#define RX_INT_SIZE_SHIFT        3
+#define RX_INT_SIZE_MASK         0x7
+#define RX_DMA_BR_SIZE_SHIFT     0
+#define RX_DMA_BR_SIZE_MASK      0x7
 
 #ifdef __cplusplus
 #if __cplusplus
