@@ -37,7 +37,6 @@
 #include "wal_event_msg.h"
 #include "wal_customize.h"
 #include "hcc_hmac_if.h"
-#include "plat_firmware.h"
 #include "wal_main.h"
 
 #ifdef __cplusplus
@@ -273,11 +272,11 @@ hi_void hisi_wifi_resume_process(hi_void)
     作    者   : HiSilicon
     修改内容   : 新生成函数
 **************************************************************************** */
-hi_u32 hi_wifi_host_init(hi_void)
+hi_u32 hi_wifi_host_init(struct BusDev *bus)
 {
     hi_u32 ret;
     g_wifi_exit_stop_flag = HI_FALSE;
-    ret = hcc_hmac_init();
+    ret = hcc_hmac_init(bus);
     if (ret != HI_SUCCESS) {
         oam_error_log1(0, 0, "hi_wifi_host_init: hcc_hmac_init return error code: %d", ret);
         goto hcc_hmac_init_fail;

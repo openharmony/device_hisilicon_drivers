@@ -53,18 +53,9 @@ ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_WATCHDOG), y)
     LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/watchdog
 endif
 
-ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_SDIO), y)
-    LITEOS_BASELIB += -lhdf_sdio
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/sdio
-endif
-endif
-
-ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_EMMC), y)
-    LITEOS_BASELIB += -lhdf_emmc
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/emmc
-endif
+ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_MMC), y)
+    LITEOS_BASELIB += -lhdf_mmc
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/mmc
 endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_RTC), y)
@@ -94,7 +85,9 @@ endif
 
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_DMAC), y)
     LITEOS_BASELIB += -lhdf_dmac
-    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/dmac
+ifeq ($(BUILD_FROM_SOURCE), y)
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_SOURCE_ROOT)/dmac
+endif
 endif
 
 ifeq ($(BUILD_FROM_SOURCE), y)
@@ -112,19 +105,6 @@ ifeq ($(BUILD_FROM_SOURCE), y)
     LITEOS_HIETH_SF_INCLUDE += -I $(HISILICON_DRIVERS_SOURCE_ROOT)/hieth-sf/include
 endif
     LITEOS_HIETH_SF_INCLUDE += -I $(HISILICON_DRIVERS_ROOT)/include/hieth-sf/include
-endif
-
-
-# mmc dirvers
-ifeq ($(LOSCFG_DRIVERS_MMC), y)
-    MMC_HOST_DIR := himci
-    LITEOS_BASELIB  += -lmmc
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS        += $(HISILICON_DRIVERS_SOURCE_ROOT)/mmc
-    LITEOS_MMC_INCLUDE += -I $(HISILICON_DRIVERS_SOURCE_ROOT)/mmc/include
-else
-    LITEOS_MMC_INCLUDE += -I $(HISILICON_DRIVERS_ROOT)/include/mmc/include
-endif
 endif
 
 # mtd drivers
@@ -171,15 +151,9 @@ endif
 # wifi dirvers
 ifeq ($(LOSCFG_DRIVERS_HDF_WIFI), y)
     LITEOS_BASELIB += -lhdf_vendor_wifi
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    +=  $(HISILICON_DRIVERS_SOURCE_ROOT)/wifi/driver
-endif
 
 ifeq ($(LOSCFG_DRIVERS_HI3881), y)
     LITEOS_BASELIB += -lhi3881
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS    +=  $(HISILICON_DRIVERS_SOURCE_ROOT)/wifi/driver/hi3881
-endif
 endif
 endif
 

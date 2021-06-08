@@ -556,7 +556,7 @@ hi_u32 hcc_hmac_tx_data_event(frw_event_mem_stru *event_mem, oal_netbuf_stru *ne
     作    者   : HiSilicon
     修改内容   : 新生成函数
 **************************************************************************** */
-hi_u32 hcc_hmac_init(hi_void)
+hi_u32 hcc_hmac_init(struct BusDev *bus)
 {
 #if (_PRE_MULTI_CORE_MODE != _PRE_MULTI_CORE_MODE_OFFLOAD_DMAC)
     hcc_hmac_rx_event_handle handle;
@@ -566,7 +566,7 @@ hi_u32 hcc_hmac_init(hi_void)
 
     return hcc_hmac_rx_event_register(&handle);
 #else
-    hi_u32 err_code = hcc_host_init();
+    hi_u32 err_code = hcc_host_init(bus);
     if (err_code != HI_SUCCESS) {
         oam_error_log1(0, 0, "hcc_host_init fail![%d]", err_code);
         return err_code;

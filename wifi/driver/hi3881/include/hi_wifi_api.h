@@ -25,6 +25,8 @@
 #ifndef __HI_WIFI_API_H__
 #define __HI_WIFI_API_H__
 
+#include "hdf_ibus_intf.h"
+#include "wifi_inc.h"
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -766,7 +768,7 @@ typedef unsigned int (*hi_wifi_report_tx_params_callback)(hi_wifi_report_tx_para
 * @see  NULL
 * @since Hi3881_V100R001C00
 */
-int hi_wifi_init(uint8_t max_port_count);
+int hi_wifi_init(uint8_t max_port_count, struct BusDev *bus);
 
 
 /* *
