@@ -127,7 +127,7 @@ hi_s32 wlan_power_on(hi_void)
 
     oam_warning_log0(0, 0, "wlan_power_on:: firmware download success");
     /* 注册SDIO中断入口函数 */
-    if (HI_SUCCESS != oal_channel_transfer_prepare(hcc_host_get_handler()->hi_channel)) {
+    if (HI_SUCCESS != oal_bus_transfer_prepare(hcc_host_get_handler()->bus)) {
         oam_error_log0(0, 0, "wlan_power_on:: channel transfer prepare fail");
         return -FAILURE;
     }

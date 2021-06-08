@@ -19,10 +19,8 @@
 include $(LITEOSTOPDIR)/config.mk
 include $(LITEOSTOPDIR)/../../drivers/adapter/khdf/liteos/lite.mk
 
-VENDOR_WIFI_ROOT = $(LITEOSTOPDIR)/../../device/hisilicon/drivers/huawei_proprietary/wifi
 HDM_WIFI_ROOT = $(LITEOSTOPDIR)/../../drivers/framework/model/network/wifi
-HDF_WIFI_PANELS_ROOT = $(VENDOR_WIFI_ROOT)/driver
-WIFI_DRIVER_DIR = $(HDF_WIFI_PANELS_ROOT)/hi3881
+WIFI_DRIVER_DIR = .
 
 MODULE_NAME := hi3881
 
@@ -38,9 +36,7 @@ WAL_PATH := $(WIFI_DRIVER_DIR)/wal/
 ADPATER_PATH := $(WIFI_DRIVER_DIR)/hdfadapt/
 ##################path of compile file :end###############
 
-LOCAL_INCLUDE = $(VENDOR_WIFI_ROOT)/core \
-                $(VENDOR_WIFI_ROOT)/kits \
-                $(HDM_WIFI_ROOT)/include \
+LOCAL_INCLUDE = $(HDM_WIFI_ROOT)/include \
                 $(HDM_WIFI_ROOT)/core \
                 $(HDM_WIFI_ROOT)/core/components/softap \
                 $(HDM_WIFI_ROOT)/core/components/sta \
@@ -48,8 +44,7 @@ LOCAL_INCLUDE = $(VENDOR_WIFI_ROOT)/core \
                 $(HDM_WIFI_ROOT)/platform/include \
                 $(HDM_WIFI_ROOT)/core/module \
                 $(HDM_WIFI_ROOT)/platform/include/qos \
-                $(WIFI_DRIVER_DIR)/linuxkpi/include \
-                $(HDF_WIFI_PANELS_ROOT)/core
+                $(WIFI_DRIVER_DIR)/linuxkpi/include
 
 CFG_LITEOS = y
 include $(WIFI_DRIVER_DIR)/env_config.mk

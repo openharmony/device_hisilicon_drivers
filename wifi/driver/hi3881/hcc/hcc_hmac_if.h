@@ -68,7 +68,7 @@ typedef struct {
   10 函数声明
 **************************************************************************** */
 /* 模块外部调用 */
-hi_u32 hcc_hmac_init(hi_void);
+hi_u32 hcc_hmac_init(struct BusDev *bus);
 hi_void hcc_hmac_exit(hi_void);
 hi_u32 hcc_hmac_tx_control_event(frw_event_mem_stru *event_mem, hi_u16 payload_len);
 hi_u32 hcc_hmac_tx_data_event(frw_event_mem_stru *event_mem, oal_netbuf_stru *netbuf, hi_bool mgmt);

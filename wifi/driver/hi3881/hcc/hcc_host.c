@@ -144,7 +144,7 @@ hi_void hcc_print_device_mem_info(hi_void)
 {
 #ifdef CONFIG_MMC
     hi_wifi_plat_pm_disable();
-    oal_channel_send_msg(g_hcc_host_handler->hi_channel, H2D_MSG_DEVICE_MEM_INFO);
+    oal_bus_send_msg(g_hcc_host_handler->bus, H2D_MSG_DEVICE_MEM_INFO);
 
     hi_wifi_plat_pm_enable();
 #endif
@@ -154,7 +154,7 @@ hi_void hcc_trigger_device_panic(hi_void)
 {
 #ifdef CONFIG_MMC
     hi_wifi_plat_pm_disable();
-    oal_channel_send_msg(g_hcc_host_handler->hi_channel, H2D_MSG_TEST);
+    oal_bus_send_msg(g_hcc_host_handler->bus, H2D_MSG_TEST);
     hi_wifi_plat_pm_enable();
 #endif
 }
@@ -413,7 +413,7 @@ static hi_s32 hcc_send_single_descr(hcc_handler_stru *hcc_handler, oal_netbuf_st
     OAL_REFERENCE(hcc_handler);
     oal_netbuf_list_head_init(&head_send);
     oal_netbuf_list_tail(&head_send, netbuf);
-    ret = oal_sdio_transfer_netbuf_list(hcc_handler->hi_channel, &head_send, SDIO_WRITE);
+    ret = oal_sdio_transfer_netbuf_list(hcc_handler->bus, &head_send, SDIO_WRITE);
     return ret;
 }
 
@@ -755,7 +755,7 @@ static hi_s32 hcc_send_data_packet(hcc_handler_stru *hcc_handler,
     /* add the assem descr buf */
     oal_netbuf_addlist(&head_send, descr_netbuf);
 
-    ret = oal_sdio_transfer_netbuf_list(hcc_handler->hi_channel, &head_send, SDIO_WRITE);
+    ret = oal_sdio_transfer_netbuf_list(hcc_handler->bus, &head_send, SDIO_WRITE);
 
 #ifdef _PRE_WLAN_FEATURE_AUTO_FREQ
     if (HI_NULL != g_pst_alg_process_func.p_auto_freq_count_func) {
@@ -907,8 +907,8 @@ hi_s32 hcc_host_proc_tx_queue_impl(oal_netbuf_head_stru *buffQueue, void *handle
         goto sdio_tx_exit;
     }
 
-    if (hcc_handler->hi_channel && hcc_handler->hi_channel->func) {
-        ret = oal_sdio_get_credit(hcc_handler->hi_channel, &priority_cnt);
+    if (hcc_handler->bus) {
+        ret = oal_sdio_get_credit(hcc_handler->bus, &priority_cnt);
         if (ret < 0) {
             hcc_tx_transfer_unlock(hcc_handler);
             hcc_clear_tx_queues(hcc_handler);
@@ -1155,13 +1155,13 @@ hi_s32 sdio_transfer_rx_handler(hi_void *data)
 
     oal_netbuf_head_init(&netbuf_head);
 
-    err_code = oal_sdio_build_rx_netbuf_list(hcc_handler->hi_channel, &netbuf_head);
+    err_code = oal_sdio_build_rx_netbuf_list(hcc_handler->bus, &netbuf_head);
     if (err_code != HI_SUCCESS) {
         oam_error_log1(0, 0, "sdio_transfer_rx_handler:: sdio_build_rx_netbuf_list failed[%d]", err_code);
         return err_code;
     }
 
-    err_code = oal_sdio_transfer_netbuf_list(hcc_handler->hi_channel, &netbuf_head, SDIO_READ);
+    err_code = oal_sdio_transfer_netbuf_list(hcc_handler->bus, &netbuf_head, SDIO_READ);
     if (err_code != HI_SUCCESS) {
         oal_netbuf_list_purge(&netbuf_head);
         oam_error_log1(0, 0, "sdio_transfer_rx_handler:: sdio_transfer_netbuf_list failed[%d]", err_code);
@@ -1291,13 +1291,13 @@ hi_void hcc_dev_flowctrl_on(hcc_handler_stru *hcc_handler, hi_u8 need_notify_dev
 
     if (need_notify_dev) {
         oam_info_log0(0, 0, "hcc_dev_flowctrl_on:: Host turn on dev flow ctrl");
-        oal_channel_send_msg(hcc_handler->hi_channel, H2D_MSG_FLOWCTRL_ON);
+        oal_bus_send_msg(hcc_handler->bus, H2D_MSG_FLOWCTRL_ON);
     }
 }
 
 hi_void hi_wifi_device_deinit(const hcc_handler_stru *hcc_handler)
 {
-    oal_channel_send_msg(hcc_handler->hi_channel, H2D_MSG_PM_WLAN_OFF);
+    oal_bus_send_msg(hcc_handler->bus, H2D_MSG_PM_WLAN_OFF);
 }
 
 hi_void hcc_dev_flowctrl_off(hcc_handler_stru *hcc_handler)
@@ -1328,20 +1328,21 @@ hi_s32 hcc_flow_off_callback(hi_void *data)
 
 hi_s32 hcc_message_register(const hcc_handler_stru *hcc_handler, hi_u8 msg, hcc_msg_rx cb, hi_void *data)
 {
-    return oal_channel_message_register(hcc_handler->hi_channel, msg, cb, data);
+    return oal_bus_message_register(hcc_handler->bus, msg, cb, data);
 }
 
 hi_void hcc_message_unregister(const hcc_handler_stru *hcc_handler, hi_u8 msg)
 {
-    oal_channel_message_unregister(hcc_handler->hi_channel, msg);
+    oal_bus_message_unregister(hcc_handler->bus, msg);
 }
 
 hi_s32 hcc_credit_update_callback(hi_void *data)
 {
     hi_u8 large_cnt;
     hcc_handler_stru *hcc_handler = (hcc_handler_stru *)data;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)hcc_handler->bus->priData.data;
 
-    large_cnt = hisdio_large_pkt_get(hcc_handler->hi_channel->sdio_extend->credit_info);
+    large_cnt = hisdio_large_pkt_get(hi_sdio->sdio_extend->credit_info);
     if (large_cnt == 0) {
         oam_info_log0(0, OAM_SF_PWR, "hcc_credit_update_callback:: credit updata zero!");
     }
@@ -1731,7 +1732,8 @@ static struct FlowControlOp g_flowControlOp = {
     .getRxPriorityId = HccGetRxPriorityId,
 };
 #endif
-hi_u32 hcc_host_init()
+
+hi_u32 hcc_host_init(struct BusDev *bus)
 {
 #ifdef _PRE_FEATURE_HCC_TASK
     hi_u32 err_code;
@@ -1759,13 +1761,14 @@ hi_u32 hcc_host_init()
     g_fcm->op = &g_flowControlOp;
 #endif
     hcc_handler->hdr_rever_max_len = HCC_HDR_RESERVED_MAX_LEN;
-    hcc_handler->hi_channel = oal_channel_init_module((hi_void *)hcc_handler);
-    if (hcc_handler->hi_channel == HI_NULL) {
+    bus->priData.data = (void *)oal_bus_init_module(bus, (hi_void *)hcc_handler);
+    if (bus->priData.data == HI_NULL) {
         oam_error_log0(0, 0, "hcc_host_init:: channel_init failed!");
         goto sdio_init_err;
     }
-
-    if (oal_channel_func_probe(hcc_handler->hi_channel)) {
+    bus->priData.release = oal_sdio_exit_module;
+    hcc_handler->bus = bus;
+    if (oal_bus_func_init(bus)) {
         oam_error_log0(0, 0, "hcc_host_init:: sdio_probe failed!");
         goto sdio_probe_err;
     }
@@ -1797,7 +1800,7 @@ hi_u32 hcc_host_init()
     }
 #endif
 
-    if (oal_channel_transfer_rx_register(hcc_handler->hi_channel, sdio_transfer_rx_handler) != HI_SUCCESS) {
+    if (oal_bus_transfer_rx_register(bus, sdio_transfer_rx_handler) != HI_SUCCESS) {
         oam_error_log0(0, 0, "hcc_host_init:: sdio rx transfer callback register failed");
         goto rx_cb_reg_failed;
     }
@@ -1845,7 +1848,7 @@ failed_reg_flowoff_msg:
 failed_reg_flowon_msg:
     hcc_tx_assem_descr_exit(hcc_handler);
 failed_tx_assem_descr_alloc:
-    oal_channel_transfer_rx_unregister(hcc_handler->hi_channel);
+    oal_bus_transfer_rx_unregister(bus);
 rx_cb_reg_failed:
 
 #ifdef _PRE_FEATURE_HCC_TASK
@@ -1857,7 +1860,7 @@ hcc_tast_init_err:
     oal_timer_delete(&hcc_handler->hcc_transer_info.hcc_timer);
     hcc_handler->hcc_transer_info.hcc_timer_status = TIMER_DEL;
 sdio_probe_err:
-    oal_channel_func_remove(hcc_handler->hi_channel);
+    oal_bus_func_remove(bus);
 sdio_init_err:
 #ifndef _PRE_FEATURE_HCC_TASK
     DeInitFlowControl(g_fcm);
@@ -1958,12 +1961,14 @@ hi_void hcc_delete_hearbeat_timer(hcc_handler_stru *hcc)
 
 hi_void hcc_host_exit(hcc_handler_stru *hcc)
 {
+    struct BusDev *bus = NULL;
     printk("hcc_host_exit start\n");
     if (hcc == HI_NULL) {
         return;
     }
+    bus = hcc->bus;
     hcc_delete_hearbeat_timer(hcc);
-    oal_unregister_sdio_intr(hcc->hi_channel);
+    oal_unregister_sdio_intr(bus);
     oal_wake_lock_exit(&hcc->tx_wake_lock);
     hcc_message_unregister(hcc, D2H_MSG_FLOWCTRL_OFF);
     hcc_message_unregister(hcc, D2H_MSG_FLOWCTRL_ON);
@@ -1977,14 +1982,14 @@ hi_void hcc_host_exit(hcc_handler_stru *hcc)
 #endif
     hcc_clear_tx_queues(hcc);
     hcc_clear_rx_queues(hcc);
-    oal_channel_transfer_rx_unregister(hcc->hi_channel);
-    oal_channel_send_msg(oal_get_sdio_default_handler(), H2D_MSG_PM_WLAN_OFF);
+    oal_bus_transfer_rx_unregister(bus);
+    oal_bus_send_msg(oal_get_sdio_default_handler(), H2D_MSG_PM_WLAN_OFF);
     hcc->hcc_transer_info.hcc_transfer_thread = HI_NULL;
     OAL_MUTEX_DESTROY(&hcc->tx_transfer_lock);
     oal_timer_delete_sync(&hcc->hcc_transer_info.tx_flow_ctrl.flow_timer);
     oal_cancel_delayed_work_sync(&hcc->hcc_transer_info.tx_flow_ctrl.worker);
-    oal_channel_func_remove(hcc->hi_channel);
-    oal_channel_exit_module(hcc->hi_channel);
+    oal_bus_func_remove(bus);
+    bus->priData.release(bus->priData.data);
     oal_free(hcc);
     g_hcc_host_handler = HI_NULL;
     printk("hcc_host_exit finished\n");
@@ -2058,13 +2063,13 @@ hi_s32 hi_wifi_enable_heart_beat(hi_bool enable)
 
     g_heart_beat_enabling = HI_TRUE;
     OAL_INIT_COMPLETION(&g_heart_beat_completion_ack);
-    oal_channel_stru *channel = oal_get_channel_default_handler();
+    struct BusDev *bus = oal_get_bus_default_handler();
 
     hi_s32 ret = 0;
     if (enable) {
-        ret = oal_channel_send_msg(channel, H2D_MSG_HEART_BEAT_OPEN);
+        ret = oal_bus_send_msg(bus, H2D_MSG_HEART_BEAT_OPEN);
     } else {
-        ret = oal_channel_send_msg(channel, H2D_MSG_HEART_BEAT_CLOSE);
+        ret = oal_bus_send_msg(bus, H2D_MSG_HEART_BEAT_CLOSE);
     }
 
     if (ret != HI_SUCCESS) {

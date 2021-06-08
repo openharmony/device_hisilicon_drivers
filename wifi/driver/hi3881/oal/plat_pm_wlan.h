@@ -117,7 +117,7 @@ struct wifi_srv_callback_handler {
 };
 
 struct wlan_pm_info {
-    oal_channel_stru       *pst_channel;
+    struct BusDev           *bus;
     unsigned long           wlan_pm_enable;          /* pm使能开关 */
     unsigned long           wlan_power_state;        /* wlan power on state */
     unsigned long           apmode_allow_pm_flag;    /* ap模式下，是否允许下电操作,1:允许,0:不允许 */

@@ -238,7 +238,7 @@ hi_s32 wlan_pm_close_done_callback(void *data)
         return FAILURE;
     }
     /* 关闭RX通道，防止SDIO RX thread继续访问SDIO */
-    oal_disable_channel_state(wlan_pm->pst_channel, OAL_SDIO_RX);
+    oal_disable_bus_state(wlan_pm->bus, OAL_SDIO_RX);
     wlan_pm->close_done_callback++;
     OAL_COMPLETE(&wlan_pm->close_done);
     oam_warning_log0(0, OAM_SF_PWR, "complete H2D_MSG_PM_WLAN_OFF done!");
@@ -353,7 +353,7 @@ hi_void wlan_pm_add_vote(wlan_pm_vote_id id)
     unsigned long ret;
     oal_spin_lock_stru spin_lock;
     unsigned long flags;
-    if ((wlan_pm == NULL) || (wlan_pm->pst_channel == NULL) || (id > HI_PM_ID_MAX)) {
+    if ((wlan_pm == NULL) || (wlan_pm->bus == NULL) || (id > HI_PM_ID_MAX)) {
         oam_error_log1(0, OAM_SF_PWR, "wlan_pm_add_vote, para error, id:%u", id);
         return;
     }
@@ -379,7 +379,7 @@ hi_void wlan_pm_remove_vote(wlan_pm_vote_id id)
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
     oal_spin_lock_stru spin_lock;
     unsigned long flags;
-    if ((wlan_pm == NULL) || (wlan_pm->pst_channel == NULL) || (id > HI_PM_ID_MAX)) {
+    if ((wlan_pm == NULL) || (wlan_pm->bus == NULL) || (id > HI_PM_ID_MAX)) {
         oam_error_log1(0, OAM_SF_PWR, "wlan_pm_remove_vote, para error, id:%u", id);
         return;
     }
@@ -404,12 +404,14 @@ hi_u32 wlan_pm_open(hi_void)
 {
     hi_u32 ret;
     hi_u32 i;
-    oal_completion device_ready;
-    oal_channel_stru *hi_channel = hcc_host_get_handler()->hi_channel;
+    oal_completion  device_ready;
+    struct BusDev *bus = hcc_host_get_handler()->bus;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
 
     set_device_is_ready(HI_FALSE);
     OAL_INIT_COMPLETION(&device_ready);
-    oal_channel_message_register(hi_channel, D2H_MSG_WLAN_READY, plat_set_device_ready, &device_ready);
+    oal_bus_message_register(bus, D2H_MSG_WLAN_READY, plat_set_device_ready,
+        &device_ready);
 
     if (wlan_power_on() != HI_SUCCESS) {
         oam_error_log0(0, OAM_SF_PWR, "wlan_pm_open:: wlan_power_on fail!");
@@ -423,7 +425,7 @@ hi_u32 wlan_pm_open(hi_void)
             break;
         }
 
-        oal_sdio_isr(hi_channel->func);
+        oal_sdio_isr((void *)hi_sdio->func);
     }
 
     if (ret == 0) {
@@ -463,11 +465,13 @@ hi_u32 wlan_pm_close(hi_void)
 **************************************************************************** */
 void wlan_pm_dump_host_info(void)
 {
+    oal_channel_stru *hi_sdio = NULL;
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
 
-    if (wlan_pm == NULL || wlan_pm->pst_channel == NULL) {
+    if (wlan_pm == NULL || wlan_pm->bus == NULL) {
         return;
     }
+    hi_sdio = (oal_channel_stru *)wlan_pm->bus->priData.data;
 #if (_PRE_FEATURE_SDIO == _PRE_FEATURE_CHANNEL_TYPE)
     printk("----------wlan_pm_dump_host_info begin-----------\n");
     printk("wlan power on:%ld, enable:%ld\n", wlan_pm->wlan_power_state, wlan_pm->wlan_pm_enable);
@@ -475,21 +479,21 @@ void wlan_pm_dump_host_info(void)
     printk("host sleep state:%ld\n", wlan_pm->wlan_host_state);
     printk("vote state:%x,g_wlan_pm_disabling:%d \n", wlan_pm->vote_status, g_wlan_pm_disabling);
     printk("open:%d,close:%d\n", wlan_pm->open_cnt, wlan_pm->close_cnt);
-    printk("gpio_intr[no.%lu]:%llu\n", wlan_pm->pst_channel->ul_wlan_irq, wlan_pm->pst_channel->gpio_int_count);
-    printk("data_intr:%llu\n", wlan_pm->pst_channel->data_int_count);
-    printk("sdio_intr:%llu\n", wlan_pm->pst_channel->sdio_int_count);
-    printk("sdio_intr_finish:%llu\n", wlan_pm->pst_channel->data_int_finish_count);
+    printk("gpio_intr[no.%lu]:%llu\n", hi_sdio->ul_wlan_irq, hi_sdio->gpio_int_count);
+    printk("data_intr:%llu\n", hi_sdio->data_int_count);
+    printk("sdio_intr:%llu\n", hi_sdio->sdio_int_count);
+    printk("sdio_intr_finish:%llu\n", hi_sdio->data_int_finish_count);
 
-    printk("sdio_no_int_count:%u\n", wlan_pm->pst_channel->func1_stat.func1_no_int_count);
-    printk("sdio_err_int_count:%u\n", wlan_pm->pst_channel->func1_stat.func1_err_int_count);
-    printk("sdio_msg_int_count:%u\n", wlan_pm->pst_channel->func1_stat.func1_msg_int_count);
-    printk("sdio_data_int_count:%u\n", wlan_pm->pst_channel->func1_stat.func1_data_int_count);
-    printk("sdio_unknow_int_count:%u\n", wlan_pm->pst_channel->func1_stat.func1_unknow_int_count);
+    printk("sdio_no_int_count:%u\n", hi_sdio->func1_stat.func1_no_int_count);
+    printk("sdio_err_int_count:%u\n", hi_sdio->func1_stat.func1_err_int_count);
+    printk("sdio_msg_int_count:%u\n", hi_sdio->func1_stat.func1_msg_int_count);
+    printk("sdio_data_int_count:%u\n", hi_sdio->func1_stat.func1_data_int_count);
+    printk("sdio_unknow_int_count:%u\n", hi_sdio->func1_stat.func1_unknow_int_count);
 
-    printk("wakeup_intr:%llu\n", wlan_pm->pst_channel->wakeup_int_count);
-    printk("D2H_MSG_WAKEUP_SUCC:%d\n", wlan_pm->pst_channel->msg[D2H_MSG_WAKEUP_SUCC].count);
-    printk("D2H_MSG_ALLOW_SLEEP:%d\n", wlan_pm->pst_channel->msg[D2H_MSG_ALLOW_SLEEP].count);
-    printk("D2H_MSG_DISALLOW_SLEEP:%d\n", wlan_pm->pst_channel->msg[D2H_MSG_DISALLOW_SLEEP].count);
+    printk("wakeup_intr:%llu\n", hi_sdio->wakeup_int_count);
+    printk("D2H_MSG_WAKEUP_SUCC:%d\n", hi_sdio->msg[D2H_MSG_WAKEUP_SUCC].count);
+    printk("D2H_MSG_ALLOW_SLEEP:%d\n", hi_sdio->msg[D2H_MSG_ALLOW_SLEEP].count);
+    printk("D2H_MSG_DISALLOW_SLEEP:%d\n", hi_sdio->msg[D2H_MSG_DISALLOW_SLEEP].count);
 
     printk("wakeup_dev_wait_ack:%d\n", oal_atomic_read(&g_wakeup_dev_wait_ack));
     printk("wakeup_succ:%d\n", wlan_pm->wakeup_succ);
@@ -567,7 +571,7 @@ hi_void wlan_pm_dump_device_info(hi_void)
     if (wlan_pm == HI_NULL) {
         return;
     }
-    oal_channel_send_msg(wlan_pm->pst_channel, H2D_MSG_PM_DEBUG);
+    oal_bus_send_msg(wlan_pm->bus, H2D_MSG_PM_DEBUG);
 }
 
 /* ****************************************************************************
@@ -602,14 +606,8 @@ hi_s32 wlan_pm_chan_reinit(void)
 #ifdef _PRE_WLAN_PM_FEATURE_FORCESLP_RESUME
     if (wlan_resume_state_get() != 0) { // forceslp resume flow
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-        ret = oal_sdio_func_probe_resume();
+        ret = oal_sdio_func_probe_resume(oal_get_bus_default_handler());
 #endif
-    } else {
-#endif
-    {
-        ret = oal_sdio_reinit();
-    }
-#ifdef _PRE_WLAN_PM_FEATURE_FORCESLP_RESUME
     }
 #endif
     return ret;
@@ -628,7 +626,7 @@ hi_s32 wlan_pm_wakeup_dev_again(hi_void)
 {
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
     hi_s32 ret;
-    if (wlan_pm == HI_NULL || wlan_pm->pst_channel == HI_NULL) {
+    if (wlan_pm == HI_NULL || wlan_pm->bus == HI_NULL) {
         oam_warning_log0(0, OAM_SF_PWR, "[pm]HI_NULL!!");
         return HI_FAIL;
     }
@@ -638,11 +636,11 @@ hi_s32 wlan_pm_wakeup_dev_again(hi_void)
         oal_atomic_set(&g_wakeup_dev_wait_ack, 1);
         /* 写device sdio寄存器，允许睡眠 */
         if (wakeup_times) {
-            oal_sdio_sleep_dev(wlan_pm->pst_channel);
+            oal_sdio_sleep_dev(wlan_pm->bus);
         }
         /* waitting for dev channel stable */
         mdelay(10); /* delay 10ms */
-        ret = oal_sdio_wakeup_dev(wlan_pm->pst_channel);
+        ret = oal_sdio_wakeup_dev(wlan_pm->bus);
         if (ret < 0) {
             wlan_pm->wakeup_fail_wait_sdio++;
             oam_warning_log1(0, OAM_SF_PWR, "[pm]sdio wake device failed!,  ret:%d!\n", ret);
@@ -686,7 +684,7 @@ unsigned long wlan_pm_wakeup_dev(hi_void)
 {
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
     hi_s32 ret;
-    if (wlan_pm == HI_NULL || wlan_pm->pst_channel == HI_NULL) {
+    if (wlan_pm == HI_NULL || wlan_pm->bus == HI_NULL) {
         oam_error_log0(0, OAM_SF_PWR, "[pm]HI_NULL!!");
         return HI_SUCCESS;
     }
@@ -709,14 +707,14 @@ unsigned long wlan_pm_wakeup_dev(hi_void)
     oal_up(&g_chan_wake_sema);
 
 #if (_PRE_FEATURE_SDIO == _PRE_FEATURE_CHANNEL_TYPE)
-    oal_wlan_gpio_intr_enable(wlan_pm->pst_channel, HI_FALSE);
+    oal_wlan_gpio_intr_enable(wlan_pm->bus, HI_FALSE);
 #endif
     wlan_pm->wakeup_gpio_up_cnt++;
 #ifndef _PRE_FEATURE_NO_GPIO
     board_set_wlan_h2d_pm_state(WLAN_PM_WKUPDEV_LEVEL);
 #endif
 #if (_PRE_FEATURE_SDIO == _PRE_FEATURE_CHANNEL_TYPE)
-    oal_wlan_gpio_intr_enable(wlan_pm->pst_channel, HI_TRUE);
+    oal_wlan_gpio_intr_enable(wlan_pm->bus, HI_TRUE);
 #endif
     wlan_pm_state_set(wlan_pm, HOST_DISALLOW_TO_SLEEP);
     ret = wlan_pm_wakeup_dev_again();
@@ -759,18 +757,21 @@ hi_void wlan_pm_wakeup_dev_ack(hi_void)
 **************************************************************************** */
 unsigned long wlan_pm_wakeup_host(void)
 {
+    oal_channel_stru *hi_sdio = NULL;
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
-    if (wlan_pm == NULL || wlan_pm->pst_channel == NULL) {
+
+    if (wlan_pm == NULL || wlan_pm->bus == NULL) {
         printk("wlan_pm_wakeup_host pst wlan pm is null \r\n");
         return HI_SUCCESS;
     }
-    oal_channel_wake_lock(wlan_pm->pst_channel);
+    oal_bus_wake_lock(wlan_pm->bus);
     if (wlan_pm_work_submit(wlan_pm, &wlan_pm->wakeup_work) != 0) {
         wlan_pm->wakeup_fail_submit_work++;
 
-        oal_channel_wake_unlock(wlan_pm->pst_channel);
+        oal_bus_wake_unlock(wlan_pm->bus);
+        hi_sdio = (oal_channel_stru *)wlan_pm->bus->priData.data;
         oam_warning_log1(0, OAM_SF_PWR, "wlan_pm_wakeup_host submit work fail, release wakelock %lu!\n",
-            wlan_pm->pst_channel->st_sdio_wakelock.lock_count);
+                         hi_sdio->st_sdio_wakelock.lock_count);
     } else {
         wlan_pm->wakeup_succ_work_submit++;
     }
@@ -850,7 +851,7 @@ void wlan_pm_wakeup_work(oal_work_stru *worker)
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
     unsigned long ret;
     hi_unref_param(worker);
-    if (wlan_pm == NULL || wlan_pm->pst_channel == NULL) {
+    if (wlan_pm == NULL || wlan_pm->bus == NULL) {
         return;
     }
     hcc_tx_transfer_lock(hcc_host_get_handler());
@@ -860,7 +861,7 @@ void wlan_pm_wakeup_work(oal_work_stru *worker)
         oam_error_log0(0, 0, "wlan wakeup fail !");
     }
     hcc_tx_transfer_unlock(hcc_host_get_handler());
-    oal_channel_wake_unlock(wlan_pm->pst_channel);
+    oal_bus_wake_unlock(wlan_pm->bus);
     oam_info_log0(0, OAM_SF_PWR, "wlan_d2h_wakeup_succ !\n");
     return;
 }
@@ -927,7 +928,7 @@ unsigned int hi_wifi_host_request_sleep(bool slp)
     hi_s32 l_ret;
     hi_u32 ul_ret;
 
-    if (wlan_pm == HI_NULL || wlan_pm->pst_channel == HI_NULL) {
+    if (wlan_pm == HI_NULL || wlan_pm->bus == HI_NULL) {
         oam_warning_log0(0, OAM_SF_PWR, "[pm]HI_NULL!!");
         return HI_FAIL;
     }
@@ -947,9 +948,9 @@ unsigned int hi_wifi_host_request_sleep(bool slp)
     }
     OAL_INIT_COMPLETION(&wlan_pm->host_sleep_request_ack);
     if (slp) {
-        l_ret = oal_channel_send_msg(wlan_pm->pst_channel, H2D_MSG_HOST_SLEEP);
+        l_ret = oal_bus_send_msg(wlan_pm->bus, H2D_MSG_HOST_SLEEP);
     } else {
-        l_ret = oal_channel_send_msg(wlan_pm->pst_channel, H2D_MSG_HOST_DISSLEEP);
+        l_ret = oal_bus_send_msg(wlan_pm->bus, H2D_MSG_HOST_DISSLEEP);
     }
     if (l_ret != HI_SUCCESS) {
         oam_error_log0(0, OAM_SF_PWR, "[pm]wlan_pm_sleep_request fail !\n");
@@ -981,7 +982,7 @@ hi_s32 wlan_pm_allow_dev_sleep(void)
 {
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
     hi_s32 ret;
-    if (wlan_pm == HI_NULL || wlan_pm->pst_channel == HI_NULL) {
+    if (wlan_pm == HI_NULL || wlan_pm->bus == HI_NULL) {
         oam_warning_log0(0, OAM_SF_PWR, "[pm]HI_NULL!!");
         return HI_FAIL;
     }
@@ -990,7 +991,7 @@ hi_s32 wlan_pm_allow_dev_sleep(void)
     wlan_pm->sleep_msg_send_cnt++;
 
     oal_atomic_set(&g_dev_sleep_wait_ack, 1);
-    ret = oal_channel_send_msg(wlan_pm->pst_channel, H2D_MSG_SLEEP_REQ);
+    ret = oal_bus_send_msg(wlan_pm->bus, H2D_MSG_SLEEP_REQ);
     if (ret != HI_SUCCESS) {
         wlan_pm->sleep_fail_request++;
         oal_atomic_set(&g_dev_sleep_wait_ack, 0);
@@ -1021,7 +1022,7 @@ unsigned long wlan_pm_dev_sleep_request(void)
 {
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
     hi_s32 ret;
-    if (wlan_pm == HI_NULL || wlan_pm->pst_channel == HI_NULL) {
+    if (wlan_pm == HI_NULL || wlan_pm->bus == HI_NULL) {
         oam_error_log0(0, OAM_SF_PWR, "[pm]HI_NULL!!");
         return HI_FAIL;
     }
@@ -1046,7 +1047,7 @@ unsigned long wlan_pm_dev_sleep_request(void)
         goto fail_sleep;
     }
 #if (_PRE_FEATURE_SDIO == _PRE_FEATURE_CHANNEL_TYPE)
-    oal_wlan_gpio_intr_enable(wlan_pm->pst_channel, HI_FALSE);
+    oal_wlan_gpio_intr_enable(wlan_pm->bus, HI_FALSE);
 #endif
     wlan_pm->sleep_gpio_low_cnt++;
     wlan_pm_state_set(wlan_pm, HOST_ALLOW_TO_SLEEP);
@@ -1059,8 +1060,8 @@ unsigned long wlan_pm_dev_sleep_request(void)
     /* 等待dev读取gpio状态完毕 */
     udelay(100); /* delay 100us */
     /* 写device sdio寄存器，允许睡眠 */
-    oal_sdio_sleep_dev(wlan_pm->pst_channel);
-    oal_wlan_gpio_intr_enable(wlan_pm->pst_channel, HI_TRUE);
+    oal_sdio_sleep_dev(wlan_pm->bus);
+    oal_wlan_gpio_intr_enable(wlan_pm->bus, HI_TRUE);
 #endif
     hcc_tx_transfer_unlock(hcc_host_get_handler());
     wlan_pm->sleep_succ++;
@@ -1119,14 +1120,15 @@ unsigned long wlan_pm_state_get(void)
 **************************************************************************** */
 hi_void wlan_pm_state_set(struct wlan_pm_info *wlan_pm, unsigned long state)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)wlan_pm->bus->priData.data;
     unsigned long flag;
     if (wlan_pm == HI_NULL) {
         oam_error_log0(0, 0, "wlan_pm_state_set pm info is null !");
         return;
     }
-    oal_spin_lock_irq_save(&wlan_pm->pst_channel->st_pm_state_lock, &flag);
+    oal_spin_lock_irq_save(&hi_sdio->st_pm_state_lock, &flag);
     wlan_pm->wlan_dev_state = state;
-    oal_spin_unlock_irq_restore(&wlan_pm->pst_channel->st_pm_state_lock, &flag);
+    oal_spin_unlock_irq_restore(&hi_sdio->st_pm_state_lock, &flag);
 }
 
 /* ****************************************************************************
@@ -1261,6 +1263,8 @@ hi_s32 wlan_pm_device_wkup_callback(void *data)
 struct wlan_pm_info *wlan_pm_init(void)
 {
     struct wlan_pm_info *wlan_pm;
+    oal_channel_stru *hi_sdio = NULL;
+    struct BusDev *bus = oal_get_bus_default_handler();
 
     wlan_pm = oal_kzalloc(sizeof(struct wlan_pm_info), OAL_GFP_KERNEL);
     if (wlan_pm == NULL) {
@@ -1280,14 +1284,15 @@ struct wlan_pm_info *wlan_pm_init(void)
     wlan_pm->vote_status  = 0; /* 默认所有投票都允许device睡眠 */
     OAL_INIT_WORK(&wlan_pm->sleep_work,  wlan_pm_sleep_work);
 
-    wlan_pm->pst_channel = oal_get_channel_default_handler();
-    if (wlan_pm->pst_channel == HI_NULL) {
+    wlan_pm->bus = bus;
+    if (wlan_pm->bus == HI_NULL) {
         oal_free(wlan_pm);
         return HI_NULL;
     }
-    wlan_pm->pst_channel->pst_pm_callback = &g_wlan_pm_callback;
+    hi_sdio = (oal_channel_stru *)wlan_pm->bus->priData.data;
+    hi_sdio->pst_pm_callback = &g_wlan_pm_callback;
 
-    oal_spin_lock_init(&wlan_pm->pst_channel->st_pm_state_lock);
+    oal_spin_lock_init(&hi_sdio->st_pm_state_lock);
 
     wlan_pm->wlan_power_state           = POWER_STATE_OPEN;
     wlan_pm->wlan_dev_state             = HOST_DISALLOW_TO_SLEEP;
@@ -1306,15 +1311,15 @@ struct wlan_pm_info *wlan_pm_init(void)
     OAL_INIT_COMPLETION(&wlan_pm->sleep_request_ack);
     OAL_INIT_COMPLETION(&wlan_pm->host_sleep_request_ack);
 
-    oal_channel_message_register(wlan_pm->pst_channel, D2H_MSG_WAKEUP_SUCC, wlan_pm_wakeup_done_callback, wlan_pm);
-    oal_channel_message_register(wlan_pm->pst_channel, D2H_MSG_ALLOW_SLEEP, wlan_pm_allow_sleep_callback, wlan_pm);
-    oal_channel_message_register(wlan_pm->pst_channel, D2H_MSG_DISALLOW_SLEEP, wlan_pm_disallow_sleep_callback,
+    oal_bus_message_register(wlan_pm->bus, D2H_MSG_WAKEUP_SUCC, wlan_pm_wakeup_done_callback, wlan_pm);
+    oal_bus_message_register(wlan_pm->bus, D2H_MSG_ALLOW_SLEEP, wlan_pm_allow_sleep_callback, wlan_pm);
+    oal_bus_message_register(wlan_pm->bus, D2H_MSG_DISALLOW_SLEEP, wlan_pm_disallow_sleep_callback,
         wlan_pm);
-    oal_channel_message_register(wlan_pm->pst_channel, D2H_MSG_HOST_SLEEP_ACK, wlan_pm_host_sleep_ack_callback,
+    oal_bus_message_register(wlan_pm->bus, D2H_MSG_HOST_SLEEP_ACK, wlan_pm_host_sleep_ack_callback,
         wlan_pm);
-    oal_channel_message_register(wlan_pm->pst_channel, D2H_MSG_BEFORE_DEV_SLEEP, wlan_pm_before_device_slp_callback,
+    oal_bus_message_register(wlan_pm->bus, D2H_MSG_BEFORE_DEV_SLEEP, wlan_pm_before_device_slp_callback,
         NULL);
-    oal_channel_message_register(wlan_pm->pst_channel, D2H_MSG_DEV_WKUP, wlan_pm_device_wkup_callback, NULL);
+    oal_bus_message_register(wlan_pm->bus, D2H_MSG_DEV_WKUP, wlan_pm_device_wkup_callback, NULL);
 
     return wlan_pm;
 }
@@ -1327,9 +1332,10 @@ struct wlan_pm_info *wlan_pm_init(void)
 **************************************************************************** */
 unsigned long wlan_pm_exit(hi_void)
 {
+    oal_channel_stru *hi_sdio = NULL;
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
 
-    if (wlan_pm == HI_NULL || wlan_pm->pst_channel == HI_NULL) {
+    if (wlan_pm == HI_NULL || wlan_pm->bus == HI_NULL) {
         return HI_SUCCESS;
     }
     hi_wifi_plat_pm_disable();
@@ -1337,17 +1343,18 @@ unsigned long wlan_pm_exit(hi_void)
     if (ret != HI_SUCCESS) {
         oam_error_log0(0, OAM_SF_PWR, "wlan_pm_stop_wdg fail\r\n");
     }
-    oal_sdio_sleep_dev(wlan_pm->pst_channel);
-    if (wlan_pm->pst_channel != HI_NULL) {
-        wlan_pm->pst_channel->pst_pm_callback = NULL;
+    oal_sdio_sleep_dev(wlan_pm->bus);
+    if (wlan_pm->bus != HI_NULL && wlan_pm->bus->priData.data != NULL) {
+        hi_sdio = (oal_channel_stru *)wlan_pm->bus->priData.data;
+        hi_sdio->pst_pm_callback = NULL;
     }
-    oal_channel_message_unregister(wlan_pm->pst_channel, D2H_MSG_WAKEUP_SUCC);
-    oal_channel_message_unregister(wlan_pm->pst_channel, D2H_MSG_ALLOW_SLEEP);
-    oal_channel_message_unregister(wlan_pm->pst_channel, D2H_MSG_DISALLOW_SLEEP);
-    oal_channel_message_unregister(wlan_pm->pst_channel, D2H_MSG_HOST_SLEEP_ACK);
-    oal_channel_message_unregister(wlan_pm->pst_channel, D2H_MSG_WLAN_READY);
-    oal_channel_message_unregister(wlan_pm->pst_channel, D2H_MSG_BEFORE_DEV_SLEEP);
-    oal_channel_message_unregister(wlan_pm->pst_channel, D2H_MSG_DEV_WKUP);
+    oal_bus_message_unregister(wlan_pm->bus, D2H_MSG_WAKEUP_SUCC);
+    oal_bus_message_unregister(wlan_pm->bus, D2H_MSG_ALLOW_SLEEP);
+    oal_bus_message_unregister(wlan_pm->bus, D2H_MSG_DISALLOW_SLEEP);
+    oal_bus_message_unregister(wlan_pm->bus, D2H_MSG_HOST_SLEEP_ACK);
+    oal_bus_message_unregister(wlan_pm->bus, D2H_MSG_WLAN_READY);
+    oal_bus_message_unregister(wlan_pm->bus, D2H_MSG_BEFORE_DEV_SLEEP);
+    oal_bus_message_unregister(wlan_pm->bus, D2H_MSG_DEV_WKUP);
 
     oal_destroy_workqueue(wlan_pm->pm_wq);
     kfree(wlan_pm);
@@ -1358,29 +1365,31 @@ unsigned long wlan_pm_exit(hi_void)
 
 void wlan_pm_info_clean(void)
 {
+    oal_channel_stru *hi_sdio = NULL;
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
-    if (wlan_pm == NULL || wlan_pm->pst_channel == NULL) {
+    if (wlan_pm == NULL || wlan_pm->bus == NULL) {
         return;
     }
 #if (_PRE_FEATURE_SDIO == _PRE_FEATURE_CHANNEL_TYPE)
-    wlan_pm->pst_channel->data_int_count                   = 0;
-    wlan_pm->pst_channel->wakeup_int_count                 = 0;
-    wlan_pm->pst_channel->gpio_int_count                   = 0;
-    wlan_pm->pst_channel->sdio_int_count                   = 0;
-    wlan_pm->pst_channel->data_int_finish_count            = 0;
-    wlan_pm->pst_channel->func1_stat.func1_no_int_count    = 0;
-    wlan_pm->pst_channel->func1_stat.func1_err_int_count   = 0;
-    wlan_pm->pst_channel->func1_stat.func1_msg_int_count   = 0;
-    wlan_pm->pst_channel->func1_stat.func1_data_int_count  = 0;
-    wlan_pm->pst_channel->func1_stat.func1_unknow_int_count = 0;
+    hi_sdio = (oal_channel_stru *)wlan_pm->bus->priData.data;
+    hi_sdio->data_int_count                   = 0;
+    hi_sdio->wakeup_int_count                 = 0;
+    hi_sdio->gpio_int_count                   = 0;
+    hi_sdio->sdio_int_count                   = 0;
+    hi_sdio->data_int_finish_count            = 0;
+    hi_sdio->func1_stat.func1_no_int_count    = 0;
+    hi_sdio->func1_stat.func1_err_int_count   = 0;
+    hi_sdio->func1_stat.func1_msg_int_count   = 0;
+    hi_sdio->func1_stat.func1_data_int_count  = 0;
+    hi_sdio->func1_stat.func1_unknow_int_count = 0;
 
-    wlan_pm->pst_channel->msg[D2H_MSG_WAKEUP_SUCC].count = 0;
-    wlan_pm->pst_channel->msg[D2H_MSG_ALLOW_SLEEP].count = 0;
-    wlan_pm->pst_channel->msg[D2H_MSG_DISALLOW_SLEEP].count = 0;
-    wlan_pm->pst_channel->msg[D2H_MSG_DEVICE_PANIC].count = 0;
+    hi_sdio->msg[D2H_MSG_WAKEUP_SUCC].count = 0;
+    hi_sdio->msg[D2H_MSG_ALLOW_SLEEP].count = 0;
+    hi_sdio->msg[D2H_MSG_DISALLOW_SLEEP].count = 0;
+    hi_sdio->msg[D2H_MSG_DEVICE_PANIC].count = 0;
 
-    wlan_pm->pst_channel->ul_sdio_suspend               = 0;
-    wlan_pm->pst_channel->ul_sdio_resume                = 0;
+    hi_sdio->ul_sdio_suspend               = 0;
+    hi_sdio->ul_sdio_resume                = 0;
 #endif
     wlan_pm->wakeup_succ = 0;
     wlan_pm->wakeup_dev_ack = 0;

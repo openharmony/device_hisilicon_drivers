@@ -19,10 +19,6 @@
 #include "hdf_wlan_sdio.h"
 #include "hdf_wlan_config.h"
 #ifdef __KERNEL__
-#include <linux/mmc/host.h>
-#include <linux/mmc/sdio_func.h>
-#include <linux/mmc/sdio.h>
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -33,6 +29,7 @@
 #include <linux/sched.h>
 #include <linux/delay.h>
 #include <linux/kthread.h>
+#include <linux/mmc/sdio.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/sdio_ids.h>
@@ -41,11 +38,7 @@
 #include <linux/random.h>
 #include <linux/completion.h>
 #else
-#include <mmc/host.h>
 #include <linux/device.h>
-#include <mmc/sdio_func.h>
-#include <mmc/sdio.h>
-#include <mmc/card.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -56,177 +49,8 @@
 #endif
 #include "hdf_base.h"
 #include "hdf_log.h"
-#include "hdf_wlan_config.h"
 #include "hdf_wlan_chipdriver_manager.h"
 
-#define HDF_LOG_TAG HDF_WIFI_CORE
-
-#define SDIO_ANY_ID (~0)
-
-#ifdef __LITEOS__
-struct sdio_device_id {
-    unsigned char class;       /* Standard interface or SDIO_ANY_ID */
-    unsigned short int vendor; /* Vendor or SDIO_ANY_ID */
-    unsigned short int device; /* Device ID or SDIO_ANY_ID */
-};
-/*
- * SDIO function device driver
- */
-struct sdio_driver {
-    char *name;
-    const struct sdio_device_id *id_table;
-    int (*probe)(struct sdio_func *, const struct sdio_device_id *);
-};
-#else
-extern int hisi_sdio_rescan(int slot);
-#endif
-
-/* which chips to detect, it's comes from the hcs */
-#ifdef __KERNEL__
-#define WLAN_TIMEOUT_MUTIPLE_10 10
-struct completion g_wlanSdioComplete;
-struct sdio_device_id g_wlanCurrentSido = {
-    .class = SDIO_ANY_ID
-};
-static void HdfWlanWriteDriveTable(const struct sdio_device_id *ids)
-{
-    if (ids == NULL) {
-        HDF_LOGE("%s: input para is null", __func__);
-        return;
-    }
-    g_wlanCurrentSido.vendor = ids->vendor;
-    g_wlanCurrentSido.device = ids->device;
-    complete(&g_wlanSdioComplete);
-    return;
-}
-static int32_t HdfWlanSdioProbe(struct sdio_func *func, const struct sdio_device_id *ids)
-{
-    (void)func;
-    if (ids == NULL) {
-        return HDF_FAILURE;
-    }
-    HDF_LOGI("%s: detected vendor=0x%x device=0x%x", __func__, ids->vendor, ids->device);
-    HdfWlanWriteDriveTable(ids);
-    return HDF_SUCCESS;
-}
-
-static void HdfWlanSdioRemove(struct sdio_func *func)
-{
-    sdio_set_drvdata(func, NULL);
-    return;
-}
-
-static struct sdio_device_id g_wlanRegSdioIds[WLAN_MAX_CHIP_NUM];
-static struct sdio_driver g_wlanSdioDriver = {
-    .name = "wlan_sdio",
-    .id_table = g_wlanRegSdioIds,
-    .probe = HdfWlanSdioProbe,
-    .remove = HdfWlanSdioRemove,
-};
-
-#endif
-
-void HdfWlanGetSdioTableByConfig(void)
-{
-#ifdef __KERNEL__
-    uint16_t chipCnt;
-    struct HdfConfigWlanRoot *rootConfig = NULL;
-    struct HdfConfigWlanChipList *tmpChipList = NULL;
-
-    rootConfig = HdfWlanGetModuleConfigRoot();
-    tmpChipList = &rootConfig->wlanConfig.chipList;
-    if (tmpChipList->chipInstSize > WLAN_MAX_CHIP_NUM) {
-        HDF_LOGE("%s: chipInstSize may cause some data loss %d", __func__, tmpChipList->chipInstSize);
-    }
-    /* get chip factory and init it according to the config chipName */
-    for (chipCnt = 0; (chipCnt < tmpChipList->chipInstSize) && (chipCnt < WLAN_MAX_CHIP_NUM); chipCnt++) {
-        g_wlanRegSdioIds[chipCnt].class = SDIO_ANY_ID;
-        g_wlanRegSdioIds[chipCnt].vendor = tmpChipList->chipInst[chipCnt].chipSdio.vendorId;
-        g_wlanRegSdioIds[chipCnt].device = tmpChipList->chipInst[chipCnt].chipSdio.deviceId[0];
-    }
-#endif
-    return;
-}
-
-void HdfWlanSdioScanTriggerByBusIndex(int32_t busIdex)
-{
-#ifdef __KERNEL__
-    if (hisi_sdio_rescan(busIdex) != HDF_SUCCESS) {
-        HDF_LOGE("%s: hisi_sdio_rescan fail", __func__);
-    }
-    init_completion(&g_wlanSdioComplete);
-    if (sdio_register_driver(&g_wlanSdioDriver) != HDF_SUCCESS) {
-        HDF_LOGE("%s: sdio_register_driver fail", __func__);
-        sdio_unregister_driver(&g_wlanSdioDriver);
-        sdio_register_driver(&g_wlanSdioDriver);
-    }
-    wait_for_completion_timeout(&g_wlanSdioComplete, WLAN_TIMEOUT_MUTIPLE_10 * HZ);
-#else
-    hisi_sdio_rescan(busIdex);
-#endif
-    return;
-}
-
-void HdfWlanSdioDriverUnReg(void)
-{
-#ifdef __KERNEL__
-    sdio_unregister_driver(&g_wlanSdioDriver);
-#endif
-}
-
-#ifdef __KERNEL__
-int HdfWlanGetDetectedChip(struct HdfWlanDevice *device, const struct HdfConfigWlanBus *busConfig)
-{
-    int32_t cnt;
-    struct HdfConfigWlanChipList *tmpChipList = NULL;
-    struct HdfConfigWlanRoot *rootConfig = HdfWlanGetModuleConfigRoot();
-    (void)busConfig;
-    if (device == NULL || rootConfig == NULL) {
-        HDF_LOGE("%s: NULL ptr!", __func__);
-        return HDF_FAILURE;
-    }
-    tmpChipList = &rootConfig->wlanConfig.chipList;
-    for (cnt = 0; (cnt < tmpChipList->chipInstSize) && (cnt < WLAN_MAX_CHIP_NUM); cnt++) {
-        if (tmpChipList->chipInst[cnt].chipSdio.vendorId == g_wlanCurrentSido.vendor &&
-            tmpChipList->chipInst[cnt].chipSdio.deviceId[0] == g_wlanCurrentSido.device) {
-            /* once detected card break */
-            device->manufacturer.deviceId = tmpChipList->chipInst[cnt].chipSdio.deviceId[0];
-            device->manufacturer.vendorId = tmpChipList->chipInst[cnt].chipSdio.vendorId;
-            device->driverName = tmpChipList->chipInst[cnt].driverName;
-            return HDF_SUCCESS;
-        }
-    }
-    HDF_LOGE("%s: NO SDIO card detected!", __func__);
-    return HDF_FAILURE;
-}
-#else
-int HdfWlanGetDetectedChip(struct HdfWlanDevice *device, const struct HdfConfigWlanBus *busConfig)
-{
-    int32_t cnt;
-    struct sdio_func *func = NULL;
-    struct HdfConfigWlanChipList *tmpChipList = NULL;
-    struct HdfConfigWlanRoot *rootConfig = HdfWlanGetModuleConfigRoot();
-    if (device == NULL || busConfig == NULL || rootConfig == NULL) {
-        HDF_LOGE("%s: NULL ptr!", __func__);
-        return HDF_FAILURE;
-    }
-    tmpChipList = &rootConfig->wlanConfig.chipList;
-
-    for (cnt = 0; (cnt < tmpChipList->chipInstSize) && (cnt < WLAN_MAX_CHIP_NUM); cnt++) {
-        func = sdio_get_func(busConfig->funcNum[0], tmpChipList->chipInst[cnt].chipSdio.vendorId,
-            tmpChipList->chipInst[cnt].chipSdio.deviceId[0]);
-        if (func != NULL) {
-            /* once detected card break */
-            device->manufacturer.deviceId = tmpChipList->chipInst[cnt].chipSdio.deviceId[0];
-            device->manufacturer.vendorId = tmpChipList->chipInst[cnt].chipSdio.vendorId;
-            device->driverName = tmpChipList->chipInst[cnt].driverName;
-            return HDF_SUCCESS;
-        }
-    }
-    HDF_LOGE("%s: NO sdio card detected!", __func__);
-    return HDF_FAILURE;
-}
-#endif
 
 #ifdef __KERNEL__
 #define REG_WRITE(ADDR, VALUE)                                                                     \

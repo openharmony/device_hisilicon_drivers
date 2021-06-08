@@ -70,7 +70,7 @@ typedef struct {
 hi_u32 wal_main_init(hi_void);
 hi_void wal_main_exit(hi_void);
 hi_u32 hi_wifi_device_init(hi_void);
-hi_u32 hi_wifi_host_init(hi_void);
+hi_u32 hi_wifi_host_init(struct BusDev *bus);
 hi_void hi_wifi_host_exit(hi_void);
 hi_u32 hi_wifi_plat_init(const hi_u8 vap_num, const hi_u8 user_num);
 hi_void hi_wifi_plat_exit(hi_void);
