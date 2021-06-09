@@ -137,7 +137,7 @@ hi_u8 g_wifi_inited_flag = HI_FALSE;
  功能描述  : 初始化WiFi驱动
  返 回 值  : 错误码
 **************************************************************************** */
-hi_s32 hi_wifi_init(uint8_t max_port_count)
+hi_s32 hi_wifi_init(uint8_t max_port_count, struct BusDev *bus)
 {
     hi_u8 const vap_res_num = max_port_count;
     hi_u8 const user_res_num = 4;
@@ -158,7 +158,7 @@ hi_s32 hi_wifi_init(uint8_t max_port_count)
         goto fail;
     }
 
-    if (hi_wifi_host_init() != HI_SUCCESS) {
+    if (hi_wifi_host_init(bus) != HI_SUCCESS) {
         oam_error_log0(0, OAM_SF_ANY, "WiFi host initialize failed.");
         goto hi_wifi_host_init_fail;
     }
@@ -178,7 +178,7 @@ fail:
  功能描述  : 初始化WiFi驱动
  返 回 值  : 错误码
 **************************************************************************** */
-hi_s32 hi_wifi_init(uint8_t max_port_count)
+hi_s32 hi_wifi_init(uint8_t max_port_count, struct BusDev *bus)
 {
     hi_u8 const vap_res_num = max_port_count;
     hi_u8 const user_res_num = 4;
@@ -197,7 +197,7 @@ hi_s32 hi_wifi_init(uint8_t max_port_count)
         goto ioctl_clear;
     }
 
-    if (hi_wifi_host_init() != HI_SUCCESS) {
+    if (hi_wifi_host_init(bus) != HI_SUCCESS) {
         oam_error_log0(0, OAM_SF_ANY, "WiFi host initialize failed.");
         goto wifi_host_init_fail;
     }

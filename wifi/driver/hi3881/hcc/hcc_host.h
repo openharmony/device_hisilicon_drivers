@@ -227,7 +227,7 @@ typedef oal_bool_enum_uint8 (*hmac_tcp_ack_need_schedule_func)(hi_void);
 typedef struct {
     oal_atomic                  state;
     oal_atomic                  tx_seq;
-    oal_channel_stru            *hi_channel;
+    struct BusDev               *bus;
     unsigned long               hdr_rever_max_len;
 
     oal_mutex_stru              tx_transfer_lock;
@@ -355,7 +355,7 @@ static inline void hcc_rx_transfer_lock(const hcc_handler_stru *hcc)
         oal_io_print1("%s, hcc is null\n", (uintptr_t)__FUNCTION__);
         return;
     }
-    oal_channel_rx_transfer_lock(hcc->hi_channel);
+    oal_bus_rx_transfer_lock(hcc->bus);
 }
 
 static inline void hcc_rx_transfer_unlock(const hcc_handler_stru *hcc)
@@ -364,7 +364,7 @@ static inline void hcc_rx_transfer_unlock(const hcc_handler_stru *hcc)
         oal_io_print1("%s, hcc is null\n", (uintptr_t)__FUNCTION__);
         return;
     }
-    oal_channel_rx_transfer_unlock(hcc->hi_channel);
+    oal_bus_rx_transfer_unlock(hcc->bus);
 }
 
 static inline void hcc_transfer_lock(hcc_handler_stru *hcc)
@@ -393,7 +393,7 @@ static inline void hcc_transfer_unlock(hcc_handler_stru *hcc)
  函数声明
 **************************************************************************** */
 hi_s32 hcc_hmac_adapt_init(hi_void);
-hi_u32 hcc_host_init(hi_void);
+hi_u32 hcc_host_init(struct BusDev *bus);
 hi_void hcc_host_exit(hcc_handler_stru *hcc);
 hcc_handler_stru *hcc_host_get_handler(hi_void);
 hi_void hcc_host_rx_queue_sched(hi_void);

@@ -19,6 +19,7 @@
 /* ****************************************************************************
   1 其他头文件包含
 **************************************************************************** */
+#include "hdf_wlan_config.h"
 #include "oal_util.h"
 #include "oal_sdio.h"
 #include "oal_sdio_host_if.h"
@@ -86,13 +87,9 @@ enum {
 struct task_struct *g_sdio_int_task = HI_NULL;
 #undef CONFIG_SDIO_MSG_ACK_HOST2ARM_DEBUG
 
-#ifdef CONFIG_SDIO_DEBUG
-static oal_channel_stru *g_hi_sdio_debug;
-#endif
-
-static oal_completion g_sdio_driver_complete;
+static  oal_completion  g_sdio_driver_complete;
 oal_semaphore_stru g_chan_wake_sema;
-static oal_channel_stru *g_hi_sdio_;
+static struct BusDev *g_bus = NULL;
 static hi_char *g_sdio_enum_err_str = "probe timeout";
 
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
@@ -121,16 +118,10 @@ module_param(g_wifi_patch_enable, uint, S_IRUGO | S_IWUSR);
 /* ****************************************************************************
  * 3 Function Definition
  * *************************************************************************** */
-hi_void oal_sdio_dispose_data(oal_channel_stru *hi_sdio);
-hi_s32 oal_sdio_data_sg_irq(oal_channel_stru *hi_sdio);
-#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card);
-void mmc_wait_for_req(struct mmc_host *, struct mmc_request *);
-int sdio_reset_comm(struct mmc_card *card);
-#endif
+hi_s32 oal_sdio_data_sg_irq(struct BusDev *bus);
 
-static hi_s32 oal_sdio_single_transfer(const oal_channel_stru *hi_sdio, hi_s32 rw, hi_void *buf, hi_u32 size);
-static hi_s32 _oal_sdio_transfer_scatt(const oal_channel_stru *hi_sdio, hi_s32 rw, hi_u32 addr, struct scatterlist *sg,
+static hi_s32 oal_sdio_single_transfer(struct BusDev *bus, hi_s32 rw, hi_void *buf, hi_u32 size);
+static hi_s32 _oal_sdio_transfer_scatt(struct BusDev *bus, hi_s32 rw, hi_u32 addr, struct scatterlist *sg,
     hi_u32 sg_len, hi_u32 rw_sz);
 extern hi_void dw_mci_sdio_card_detect_change(hi_void);
 
@@ -142,15 +133,9 @@ static hi_void oal_sdio_print_state(hi_u32 old_state, hi_u32 new_state)
             (old_state & OAL_SDIO_RX) ? 1 : 0, (new_state & OAL_SDIO_RX) ? 1 : 0);
     }
 }
-
-oal_channel_stru *oal_alloc_sdio_stru(hi_void)
+struct BusDev *oal_get_sdio_default_handler(hi_void)
 {
-    return g_hi_sdio_;
-}
-
-oal_channel_stru *oal_get_sdio_default_handler(hi_void)
-{
-    return g_hi_sdio_;
+    return g_bus;
 }
 
 hi_void oal_free_sdio_stru(oal_channel_stru *hi_sdio)
@@ -159,17 +144,14 @@ hi_void oal_free_sdio_stru(oal_channel_stru *hi_sdio)
     printk("oal_free_sdio_stru\n");
 }
 
-hi_s32 oal_sdio_send_msg(oal_channel_stru *hi_sdio, unsigned long val)
+hi_s32 oal_sdio_send_msg(struct BusDev *bus, unsigned long val)
 {
-    hi_s32            ret  = HI_SUCCESS;
-    struct sdio_func *func = HI_NULL;
-
+    hi_s32 ret;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (hi_sdio == HI_NULL || hi_sdio->func == HI_NULL) {
         oam_error_log0(0, OAM_SF_ANY, "{oal_sdio_send_msg::sdio is not initialized,can't send sdio msg!}");
         return -OAL_EINVAL;
     }
-
-    func = hi_sdio->func;
     if (hi_sdio->pst_pm_callback) {
         if (hi_sdio->pst_pm_callback->wlan_pm_wakeup_dev() != HI_SUCCESS) {
             oam_error_log0(0, OAM_SF_ANY, "{oal_sdio_send_msg::host wakeup device failed}");
@@ -180,22 +162,23 @@ hi_s32 oal_sdio_send_msg(oal_channel_stru *hi_sdio, unsigned long val)
         oam_error_log1(0, OAM_SF_ANY, "[Error]invalid param[%lu]!\n", val);
         return -OAL_EINVAL;
     }
-    oal_sdio_wake_lock(hi_sdio);
-    sdio_claim_host(func);
+    oal_sdio_wake_lock(bus);
+    bus->ops.claimHost(bus);
     /* sdio message can sent when wifi power on */
     if (wlan_pm_is_poweron() == 0) {
         oam_error_log0(0, OAM_SF_ANY, "{oal_sdio_send_msg::wifi power off,can't send sdio msg!}");
-        sdio_release_host(func);
-        oal_sdio_wake_unlock(hi_sdio);
+        bus->ops.releaseHost(bus);
+        oal_sdio_wake_unlock(bus);
         return -OAL_EBUSY;
     }
 
-    oal_sdio_writel(func, (1 << val), HISDIO_REG_FUNC1_WRITE_MSG, &ret);
+    unsigned long data = 1 << val;
+    ret = bus->ops.writeData(bus, HISDIO_REG_FUNC1_WRITE_MSG, FOUR_BYTE, (hi_u8 *)&data);
     if (ret) {
         oam_error_log2(0, OAM_SF_ANY, "{oal_sdio_send_msg::failed to send sdio msg[%lu]!ret=%d}", val, ret);
     }
-    sdio_release_host(func);
-    oal_sdio_wake_unlock(hi_sdio);
+    bus->ops.releaseHost(bus);
+    oal_sdio_wake_unlock(bus);
     return ret;
 }
 
@@ -205,9 +188,8 @@ hi_s32 oal_sdio_send_msg(oal_channel_stru *hi_sdio, unsigned long val)
  * Output       : None
  * Return Value : static hi_s32
  */
-hi_s32 oal_sdio_rw_buf(const oal_channel_stru *hi_sdio, hi_s32 rw, hi_u32 addr, hi_u8 *buf, hi_u32 rw_sz)
+hi_s32 oal_sdio_rw_buf(struct BusDev *bus, hi_s32 rw, hi_u32 addr, hi_u8 *buf, hi_u32 rw_sz)
 {
-    struct sdio_func *func = hi_sdio->func;
     hi_s32 ret = HI_SUCCESS;
 
     /* padding len of buf has been assure when alloc */
@@ -218,14 +200,14 @@ hi_s32 oal_sdio_rw_buf(const oal_channel_stru *hi_sdio, hi_s32 rw, hi_u32 addr, 
         return -OAL_EINVAL;
     }
 
-    sdio_claim_host(func);
+    bus->ops.claimHost(bus);
     if (rw == SDIO_READ) {
-        ret = oal_sdio_readsb(func, buf, addr, rw_sz);
+        ret = bus->ops.bulkRead(bus, addr, rw_sz, buf, 0);
     } else if (rw == SDIO_WRITE) {
-        ret = oal_sdio_writesb(func, addr, buf, rw_sz);
+        ret = bus->ops.bulkWrite(bus, addr, rw_sz, buf, 0);
     }
 
-    sdio_release_host(func);
+    bus->ops.releaseHost(bus);
 
     return ret;
 }
@@ -237,12 +219,13 @@ hi_s32 oal_sdio_check_rx_len(oal_channel_stru *hi_sdio, hi_u32 count)
     return HI_SUCCESS;
 }
 
-static hi_s32 oal_sdio_xfercount_get(const oal_channel_stru *hi_sdio, hi_u32 *xfercount)
+static hi_s32 oal_sdio_xfercount_get(struct BusDev *bus, hi_u32 *xfercount)
 {
     hi_s32 ret = 0;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
 #ifdef CONFIG_SDIO_MSG_ACK_HOST2ARM_DEBUG
     /* read from 0x0c */
-    *xfercount = oal_sdio_readl(hi_sdio->func, HISDIO_REG_FUNC1_XFER_COUNT, &ret);
+    ret = bus->ops.readData(bus, HISDIO_REG_FUNC1_XFER_COUNT, FOUR_BYTE, (hi_u8*)xfercount);
     if (oal_unlikely(ret)) {
         printk("[ERROR]sdio read single package len failed ret=%d\n", ret);
         return ret;
@@ -255,7 +238,7 @@ static hi_s32 oal_sdio_xfercount_get(const oal_channel_stru *hi_sdio, hi_u32 *xf
     }
 
     /* read from 0x0c */
-    *xfercount = oal_sdio_readl(hi_sdio->func, HISDIO_REG_FUNC1_XFER_COUNT, &ret);
+    ret = bus->ops.readData(bus, HISDIO_REG_FUNC1_XFER_COUNT, FOUR_BYTE, (hi_u8*)xfercount);
     if (oal_unlikely(ret)) {
         printk("[E]sdio read xercount failed ret=%d\n", ret);
         return ret;
@@ -271,9 +254,9 @@ static hi_s32 oal_sdio_xfercount_get(const oal_channel_stru *hi_sdio, hi_u32 *xf
  * Output       : None
  * Return Value : hi_s32
  */
-hi_s32 oal_sdio_data_sg_irq(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_data_sg_irq(struct BusDev *bus)
 {
-    struct sdio_func   *func = HI_NULL;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     hi_s32 ret;
     hi_u32              xfer_count;
 
@@ -281,8 +264,7 @@ hi_s32 oal_sdio_data_sg_irq(oal_channel_stru *hi_sdio)
         return -OAL_EINVAL;
     }
 
-    func = hi_sdio->func;
-    ret = oal_sdio_xfercount_get(hi_sdio, &xfer_count);
+    ret = oal_sdio_xfercount_get(bus, &xfer_count);
     if (oal_unlikely(ret)) {
         return -OAL_EFAIL;
     }
@@ -296,15 +278,16 @@ hi_s32 oal_sdio_data_sg_irq(oal_channel_stru *hi_sdio)
         return -OAL_EINVAL;
     }
 
-    sdio_release_host(func);
+    bus->ops.releaseHost(bus);
     hi_sdio->bus_ops.rx(hi_sdio->bus_data);
-    sdio_claim_host(func);
+    bus->ops.claimHost(bus);
 
     return HI_SUCCESS;
 }
 
-hi_s32 oal_sdio_transfer_rx_register(oal_channel_stru *hi_sdio, hisdio_rx rx)
+hi_s32 oal_sdio_transfer_rx_register(struct BusDev *bus, hisdio_rx rx)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (hi_sdio == HI_NULL) {
         return -OAL_EINVAL;
     }
@@ -318,8 +301,9 @@ hi_s32 oal_sdio_transfer_rx_register(oal_channel_stru *hi_sdio, hisdio_rx rx)
  * Output       : HI_NULL
  * Return Value : hi_s32
  */
-hi_void oal_sdio_transfer_rx_unregister(oal_channel_stru *hi_sdio)
+hi_void oal_sdio_transfer_rx_unregister(struct BusDev *bus)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     hi_sdio->bus_ops.rx = HI_NULL;
 }
 
@@ -329,8 +313,9 @@ hi_void oal_sdio_transfer_rx_unregister(oal_channel_stru *hi_sdio)
  * Output       : None
  * Return Value : hi_s32
  */
-hi_s32 oal_sdio_message_register(oal_channel_stru *hi_sdio, hi_u8 msg, sdio_msg_rx cb, hi_void *data)
+hi_s32 oal_sdio_message_register(struct BusDev *bus, hi_u8 msg, sdio_msg_rx cb, hi_void *data)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (hi_sdio == HI_NULL || msg >= D2H_MSG_COUNT) {
         return -OAL_EFAIL;
     }
@@ -345,24 +330,27 @@ hi_s32 oal_sdio_message_register(oal_channel_stru *hi_sdio, hi_u8 msg, sdio_msg_
  * Output       : None
  * Return Value : hi_s32
  */
-hi_void oal_sdio_message_unregister(oal_channel_stru *hi_sdio, hi_u8 msg)
+hi_void oal_sdio_message_unregister(struct BusDev *bus, hi_u8 msg)
 {
-    if (hi_sdio == HI_NULL || msg >= D2H_MSG_COUNT) {
+    oal_channel_stru *hi_sdio = NULL;
+    if (bus == HI_NULL || msg >= D2H_MSG_COUNT) {
         return;
     }
+    hi_sdio = (oal_channel_stru *)bus->priData.data;
     hi_sdio->msg[msg].msg_rx = HI_NULL;
     hi_sdio->msg[msg].data = HI_NULL;
 }
 
-static hi_s32 oal_sdio_msg_stat(const oal_channel_stru *hi_sdio, hi_u32 *msg)
+static hi_s32 oal_sdio_msg_stat(struct BusDev *bus, hi_u32 *msg)
 {
     hi_s32 ret = 0;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
 #ifdef CONFIG_SDIO_MSG_ACK_HOST2ARM_DEBUG
     /* read from old register */
 #ifdef CONFIG_SDIO_D2H_MSG_ACK
-    *msg = oal_sdio_readl(hi_sdio->func, HISDIO_REG_FUNC1_MSG_FROM_DEV, &ret);
+    ret = bus->ops.readData(bus, HISDIO_REG_FUNC1_MSG_FROM_DEV, FOUR_BYTE, (hi_u8 *)msg);
 #else
-    *msg = oal_sdio_readb(hi_sdio->func, HISDIO_REG_FUNC1_MSG_FROM_DEV, &ret);
+    ret = bus->ops.readData(bus, HISDIO_REG_FUNC1_MSG_FROM_DEV, ONE_BYTE, (hi_u8 *)msg);
 #endif
 
     if (ret) {
@@ -382,7 +370,8 @@ static hi_s32 oal_sdio_msg_stat(const oal_channel_stru *hi_sdio, hi_u32 *msg)
 #ifdef CONFIG_SDIO_D2H_MSG_ACK
     /* read from old register */
     /* 当使用0x30寄存器时需要下发CMD52读0x2B 才会产生HOST2ARM ACK中断 */
-    (void)oal_sdio_readb(hi_sdio->func, HISDIO_REG_FUNC1_MSG_HIGH_FROM_DEV, &ret);
+    hi_u8 buf;
+    ret = bus->ops.readData(bus, HISDIO_REG_FUNC1_MSG_HIGH_FROM_DEV, ONE_BYTE, &buf);
     if (ret) {
         printk("[E]sdio readb error![ret=%d]\n", ret);
     }
@@ -401,18 +390,15 @@ static hi_s32 oal_sdio_msg_stat(const oal_channel_stru *hi_sdio, hi_u32 *msg)
 #define cpu_clock(m) (m)
 #endif
 
-hi_s32 oal_sdio_msg_irq(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_msg_irq(struct BusDev *bus)
 {
     oal_bitops           bit = 0;
-    struct sdio_func    *func;
     hi_u32               msg = 0;
     hi_s32               ret;
     unsigned long        msg_tmp;
-
-    func = hi_sdio->func;
-    hi_unref_param(func);
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     /* reading interrupt form ARM Gerneral Purpose Register(0x28)  */
-    ret = oal_sdio_msg_stat(hi_sdio, &msg);
+    ret = oal_sdio_msg_stat(bus, &msg);
     if (ret) {
         printk("[SDIO][Err]oal_sdio_msg_stat error![ret=%d]\n", ret);
         return ret;
@@ -423,10 +409,10 @@ hi_s32 oal_sdio_msg_irq(oal_channel_stru *hi_sdio)
         return HI_SUCCESS;
     }
     if (oal_bit_atomic_test(D2H_MSG_DEVICE_PANIC, &msg_tmp)) {
-        oal_disable_sdio_state(hi_sdio, OAL_SDIO_ALL);
+        oal_disable_sdio_state(bus, OAL_SDIO_ALL);
     }
-    oal_sdio_release_host(hi_sdio);
-    oal_sdio_rx_transfer_unlock(hi_sdio);
+    oal_sdio_release_host(bus);
+    oal_sdio_rx_transfer_unlock(bus);
     if (oal_bit_atomic_test_and_clear(D2H_MSG_DEVICE_PANIC, &msg_tmp)) {
         bit = D2H_MSG_DEVICE_PANIC;
         hi_sdio->msg[bit].count++;
@@ -450,8 +436,8 @@ hi_s32 oal_sdio_msg_irq(oal_channel_stru *hi_sdio)
             hi_sdio->msg[bit].msg_rx(hi_sdio->msg[bit].data);
         }
     }
-    oal_sdio_rx_transfer_lock(hi_sdio);
-    oal_sdio_claim_host(hi_sdio);
+    oal_sdio_rx_transfer_lock(bus);
+    oal_sdio_claim_host(bus);
 
     return HI_SUCCESS;
 }
@@ -498,13 +484,13 @@ hi_void oal_sdio_credit_update_cb_register(oal_channel_stru *hi_sdio, hisdio_rx 
     return;
 }
 
-hi_s32 oal_sdio_get_credit(const oal_channel_stru *hi_sdio, hi_u32 *uc_hipriority_cnt)
+hi_s32 oal_sdio_get_credit(struct BusDev *bus, hi_u32 *uc_hipriority_cnt)
 {
     hi_s32 ret;
-    sdio_claim_host(hi_sdio->func);
-    ret = oal_sdio_memcpy_fromio(hi_sdio->func, (hi_u8 *)uc_hipriority_cnt,
+    bus->ops.claimHost(bus);
+    ret = oal_sdio_memcpy_fromio(bus, (hi_u8 *)uc_hipriority_cnt,
                                  HISDIO_EXTEND_CREDIT_ADDR, sizeof(*uc_hipriority_cnt));
-    sdio_release_host(hi_sdio->func);
+    bus->ops.releaseHost(bus);
     /* 此处要让出CPU */
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
     schedule();
@@ -513,11 +499,12 @@ hi_s32 oal_sdio_get_credit(const oal_channel_stru *hi_sdio, hi_u32 *uc_hipriorit
 }
 
 #ifndef CONFIG_SDIO_MSG_ACK_HOST2ARM_DEBUG
-static hi_s32 oal_sdio_extend_buf_get(const oal_channel_stru *hi_sdio)
+static hi_s32 oal_sdio_extend_buf_get(struct BusDev *bus)
 {
     hi_s32 ret = HI_SUCCESS;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (g_sdio_extend_func) {
-        ret = oal_sdio_memcpy_fromio(hi_sdio->func, (hi_void *)hi_sdio->sdio_extend,
+        ret = oal_sdio_memcpy_fromio(bus, (hi_void *)hi_sdio->sdio_extend,
                                      HISDIO_EXTEND_BASE_ADDR, sizeof(hisdio_extend_func));
         if (oal_likely(ret == HI_SUCCESS)) {
 #ifdef CONFIG_SDIO_DEBUG
@@ -540,12 +527,13 @@ static hi_s32 oal_sdio_extend_buf_get(const oal_channel_stru *hi_sdio)
     return ret;
 }
 #else
-static hi_s32 oal_sdio_extend_buf_get(oal_channel_stru *hi_sdio)
+static hi_s32 oal_sdio_extend_buf_get(struct BusDev *bus)
 {
     hi_s32 ret;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     {
         memset_s(hi_sdio->sdio_extend, sizeof(struct hisdio_extend_func), 0, sizeof(struct hisdio_extend_func));
-        ret = oal_sdio_memcpy_fromio(hi_sdio->func, (hi_void *)&hi_sdio->sdio_extend->credit_info,
+        ret = oal_sdio_memcpy_fromio(bus, (hi_void *)&hi_sdio->sdio_extend->credit_info,
             HISDIO_EXTEND_BASE_ADDR + 12, HISDIO_EXTEND_REG_COUNT + 4); /* addr+ 12, count+ 4 */
 #ifdef CONFIG_SDIO_DEBUG
         if (ret == HI_SUCCESS) {
@@ -560,7 +548,7 @@ static hi_s32 oal_sdio_extend_buf_get(oal_channel_stru *hi_sdio)
 }
 #endif
 
-hi_s32 oal_sdio_transfer_rx_reserved_buff(const oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_transfer_rx_reserved_buff(struct BusDev *bus)
 {
     hi_u32 i = 0;
     hi_s32 ret;
@@ -568,6 +556,7 @@ hi_s32 oal_sdio_transfer_rx_reserved_buff(const oal_channel_stru *hi_sdio)
     hi_u32 seg_nums, seg_size;
     struct scatterlist *sg = HI_NULL;
     struct scatterlist *sg_t = HI_NULL;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (hi_sdio->sdio_extend == HI_NULL) {
         oam_error_log0(0, OAM_SF_ANY, "{hi_sdio->sdio_extend NULL!}");
         return -OAL_EINVAL;
@@ -609,7 +598,7 @@ hi_s32 oal_sdio_transfer_rx_reserved_buff(const oal_channel_stru *hi_sdio)
         sg_set_buf(sg_t, (const void *)(UINTPTR)hi_sdio->rx_reserved_buff, oal_min(seg_size, left_size));
         left_size = left_size - seg_size;
     }
-    ret = _oal_sdio_transfer_scatt(hi_sdio, SDIO_READ, HISDIO_REG_FUNC1_FIFO, sg, seg_nums, ul_extend_len);
+    ret = _oal_sdio_transfer_scatt(bus, SDIO_READ, HISDIO_REG_FUNC1_FIFO, sg, seg_nums, ul_extend_len);
     if (oal_unlikely(ret)) {
         printk("sdio trans revered mem failed! ret=%d\n", ret);
     }
@@ -644,7 +633,7 @@ oal_netbuf_stru *oal_sdio_alloc_rx_netbuf(hi_u32 ul_len)
 #endif
 }
 
-hi_s32 oal_sdio_build_rx_netbuf_list(oal_channel_stru *hi_sdio, oal_netbuf_head_stru *head)
+hi_s32 oal_sdio_build_rx_netbuf_list(struct BusDev *bus, oal_netbuf_head_stru    *head)
 {
 #ifdef CONFIG_SDIO_FUNC_EXTEND
     hi_s32 i;
@@ -654,6 +643,7 @@ hi_s32 oal_sdio_build_rx_netbuf_list(oal_channel_stru *hi_sdio, oal_netbuf_head_
     hi_s32 ret = HI_SUCCESS;
     hi_u32 sum_len = 0;
     oal_netbuf_stru *netbuf = HI_NULL;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
 
     if (!oal_netbuf_list_empty(head)) {
         oam_error_log0(0, OAM_SF_ANY, "oal_sdio_build_rx_netbuf_list: oal netbuf list empty");
@@ -720,23 +710,24 @@ hi_s32 oal_sdio_build_rx_netbuf_list(oal_channel_stru *hi_sdio, oal_netbuf_head_
     return ret;
 failed_netbuf_alloc:
     oal_netbuf_list_purge(head);
-    ret = oal_sdio_transfer_rx_reserved_buff(hi_sdio);
+    ret = oal_sdio_transfer_rx_reserved_buff(bus);
     if (ret != HI_SUCCESS) {
         printk("oal_sdio_transfer_rx_reserved_buff fail\n");
     }
     return -OAL_ENOMEM;
 }
 
-static hi_s32 oal_sdio_get_func1_int_status(const oal_channel_stru *hi_sdio, hi_u8 *int_stat)
+static hi_s32 oal_sdio_get_func1_int_status(struct BusDev *bus, hi_u8 *int_stat)
 {
     hi_s32 ret = 0;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (g_sdio_extend_func) {
         hi_sdio->sdio_extend->int_stat &= hi_sdio->func1_int_mask;
         *int_stat = (hi_sdio->sdio_extend->int_stat & 0xF);
         return HI_SUCCESS;
     } else {
         /* read interrupt indicator register */
-        *int_stat = oal_sdio_readb(hi_sdio->func, HISDIO_REG_FUNC1_INT_STATUS, &ret);
+        ret = bus->ops.readData(bus, HISDIO_REG_FUNC1_INT_STATUS, ONE_BYTE, int_stat);
         if (oal_unlikely(ret)) {
             printk("[SDIO][Err]failed to read sdio func1 interrupt status!ret=%d\n", ret);
             return ret;
@@ -746,14 +737,14 @@ static hi_s32 oal_sdio_get_func1_int_status(const oal_channel_stru *hi_sdio, hi_
     return HI_SUCCESS;
 }
 
-static hi_s32 oal_sdio_clear_int_status(const oal_channel_stru *hi_sdio, hi_u8 int_stat)
+static hi_s32 oal_sdio_clear_int_status(struct BusDev *bus, hi_u8 int_stat)
 {
     hi_s32 ret = 0;
 
     if (g_sdio_extend_func) {
         return HI_SUCCESS;
     }
-    oal_sdio_writeb(hi_sdio->func, int_stat, HISDIO_REG_FUNC1_INT_STATUS, &ret);
+    ret = bus->ops.writeData(bus, HISDIO_REG_FUNC1_INT_STATUS, ONE_BYTE, &int_stat);
     if (oal_unlikely(ret)) {
         printk("[SDIO][Err]failed to clear sdio func1 interrupt!ret=%d\n", ret);
         return ret;
@@ -767,10 +758,11 @@ static hi_s32 oal_sdio_clear_int_status(const oal_channel_stru *hi_sdio, hi_u8 i
  * Output       : None
  * Return Value : hi_s32
  */
-hi_s32 oal_sdio_do_isr(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_do_isr(struct BusDev *bus)
 {
     hi_u8 int_mask;
     hi_s32 ret;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
 
     hi_sdio->sdio_int_count++;
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
@@ -797,14 +789,14 @@ hi_s32 oal_sdio_do_isr(oal_channel_stru *hi_sdio)
 #endif
 
 #ifndef CONFIG_SDIO_MSG_ACK_HOST2ARM_DEBUG
-    ret = oal_sdio_extend_buf_get(hi_sdio);
+    ret = oal_sdio_extend_buf_get(bus);
     if (oal_unlikely(ret)) {
         printk("[SDIO][Err]failed to read sdio extend area ret=%d\n", ret);
         return -OAL_EFAIL;
     }
 #endif
 
-    ret = oal_sdio_get_func1_int_status(hi_sdio, &int_mask);
+    ret = oal_sdio_get_func1_int_status(bus, &int_mask);
     if (oal_unlikely(ret)) {
         return ret;
     }
@@ -815,7 +807,7 @@ hi_s32 oal_sdio_do_isr(oal_channel_stru *hi_sdio)
     }
 
     /* clear interrupt mask */
-    ret = oal_sdio_clear_int_status(hi_sdio, int_mask);
+    ret = oal_sdio_clear_int_status(bus, int_mask);
     if (oal_unlikely(ret)) {
         return ret;
     }
@@ -828,14 +820,14 @@ hi_s32 oal_sdio_do_isr(oal_channel_stru *hi_sdio)
     /* message interrupt, flow control */
     if (int_mask & HISDIO_FUNC1_INT_MFARM) {
         hi_sdio->func1_stat.func1_msg_int_count++;
-        if (oal_sdio_msg_irq(hi_sdio) != HI_SUCCESS) {
+        if (oal_sdio_msg_irq(bus) != HI_SUCCESS) {
             return -OAL_EFAIL;
         }
     }
 
     if (int_mask & HISDIO_FUNC1_INT_DREADY) {
         hi_sdio->func1_stat.func1_data_int_count++;
-        return oal_sdio_data_sg_irq(hi_sdio);
+        return oal_sdio_data_sg_irq(bus);
     }
     hi_sdio->func1_stat.func1_unknow_int_count++;
     return HI_SUCCESS;
@@ -847,29 +839,22 @@ hi_s32 oal_sdio_do_isr(oal_channel_stru *hi_sdio)
  * Output       : None
  * Return Value : err or succ
  */
-hi_void oal_sdio_isr(struct sdio_func *func)
+hi_void oal_sdio_isr(void *func)
 {
-    oal_channel_stru *hi_sdio = HI_NULL;
+    struct BusDev *bus = oal_get_bus_default_handler();
     hi_s32 ret;
 
     if (func == HI_NULL) {
         oam_error_log0(0, 0, "oal_sdio_isr func null\n");
         return;
     }
-
-    hi_sdio = sdio_get_drvdata(func);
-    if (hi_sdio == HI_NULL || hi_sdio->func == HI_NULL) {
-        oam_error_log1(0, 0, "hi_sdio/hi_sdio->func is NULL :%p\n", (uintptr_t)hi_sdio);
-        return;
-    }
-
-    sdio_claim_host(hi_sdio->func);
-    ret = oal_sdio_do_isr(hi_sdio);
+    bus->ops.claimHost(bus);
+    ret = oal_sdio_do_isr(bus);
     if (oal_unlikely(ret)) {
         oam_error_log0(0, 0, "oal_sdio_do_isr fail\n");
         oal_exception_submit(TRANS_FAIL);
     }
-    sdio_release_host(hi_sdio->func);
+    bus->ops.releaseHost(bus);
 }
 
 #undef COFNIG_TEST_SDIO_INT_LOSS
@@ -884,10 +869,11 @@ oal_atomic g_pm_spinlock_get;
  * Output       : None
  * Return Value : hi_void
  */
-hi_void oal_unregister_gpio_intr(oal_channel_stru *hi_sdio)
+hi_void oal_unregister_gpio_intr(struct BusDev *bus)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     /* disable wlan irq */
-    oal_wlan_gpio_intr_enable(hi_sdio, HI_FALSE);
+    oal_wlan_gpio_intr_enable(bus, HI_FALSE);
 
     /* free irq when sdio driver deinit */
     oal_free_irq(hi_sdio->ul_wlan_irq, hi_sdio);
@@ -901,8 +887,9 @@ hi_void oal_unregister_gpio_intr(oal_channel_stru *hi_sdio)
  输出参数  : 无
  返 回 值  : 成功或失败原因
 **************************************************************************** */
-hi_void oal_wlan_gpio_intr_enable(oal_channel_stru *hi_sdio, hi_u32 ul_en)
+hi_void oal_wlan_gpio_intr_enable(struct BusDev *bus, hi_u32  ul_en)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
 #ifndef _PRE_FEATURE_NO_GPIO
     unsigned long flags;
 
@@ -919,37 +906,37 @@ hi_void oal_wlan_gpio_intr_enable(oal_channel_stru *hi_sdio, hi_u32 ul_en)
 #endif
 }
 
-hi_s32 oal_register_sdio_intr(const oal_channel_stru *hi_sdio)
+hi_s32 oal_register_sdio_intr(struct BusDev *bus)
 {
     hi_s32 ret;
 
-    sdio_claim_host(hi_sdio->func);
+    bus->ops.claimHost(bus);
     /* use sdio bus line data1 for sdio data interrupt */
-#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-    ret = sdio_claim_irq(hi_sdio->func, oal_sdio_isr);
-#elif (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-    ret = sdio_require_irq(hi_sdio->func, oal_sdio_isr);
-#endif
+    ret = bus->ops.claimIrq(bus, (IrqHandler *)oal_sdio_isr, NULL);
     if (ret < 0) {
         oam_error_log0(0, 0, "oal_register_sdio_intr:: failed to register sdio interrupt");
-        sdio_release_host(hi_sdio->func);
+        bus->ops.releaseHost(bus);
         return -OAL_EFAIL;
     }
-    sdio_release_host(hi_sdio->func);
+    bus->ops.releaseHost(bus);
     oam_info_log0(0, 0, "oal_register_sdio_intr:: sdio interrupt register");
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
+    struct sdio_func *func = hi_sdio->func;
     pm_runtime_get_sync(mmc_dev(hi_sdio->func->card->host));
 #endif
     return ret;
 }
 
-hi_void oal_unregister_sdio_intr(const oal_channel_stru *hi_sdio)
+hi_void oal_unregister_sdio_intr(struct BusDev *bus)
 {
-    sdio_claim_host(hi_sdio->func);
+    bus->ops.claimHost(bus);
     /* use sdio bus line data1 for sdio data interrupt */
-    sdio_release_irq(hi_sdio->func);
-    sdio_release_host(hi_sdio->func);
+    bus->ops.releaseIrq(bus);
+    bus->ops.releaseHost(bus);
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
+    struct sdio_func *func = hi_sdio->func;
     pm_runtime_put_sync(mmc_dev(hi_sdio->func->card->host));
 #endif
 }
@@ -959,26 +946,26 @@ hi_void oal_unregister_sdio_intr(const oal_channel_stru *hi_sdio)
  * Input        : None
  * Output       : None
  */
-hi_void oal_sdio_interrupt_unregister(oal_channel_stru *hi_sdio)
+hi_void oal_sdio_interrupt_unregister(struct BusDev *bus)
 {
     if (g_hisdio_intr_mode) {
         /* use GPIO interrupt for sdio data interrupt */
-        oal_unregister_gpio_intr(hi_sdio);
+        oal_unregister_gpio_intr(bus);
     } else {
         /* use sdio interrupt for sdio data interrupt */
-        oal_unregister_sdio_intr(hi_sdio);
+        oal_unregister_sdio_intr(bus);
     }
 }
 
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-unsigned long oal_sdio_get_sleep_state(oal_channel_stru *hi_sdio)
+unsigned long oal_sdio_get_sleep_state(struct BusDev *bus)
 {
     int ret;
     unsigned long ul_value;
 
-    sdio_claim_host(hi_sdio->func);
-    ul_value = sdio_f0_readb(hi_sdio->func, HISDIO_WAKEUP_DEV_REG, &ret);
-    sdio_release_host(hi_sdio->func);
+    bus->ops.claimHost(bus);
+    (void)bus->ops.readFunc0(bus, HISDIO_WAKEUP_DEV_REG, 1, (hi_u8 *)&ul_value);
+    bus->ops.releaseHost(bus);
 
     return ul_value;
 }
@@ -990,17 +977,16 @@ unsigned long oal_sdio_get_sleep_state(oal_channel_stru *hi_sdio)
  * Output       : None
  */
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-hi_void oal_sdio_get_dev_pm_state(oal_channel_stru *hi_sdio, unsigned long *pst_ul_f1, unsigned long *pst_ul_f2,
-    unsigned long *pst_ul_f3, unsigned long *pst_ul_f4)
+hi_void oal_sdio_get_dev_pm_state(struct BusDev *bus, unsigned long *pst_ul_f1,
+    unsigned long *pst_ul_f2, unsigned long *pst_ul_f3, unsigned long *pst_ul_f4)
 {
     int ret;
-
-    sdio_claim_host(hi_sdio->func);
-    *pst_ul_f1 = sdio_f0_readb(hi_sdio->func, 0xf1, &ret);
-    *pst_ul_f2 = sdio_f0_readb(hi_sdio->func, 0xf2, &ret);
-    *pst_ul_f3 = sdio_f0_readb(hi_sdio->func, 0xf3, &ret);
-    *pst_ul_f4 = sdio_f0_readb(hi_sdio->func, 0xf4, &ret);
-    sdio_release_host(hi_sdio->func);
+    bus->ops.claimHost(bus);
+    (void)bus->ops.readFunc0(bus, 0xf1, 1, (hi_u8 *)pst_ul_f1);
+    (void)bus->ops.readFunc0(bus, 0xf2, 1, (hi_u8 *)pst_ul_f2);
+    (void)bus->ops.readFunc0(bus, 0xf3, 1, (hi_u8 *)pst_ul_f3);
+    (void)bus->ops.readFunc0(bus, 0xf4, 1, (hi_u8 *)pst_ul_f4);
+    bus->ops.releaseHost(bus);
 
     return;
 }
@@ -1013,30 +999,34 @@ hi_void oal_sdio_get_dev_pm_state(oal_channel_stru *hi_sdio, unsigned long *pst_
  * Return Value :
  */
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-hi_s32 oal_sdio_wakeup_dev(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_wakeup_dev(struct BusDev *bus)
 {
     int ret;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (hi_sdio == HI_NULL) {
         return -OAL_EFAIL;
     }
-    oal_sdio_claim_host(hi_sdio);
-    sdio_f0_writeb(hi_sdio->func, DISALLOW_TO_SLEEP_VALUE, HISDIO_WAKEUP_DEV_REG, &ret);
-    oal_sdio_release_host(hi_sdio);
+    oal_sdio_claim_host(bus);
+    hi_u32 data = DISALLOW_TO_SLEEP_VALUE;
+    ret = bus->ops.writeFunc0(bus, HISDIO_WAKEUP_DEV_REG, 1, (hi_u8 *)&data);
+    oal_sdio_release_host(bus);
 
     return ret;
 }
 #endif
 
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-hi_s32 oal_sdio_wakeup_dev(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_wakeup_dev(struct BusDev *bus)
 {
     int ret;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (hi_sdio == HI_NULL) {
         return -OAL_EFAIL;
     }
-    oal_sdio_claim_host(hi_sdio);
-    sdio_func0_write_byte(hi_sdio->func, DISALLOW_TO_SLEEP_VALUE, HISDIO_WAKEUP_DEV_REG, &ret);
-    oal_sdio_release_host(hi_sdio);
+    oal_sdio_claim_host(bus);
+    hi_u32 data = DISALLOW_TO_SLEEP_VALUE;
+    ret = bus->ops.writeFunc0(bus, HISDIO_WAKEUP_DEV_REG, 1, (hi_u8 *)&data);
+    oal_sdio_release_host(bus);
     return ret;
 }
 #endif
@@ -1048,30 +1038,33 @@ hi_s32 oal_sdio_wakeup_dev(oal_channel_stru *hi_sdio)
  * Return Value :
  */
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-hi_s32 oal_sdio_sleep_dev(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_sleep_dev(struct BusDev *bus)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (hi_sdio == HI_NULL) {
         return -OAL_EFAIL;
     }
     int ret;
-    oal_sdio_claim_host(hi_sdio);
-    sdio_f0_writeb(hi_sdio->func, ALLOW_TO_SLEEP_VALUE, HISDIO_WAKEUP_DEV_REG, &ret);
-    oal_sdio_release_host(hi_sdio);
+    oal_sdio_claim_host(bus);
+    hi_u32 data = ALLOW_TO_SLEEP_VALUE;
+    ret = bus->ops.writeFunc0(bus, HISDIO_WAKEUP_DEV_REG, 1, (hi_u8 *)&data);
+    oal_sdio_release_host(bus);
     return ret;
 }
 #endif
 
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-hi_s32 oal_sdio_sleep_dev(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_sleep_dev(struct BusDev *bus)
 {
-    int ret;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
+
     if (hi_sdio == HI_NULL) {
         return -OAL_EFAIL;
     }
-
-    oal_sdio_claim_host(hi_sdio);
-    sdio_func0_write_byte(hi_sdio->func, ALLOW_TO_SLEEP_VALUE, HISDIO_WAKEUP_DEV_REG, &ret);
-    oal_sdio_release_host(hi_sdio);
+    oal_sdio_claim_host(bus);
+    uint8_t data = ALLOW_TO_SLEEP_VALUE;
+    (void)bus->ops.writeFunc0(bus, HISDIO_WAKEUP_DEV_REG, 1, &data);
+    oal_sdio_release_host(bus);
 
     return HI_SUCCESS;
 }
@@ -1083,34 +1076,19 @@ hi_s32 oal_sdio_sleep_dev(oal_channel_stru *hi_sdio)
  * Output       :
  * Return Value : succ or fail
  */
-hi_s32 oal_sdio_dev_init(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_dev_init(struct BusDev *bus)
 {
-    struct sdio_func   *func = HI_NULL;
-    hi_s32               ret;
-
+    hi_s32 ret;
+    hi_u32 data;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (hi_sdio == HI_NULL) {
         return -OAL_EFAIL;
     }
 
-    func = hi_sdio->func;
-
-    oal_sdio_claim_host(hi_sdio);
+    oal_sdio_claim_host(bus);
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-    oal_disable_sdio_state(hi_sdio, OAL_SDIO_ALL);
+    oal_disable_sdio_state(bus, OAL_SDIO_ALL);
 #endif
-    sdio_en_timeout(func) = 1000; /* 超时时间为1000  */
-
-    ret = sdio_enable_func(func);
-    if (ret < 0) {
-        printk("failed to enable sdio function! ret=%d\n", ret);
-        goto failed_enabe_func;
-    }
-
-    ret = sdio_set_block_size(func, HISDIO_BLOCK_SIZE);
-    if (ret) {
-        printk("failed to set sdio blk size! ret=%d\n", ret);
-        goto failed_set_block_size;
-    }
 
     /* before enable sdio function 1, clear its interrupt flag, no matter it exist or not */
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
@@ -1118,7 +1096,8 @@ hi_s32 oal_sdio_dev_init(oal_channel_stru *hi_sdio)
     if (wlan_resume_state_get() == 0) { /* host镜像恢复起来不清中断，防止数据丢失 */
 #endif
 #endif
-        oal_sdio_writeb(func, HISDIO_FUNC1_INT_MASK, HISDIO_REG_FUNC1_INT_STATUS, &ret);
+        data = HISDIO_FUNC1_INT_MASK;
+        ret = bus->ops.writeData(bus, HISDIO_REG_FUNC1_INT_STATUS, ONE_BYTE, (hi_u8 *)&data);
         if (ret) {
             printk("failed to clear sdio interrupt! ret=%d\n", ret);
             goto failed_clear_func1_int;
@@ -1135,23 +1114,22 @@ hi_s32 oal_sdio_dev_init(oal_channel_stru *hi_sdio)
      * message from arm is available
      * device has receive message from host
      *  */
-    oal_sdio_writeb(func, HISDIO_FUNC1_INT_MASK, HISDIO_REG_FUNC1_INT_ENABLE, &ret);
+    data = HISDIO_FUNC1_INT_MASK;
+    ret = bus->ops.writeData(bus, HISDIO_REG_FUNC1_INT_ENABLE, ONE_BYTE, (hi_u8 *)&data);
     if (ret < 0) {
         printk("failed to enable sdio interrupt! ret=%d\n", ret);
         goto failed_enable_func1;
     }
 
-    oal_enable_sdio_state(hi_sdio, OAL_SDIO_ALL);
-    oal_sdio_release_host(hi_sdio);
+    oal_enable_sdio_state(bus, OAL_SDIO_ALL);
+    oal_sdio_release_host(bus);
 
     return HI_SUCCESS;
 
 failed_enable_func1:
 failed_clear_func1_int:
-failed_set_block_size:
-    sdio_disable_func(func);
-failed_enabe_func:
-    oal_sdio_release_host(hi_sdio);
+    (void)bus->ops.disableBus(bus);
+    oal_sdio_release_host(bus);
     return ret;
 }
 
@@ -1161,18 +1139,15 @@ failed_enabe_func:
  * Output       : None
  * Return Value : hi_s32
  */
-static hi_void oal_sdio_dev_deinit(oal_channel_stru *hi_sdio)
+static hi_void oal_sdio_dev_deinit(struct BusDev *bus)
 {
-    struct sdio_func *func = HI_NULL;
-    hi_s32 ret = 0;
-
-    func = hi_sdio->func;
-    sdio_claim_host(func);
-    oal_sdio_writeb(func, 0, HISDIO_REG_FUNC1_INT_ENABLE, &ret);
-    oal_sdio_interrupt_unregister(hi_sdio);
-    sdio_disable_func(func);
-    oal_disable_sdio_state(hi_sdio, OAL_SDIO_ALL);
-    sdio_release_host(func);
+    bus->ops.claimHost(bus);
+    hi_u32 data = 0;
+    (void)bus->ops.writeData(bus, HISDIO_REG_FUNC1_INT_ENABLE, ONE_BYTE, (uint8_t *)&data);
+    oal_sdio_interrupt_unregister(bus);
+    (void)bus->ops.disableBus(bus);
+    oal_disable_sdio_state(bus, OAL_SDIO_ALL);
+    bus->ops.releaseHost(bus);
 
     printk("oal_sdio_dev_deinit! \n");
 }
@@ -1202,66 +1177,32 @@ hi_s32 oal_sdio_get_state(const oal_channel_stru *hi_sdio, hi_u32 mask)
  * Output       : None
  * Return Value : hi_void
  */
-hi_void oal_enable_sdio_state(oal_channel_stru *hi_sdio, hi_u32 mask)
+hi_void oal_enable_sdio_state(struct BusDev *bus, hi_u32 mask)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     hi_u32 old_state;
     if (hi_sdio == HI_NULL) {
         printk("oal_enable_sdio_state: hi_sdio null!\n");
         return;
     }
 
-    oal_sdio_claim_host(hi_sdio);
     old_state = hi_sdio->state;
     hi_sdio->state |= mask;
     oal_sdio_print_state(old_state, hi_sdio->state);
-    oal_sdio_release_host(hi_sdio);
 }
 
-hi_void oal_disable_sdio_state(oal_channel_stru *hi_sdio, hi_u32 mask)
+hi_void oal_disable_sdio_state(struct BusDev *bus, hi_u32 mask)
 {
     hi_u32 old_state;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (hi_sdio == HI_NULL) {
         printk("oal_enable_sdio_state: hi_sdio null!\n");
         return;
     }
 
-    oal_sdio_claim_host(hi_sdio);
     old_state = hi_sdio->state;
     hi_sdio->state &= ~mask;
     oal_sdio_print_state(old_state, hi_sdio->state);
-    oal_sdio_release_host(hi_sdio);
-}
-
-/*
- * Description  : alloc and init oal_sdio
- * Input        : None
- * Output       : None
- * Return Value : oal_channel_stru*
- */
-oal_channel_stru *oal_sdio_alloc(struct sdio_func *func)
-{
-    oal_channel_stru *hi_sdio = HI_NULL;
-
-    if (func == HI_NULL) {
-        printk(KERN_ERR "oal_sdio_alloc: func null!\n");
-        return HI_NULL;
-    }
-
-    /* alloce sdio control struct */
-    hi_sdio = oal_get_sdio_default_handler();
-    if (hi_sdio == HI_NULL) {
-        printk(KERN_ERR "Failed to alloc hi_sdio!\n");
-        return HI_NULL;
-    }
-
-    hi_sdio->func = func;
-
-    OAL_MUTEX_INIT(&hi_sdio->rx_transfer_lock);
-
-    /* func keep a pointer to oal_sdio */
-    sdio_set_drvdata(func, hi_sdio);
-
-    return hi_sdio;
 }
 
 /*
@@ -1279,21 +1220,22 @@ static hi_void oal_sdio_free(oal_channel_stru *hi_sdio)
     oal_free_sdio_stru(hi_sdio);
 }
 
-hi_s32 oal_sdio_interrupt_register(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_interrupt_register(struct BusDev *bus)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
 #ifndef _PRE_FEATURE_NO_GPIO
     hi_s32 ret;
 
     if (g_hisdio_intr_mode) {
         /* use gpio interrupt for sdio data interrupt */
-        ret = oal_register_gpio_intr(hi_sdio);
+        ret = oal_register_gpio_intr(bus);
         if (ret < 0) {
             printk("failed to register gpio interrupt\n");
             return ret;
         }
     } else {
         /* use sdio interrupt for sdio data interrupt */
-        ret = oal_register_sdio_intr(hi_sdio);
+        ret = oal_register_sdio_intr(bus);
         if (ret < 0) {
             printk("failed to register sdio interrupt\n");
             return ret;
@@ -1311,12 +1253,12 @@ hi_s32 oal_sdio_interrupt_register(oal_channel_stru *hi_sdio)
  * Output       : None
  * Return Value : succ or fail
  */
-static hi_s32 oal_sdio_probe(struct sdio_func *func, const struct sdio_device_id *ids)
+static hi_s32 oal_sdio_init(struct BusDev *bus)
 {
-    oal_channel_stru *hi_sdio = HI_NULL;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
+    void *func = hi_sdio->func;
     hi_s32 ret;
-
-    if (func == HI_NULL || func->card == HI_NULL || func->card->host == HI_NULL || (!ids)) {
+    if (func == HI_NULL) {
         printk("oal_sdio_probe func/func->card->host ids null\n");
         return -OAL_EFAIL;
     }
@@ -1325,16 +1267,20 @@ static hi_s32 oal_sdio_probe(struct sdio_func *func, const struct sdio_device_id
     g_p_gst_sdio_func = func;
 #endif
     /* alloce sdio control struct */
-    hi_sdio = oal_sdio_alloc(func);
     if (hi_sdio == HI_NULL) {
         g_sdio_enum_err_str = "failed to alloc hi_sdio!";
         printk(KERN_ERR "%s\n", g_sdio_enum_err_str);
         goto failed_sdio_alloc;
     }
+    OAL_MUTEX_INIT(&hi_sdio->rx_transfer_lock);
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+    /* func keep a pointer to oal_sdio */
+    sdio_set_drvdata((struct sdio_func *)func, hi_sdio);
+#endif
 
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
     /* register interrupt process function */
-    ret = oal_sdio_interrupt_register(hi_sdio);
+    ret = oal_sdio_interrupt_register(bus);
     if (ret < 0) {
         g_sdio_enum_err_str = "failed to register sdio interrupt";
         printk("%s\n", g_sdio_enum_err_str);
@@ -1343,9 +1289,9 @@ static hi_s32 oal_sdio_probe(struct sdio_func *func, const struct sdio_device_id
     }
 #endif
 
-    oal_disable_sdio_state(hi_sdio, OAL_SDIO_ALL);
+    oal_disable_sdio_state(bus, OAL_SDIO_ALL);
 
-    if (oal_sdio_dev_init(hi_sdio) != HI_SUCCESS) {
+    if (oal_sdio_dev_init(bus) != HI_SUCCESS) {
         g_sdio_enum_err_str = "sdio dev init failed";
         goto failed_sdio_dev_init;
     }
@@ -1353,20 +1299,14 @@ static hi_s32 oal_sdio_probe(struct sdio_func *func, const struct sdio_device_id
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
     /* Print the sdio's cap */
     oam_print_info("max_segs:%u, max_blk_size:%u,max_blk_count:%u,,max_seg_size:%u,max_req_size:%u\n",
-        sdio_get_max_segs(func), sdio_get_max_blk_size(func), sdio_get_max_block_count(func),
-        sdio_get_max_seg_size(func), sdio_get_max_req_size(func));
-#elif (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-    oam_print_info("max_blk_size:%u,max_blk_count:%u,max_req_size:%u\n", sdio_get_max_blk_size(func),
-        sdio_get_max_block_count(func), sdio_get_max_req_size(func));
+        sdio_get_max_segs((struct sdio_func *)func), sdio_get_max_blk_size((struct sdio_func*)func),
+        sdio_get_max_block_count((struct sdio_func *)func), sdio_get_max_seg_size((struct sdio_func *)func),
+        sdio_get_max_req_size((struct sdio_func *)func));
 #endif
-
-    oam_print_info("transer limit size:%u\n", oal_sdio_func_max_req_size(hi_sdio));
-
-    oam_print_info("+++++++++++++func->enable_timeout= [%d]++++++++++++++++\n", sdio_en_timeout(func));
 
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
     /* register interrupt process function */
-    ret = oal_sdio_interrupt_register(hi_sdio);
+    ret = oal_sdio_interrupt_register(bus);
     if (ret < 0) {
         g_sdio_enum_err_str = "failed to register sdio interrupt";
         oam_print_info("%s\n", g_sdio_enum_err_str);
@@ -1375,10 +1315,7 @@ static hi_s32 oal_sdio_probe(struct sdio_func *func, const struct sdio_device_id
 #endif
 
     oal_wake_lock_init(&hi_sdio->st_sdio_wakelock, "wlan_sdio_lock");
-
     oal_sema_init(&g_chan_wake_sema, 1);
-
-    OAL_COMPLETE(&g_sdio_driver_complete);
 
     return HI_SUCCESS;
 failed_sdio_int_reg:
@@ -1395,8 +1332,9 @@ failed_sdio_alloc:
  输出参数  : 无
  返 回 值  : 成功或失败原因
 **************************************************************************** */
-hi_void oal_sdio_wakelocks_release_detect(oal_channel_stru *hi_sdio)
+hi_void oal_sdio_wakelocks_release_detect(struct BusDev *bus)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     /* before call this function , please make sure the rx/tx queue is empty and no data transfer!! */
     if (hi_sdio == HI_NULL) {
         printk("oal_sdio_wakelocks_release_detect hi_sdio null\n");
@@ -1410,21 +1348,21 @@ hi_void oal_sdio_wakelocks_release_detect(oal_channel_stru *hi_sdio)
 #endif
 #endif
         hi_sdio->st_sdio_wakelock.lock_count = 1;
-        oal_sdio_wake_unlock(hi_sdio);
+        oal_sdio_wake_unlock(bus);
     }
 }
 
-static hi_s32 oal_sdio_single_transfer(const oal_channel_stru *hi_sdio, hi_s32 rw, hi_void *buf, hi_u32 size)
+static hi_s32 oal_sdio_single_transfer(struct BusDev *bus, hi_s32 rw, hi_void *buf, hi_u32 size)
 {
-    if ((hi_sdio == HI_NULL) || (hi_sdio->func == HI_NULL) || (buf == HI_NULL) || ((uintptr_t)buf & 0x3)) {
+    if ((bus == HI_NULL) || (bus->priData.data == HI_NULL) || (buf == HI_NULL) || ((uintptr_t)buf & 0x3)) {
         printk("oal_sdio_single_transfer:hi_sdio/hi_sdio->func/buf/(uintptr_t)buf & 0x3 err\n");
         return -OAL_EINVAL;
     }
 
-    return oal_sdio_rw_buf(hi_sdio, rw, HISDIO_REG_FUNC1_FIFO, buf, size);
+    return oal_sdio_rw_buf(bus, rw, HISDIO_REG_FUNC1_FIFO, buf, size);
 }
 
-hi_s32 oal_sdio_transfer_tx(const oal_channel_stru *hi_sdio, oal_netbuf_stru *netbuf)
+hi_s32 oal_sdio_transfer_tx(struct BusDev *bus, oal_netbuf_stru *netbuf)
 {
     hi_s32 ret = HI_SUCCESS;
     hi_u32 tailroom, tailroom_add;
@@ -1446,7 +1384,7 @@ hi_s32 oal_sdio_transfer_tx(const oal_channel_stru *hi_sdio, oal_netbuf_stru *ne
 
     oal_netbuf_put(netbuf, tailroom);
 
-    return oal_sdio_single_transfer(hi_sdio, SDIO_WRITE, oal_netbuf_data(netbuf), oal_netbuf_len(netbuf));
+    return oal_sdio_single_transfer(bus, SDIO_WRITE, oal_netbuf_data(netbuf), oal_netbuf_len(netbuf));
 }
 
 hi_void check_sg_format(struct scatterlist *sg, hi_u32 sg_len)
@@ -1554,6 +1492,7 @@ hi_s32 oal_mmc_io_rw_scat_extended(const oal_channel_stru *hi_sdio, hi_s32 write
     struct mmc_command cmd = { 0 };
     struct mmc_data data = { 0 };
     struct mmc_card *card = HI_NULL;
+    struct sdio_func *func = HI_NULL;
 
     OAL_BUG_ON(!hi_sdio);
     OAL_BUG_ON(!sg);
@@ -1568,8 +1507,8 @@ hi_s32 oal_mmc_io_rw_scat_extended(const oal_channel_stru *hi_sdio, hi_s32 write
     if (oal_unlikely(addr & ~0x1FFFF)) {
         return -EINVAL;
     }
-
-    card = hi_sdio->func->card;
+    func = hi_sdio->func;
+    card = func->card;
 
     /* sg format */
     check_sg_format(sg, sg_len);
@@ -1655,127 +1594,20 @@ hi_s32 oal_mmc_io_rw_scat_extended(const oal_channel_stru *hi_sdio, hi_s32 write
 #endif
     return 0;
 }
-#elif (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-
-#ifndef LITEOS_IPC_CODE
-hi_s32 oal_mmc_io_rw_scat_extended(const oal_channel_stru *hi_sdio, hi_s32 write, hi_u32 fn, hi_u32 addr,
-    hi_s32 incr_addr, struct scatterlist *sg, hi_u32 sg_len, hi_u32 blocks, hi_u32 blksz)
-{
-    struct mmc_request mrq = { 0 };
-    struct mmc_cmd cmd = { 0 };
-    struct mmc_data data = { 0 };
-    struct mmc_card *card = HI_NULL;
-
-    if ((hi_sdio == HI_NULL) || (sg == HI_NULL) || (sg_len == 0) || (fn > 7)) { /* fn must less than 7 */
-        return -OAL_EINVAL;
-    }
-
-    if (OAL_WARN_ON(blksz == 0) || hi_sdio->func == HI_NULL || hi_sdio->func->card == HI_NULL) {
-        return -EINVAL;
-    }
-
-    /* sanity check */
-    if (oal_unlikely(addr & ~0x1FFFF)) {
-        return -EINVAL;
-    }
-
-    card = hi_sdio->func->card;
-
-    /* sg format */
-    check_sg_format(sg, sg_len);
-
-#ifdef CONFIG_HISDIO_H2D_SCATT_LIST_ASSEMBLE
-    if (write) {
-        /* copy the buffs ,align to SDIO_BLOCK
-        Fix the sdio host ip fifo depth issue temporarily */
-        hi_s32 ret = oal_sdio_tx_scatt_list_merge(hi_sdio, sg, sg_len, blocks * blksz);
-        if (oal_likely(ret > 0)) {
-            sg_len = ret;
-        } else {
-            return ret;
-        }
-    }
 #endif
 
-    mrq.cmd = &cmd;
-    mrq.data = &data;
-
-    cmd.cmd_code = SDIO_RW_EXTENDED;
-    cmd.arg = write ? 0x80000000 : 0x00000000;
-    cmd.arg |= fn << 28; /* left shift 28 */
-    cmd.arg |= incr_addr ? 0x04000000 : 0x00000000;
-    cmd.arg |= addr << 9;                      /* left shift 9 */
-    if (blocks == 1 && blksz <= 512) {         /* blksz range [1 512] */
-        cmd.arg |= (blksz == 512) ? 0 : blksz; /* blksz equal 512, use byte mode */
-    } else {
-        cmd.arg |= 0x08000000 | blocks; /* block mode */
-    }
-    cmd.resp_type = MMC_RESP_SPI_R5 | MMC_RESP_R5 | MMC_CMD_ADTC;
-
-    data.blocksz = blksz;
-    data.blocks = blocks;
-    data.data_flags = write ? MMC_DATA_WRITE : MMC_DATA_READ;
-    data.sg = sg;
-    data.sg_len = sg_len;
-#ifdef CONFIG_SDIO_DEBUG
-    printk("[blksz:%u][blocks:%u][sg_len:%u][mode:%s]\n", blksz, blocks, sg_len, write ? "write" : "read");
-    printk("%s : [cmd opcode:%d][cmd arg:0x%8x][cmd flags: 0x%8x]\n", mmc_hostname(card->host), cmd.opcode, cmd.arg,
-        cmd.flags);
-    printk("Sdio %s data transfer start\n", write ? "write" : "read");
-#endif
-
-    mmc_set_data_timeout(&data, card);
-    mmc_wait_for_req(card->host, &mrq);
-
-#ifdef CONFIG_SDIO_DEBUG
-    printk("wait for %s transfer over.\n", write ? "write" : "read");
-#endif
-    if (cmd.err) {
-        return cmd.err;
-    }
-    if (data.err) {
-        return data.err;
-    }
-    if (OAL_WARN_ON(is_mmc_host_spi(card->host))) {
-        oam_error_log0(0, OAM_SF_ANY, "{HiSi WiFi  driver do not support spi sg transfer!}");
-        return -EIO;
-    }
-    if (cmd.resp[0] & SDIO_R5_ERROR) {
-        return -EIO;
-    }
-    if (cmd.resp[0] & SDIO_R5_FUNCTION_NUMBER) {
-        return -EINVAL;
-    }
-    if (cmd.resp[0] & SDIO_R5_OUT_OF_RANGE) {
-        return -ERANGE;
-    }
-#ifdef CONFIG_SDIO_DEBUG
-    do {
-        int i;
-        struct scatterlist *sg_t;
-        for_each_sg(data.sg, sg_t, data.sg_len, i) {
-            oam_info_log2(0, OAM_SF_ANY, "{======netbuf pkts %d, len:%d=========}", i, sg_t->length);
-            oal_print_hex_dump(sg_virt(sg_t), sg_t->length, 32, "sg buf  :"); /* 32 进制 */
-        }
-    } while (0);
-    oam_warning_log1(0, OAM_SF_ANY, "{Transfer done. %s sucuess!}", write ? "write" : "read");
-#endif
-    return 0;
-}
-#endif
-#endif
-
-static hi_s32 _oal_sdio_transfer_scatt(const oal_channel_stru *hi_sdio, hi_s32 rw, hi_u32 addr, struct scatterlist *sg,
+static hi_s32 _oal_sdio_transfer_scatt(struct BusDev *bus, hi_s32 rw, hi_u32 addr, struct scatterlist *sg,
     hi_u32 sg_len, hi_u32 rw_sz)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
+    struct BusConfig busCfg = {0};
 #ifdef CONFIG_HISI_SDIO_TIME_DEBUG
     oal_time_t_stru time_start;
     time_start = oal_ktime_get();
 #endif
     hi_s32 ret;
     hi_s32 write = (rw == SDIO_READ) ? 0 : 1;
-    struct sdio_func *func = hi_sdio->func;
-    sdio_claim_host(func);
+    bus->ops.claimHost(bus);
 
     if (oal_unlikely(oal_sdio_get_state(hi_sdio, OAL_SDIO_ALL) != HI_TRUE)) {
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
@@ -1785,11 +1617,25 @@ static hi_s32 _oal_sdio_transfer_scatt(const oal_channel_stru *hi_sdio, hi_s32 r
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
         schedule();
 #endif
-        sdio_release_host(func);
+        bus->ops.releaseHost(bus);
         return -OAL_EFAIL;
     }
-    ret = oal_mmc_io_rw_scat_extended(hi_sdio, write, sdio_func_num(hi_sdio->func), addr, 0, sg, sg_len,
-        (rw_sz / HISDIO_BLOCK_SIZE) ?: 1, min(rw_sz, (hi_u32)HISDIO_BLOCK_SIZE));
+    busCfg.busType = BUS_SDIO;
+    ret = bus->ops.getBusInfo(bus, &busCfg);
+    if (ret != 0) {
+        printk("get Bus info failed!\n");
+        return -OAL_EINVAL;
+    }
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+    ret = oal_mmc_io_rw_scat_extended(hi_sdio, write, busCfg.busInfo.sdioInfo.funcNumSize, addr, 0, sg, sg_len,
+        (rw_sz / HISDIO_BLOCK_SIZE) ? : 1, min(rw_sz, (hi_u32)HISDIO_BLOCK_SIZE));
+#else
+    if (rw == SDIO_READ) {
+        ret = bus->ops.bulkRead(bus, addr, rw_sz, (uint8_t *)sg, sg_len);
+    } else {
+        ret = bus->ops.bulkWrite(bus, addr, rw_sz, (uint8_t *)sg, sg_len);
+    }
+#endif
     if (oal_unlikely(ret)) {
 #ifdef CONFIG_HISI_SDIO_TIME_DEBUG
         hi_u64 trans_us;
@@ -1804,7 +1650,7 @@ static hi_s32 _oal_sdio_transfer_scatt(const oal_channel_stru *hi_sdio, hi_s32 r
         }
         oal_exception_submit(TRANS_FAIL);
     }
-    sdio_release_host(func);
+    bus->ops.releaseHost(bus);
     if (rw == SDIO_READ) {
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
         schedule();
@@ -1819,12 +1665,13 @@ static hi_s32 _oal_sdio_transfer_scatt(const oal_channel_stru *hi_sdio, hi_s32 r
  * Output       : None
  * Return Value : err or succ
  */
-hi_s32 oal_sdio_transfer_scatt(const oal_channel_stru *hi_sdio, hi_s32 rw, hi_u32 addr, struct scatterlist *sg,
+hi_s32 oal_sdio_transfer_scatt(struct BusDev *bus, hi_s32 rw, hi_u32 addr, struct scatterlist *sg,
     hi_u32 sg_len, hi_u32 sg_max_len, hi_u32 rw_sz)
 {
     hi_s32 ret;
     hi_u32 align_len;
     hi_u32 align_t;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
 
     if ((hi_sdio == HI_NULL) || (rw_sz == 0) || (sg_max_len < sg_len)) {
         return -OAL_EINVAL;
@@ -1877,12 +1724,12 @@ hi_s32 oal_sdio_transfer_scatt(const oal_channel_stru *hi_sdio, hi_s32 rw, hi_u3
         oam_warning_log1(0, OAM_SF_ANY, "{not 4 bytes align:%u\n}", align_len);
     }
 
-    ret = _oal_sdio_transfer_scatt(hi_sdio, rw, addr, sg, sg_len, rw_sz);
+    ret = _oal_sdio_transfer_scatt(bus, rw, addr, sg, sg_len, rw_sz);
 
     return ret;
 }
 
-hi_s32 oal_sdio_transfer_netbuf_list(const oal_channel_stru *hi_sdio, const oal_netbuf_head_stru *head, hi_s32 rw)
+hi_s32 oal_sdio_transfer_netbuf_list(struct BusDev *bus, const oal_netbuf_head_stru *head, hi_s32 rw)
 {
     hi_u8 sg_realloc = 0;
     hi_s32 ret;
@@ -1894,6 +1741,7 @@ hi_s32 oal_sdio_transfer_netbuf_list(const oal_channel_stru *hi_sdio, const oal_
     oal_netbuf_stru *tmp = HI_NULL;
     struct scatterlist *sg = HI_NULL;
     struct sg_table sgtable = { 0 };
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if ((!hi_sdio) || (!head)) {
         printk("hi_sdio / head null\n");
         return -OAL_EINVAL;
@@ -1958,40 +1806,11 @@ hi_s32 oal_sdio_transfer_netbuf_list(const oal_channel_stru *hi_sdio, const oal_
         return -OAL_EINVAL;
     }
     wlan_pm_set_packet_cnt(1);
-    ret = oal_sdio_transfer_scatt(hi_sdio, rw, HISDIO_REG_FUNC1_FIFO, sg, idx, request_sg_len, sum_len);
+    ret = oal_sdio_transfer_scatt(bus, rw, HISDIO_REG_FUNC1_FIFO, sg, idx, request_sg_len, sum_len);
     if (sg_realloc) {
         sg_free_table(&sgtable);
     }
     return ret;
-}
-
-/*
- * Description  : uninitialize sdio interface
- * Input        :
- * Output       : None
- * Return Value : succ or fail
- */
-static hi_void oal_sdio_remove(struct sdio_func *func)
-{
-    oal_channel_stru *hi_sdio = HI_NULL;
-
-    if (func == HI_NULL) {
-        printk("[Error]oal_sdio_remove: Invalid NULL func!\n");
-        return;
-    }
-
-    hi_sdio = (oal_channel_stru *)sdio_get_drvdata(func);
-    if (hi_sdio == HI_NULL) {
-        printk("[Error]Invalid NULL hi_sdio!\n");
-        return;
-    }
-    oal_wake_lock_exit(&hi_sdio->st_sdio_wakelock);
-    oal_sdio_dev_deinit(hi_sdio);
-    oal_sdio_free(hi_sdio);
-    sdio_set_drvdata(func, NULL);
-    oal_sema_destroy(&g_chan_wake_sema);
-
-    printk("hisilicon connectivity sdio driver has been removed.");
 }
 
 /*
@@ -2066,11 +1885,6 @@ static hi_s32 oal_sdio_resume(struct device *dev)
 }
 #endif
 
-static struct sdio_device_id const g_oal_sdio_ids[] = {
-    { SDIO_DEVICE(HISDIO_VENDOR_ID_HISI, HISDIO_PRODUCT_ID_HISI) },
-    {},
-};
-
 MODULE_DEVICE_TABLE(sdio, g_oal_sdio_ids);
 
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
@@ -2082,9 +1896,11 @@ static const struct dev_pm_ops oal_sdio_pm_ops = {
 
 hi_void oal_sdio_dev_shutdown(struct device *dev)
 {
+    struct BusDev *bus = oal_get_bus_default_handler();
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
+
     hi_unref_param(dev);
     /* poweroff */
-    oal_channel_stru *hi_sdio = oal_get_sdio_default_handler();
     if ((hi_sdio == HI_NULL) || (hi_sdio->func == NULL)) {
         goto exit;
     }
@@ -2100,12 +1916,12 @@ hi_void oal_sdio_dev_shutdown(struct device *dev)
         goto exit;
     }
     if (g_hisdio_intr_mode) {
-        oal_wlan_gpio_intr_enable(hi_sdio, 0);
+        oal_wlan_gpio_intr_enable(bus, 0);
     } else {
-        hi_s32 ret;
-        oal_sdio_claim_host(hi_sdio);
-        ret = sdio_disable_func(hi_sdio->func);
-        oal_sdio_release_host(hi_sdio);
+        hi_s32   ret;
+        oal_sdio_claim_host(bus);
+        ret = bus->ops.disableBus(bus);
+        oal_sdio_release_host(bus);
         if (ret) {
             goto exit;
         }
@@ -2113,21 +1929,6 @@ hi_void oal_sdio_dev_shutdown(struct device *dev)
 exit:
     return;
 }
-
-static  struct sdio_driver oal_sdio_driver = {
-    .name       = "oal_sdio",
-    .id_table   = g_oal_sdio_ids,
-    .probe      = oal_sdio_probe,
-    .remove     = oal_sdio_remove,
-
-#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-    .drv        = {
-        .owner  = THIS_MODULE,
-        .pm     = &oal_sdio_pm_ops,
-        .shutdown = oal_sdio_dev_shutdown,
-    }
-#endif
-};
 
 hi_void sdio_card_detect_change(hi_s32 val)
 {
@@ -2140,39 +1941,6 @@ hi_void sdio_card_detect_change(hi_s32 val)
         oam_error_log0(0, 0, "sdio rescan failed.");
     }
 #endif
-}
-
-/* notify the mmc to probe sdio device. */
-hi_s32 oal_sdio_detectcard_to_core(hi_s32 val)
-{
-#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-    if (val == 0) {
-        struct sdio_func *func = HI_NULL;
-        func = sdio_get_func(1, g_oal_sdio_ids[0].vendor, g_oal_sdio_ids[0].device);
-        if (func != HI_NULL) {
-            oal_sdio_driver.remove(func);
-        } else {
-            oam_error_log0(0, OAM_SF_ANY, "No SDIO card\n");
-            return -OAL_EFAIL;
-        }
-    }
-#endif
-    sdio_card_detect_change(val);
-
-#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-    if (val == 1) {
-        struct sdio_func *func = HI_NULL;
-        func = sdio_get_func(1, g_oal_sdio_ids[0].vendor, g_oal_sdio_ids[0].device);
-        if (func != HI_NULL) {
-            oal_sdio_driver.probe(func, g_oal_sdio_ids);
-        } else {
-            oam_error_log0(0, OAM_SF_ANY, "No SDIO card\n");
-            return -OAL_EFAIL;
-        }
-    }
-#endif
-
-    return OAL_SUCC;
 }
 
 hi_void hi_wlan_power_set(hi_s32 on)
@@ -2196,74 +1964,81 @@ hi_void hi_wlan_power_set(hi_s32 on)
 }
 
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-hi_s32 oal_sdio_func_probe_resume(void)
+hi_s32 oal_sdio_func_probe_resume(struct BusDev *bus)
 {
     hi_s32 ret;
 
-    OAL_INIT_COMPLETION(&g_sdio_driver_complete);
-
     oam_info_log0(0, OAM_SF_ANY, "{start to register sdio module!}");
-
-    ret = sdio_register_driver(&oal_sdio_driver);
+    ret = oal_sdio_init(bus);
     if (ret) {
-        printk("register sdio driver Failed ret=%d\n", ret);
-        goto failed_sdio_reg;
-    }
-    ret = oal_sdio_detectcard_to_core(1);
-    if (ret) {
-        printk("fail to detect sdio card\n");
-        goto failed_sdio_enum;
-    }
-    if (oal_wait_for_completion_timeout(&g_sdio_driver_complete, TIMEOUT_MUTIPLE_10 * HZ) != 0) {
-        printk("hisi sdio load sucuess, sdio enum done.\n");
-    } else {
-        printk("sdio enum timeout, reason[%s]\n", g_sdio_enum_err_str);
+        printk("fail to init sdio\n");
         goto failed_sdio_enum;
     }
     return HI_SUCCESS;
 failed_sdio_enum:
-    sdio_unregister_driver(&oal_sdio_driver);
-
-failed_sdio_reg:
     /* sdio can not remove!
       hi_sdio_detectcard_to_core(0); */
     return -OAL_EFAIL;
 }
 #endif
 
-hi_s32 oal_sdio_func_probe(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_func_init(struct BusDev *bus)
 {
     hi_s32 ret;
+    hi_s32 i;
+    void *func = NULL;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
+    struct BusConfig busCfg = {0};
+
     if (hi_sdio == HI_NULL) {
         return -OAL_EFAIL;
     }
 
-    OAL_INIT_COMPLETION(&g_sdio_driver_complete);
+    struct HdfConfigWlanBus *busConfig = NULL;
+    struct HdfConfigWlanDeviceList *devList = NULL;
+    struct HdfConfigWlanRoot *rootConfig = HdfWlanGetModuleConfigRoot();
+    if (rootConfig == NULL) {
+        oam_print_err("%s:NULL ptr!", __func__);
+        return -OAL_EFAIL;
+    }
+    devList = &rootConfig->wlanConfig.deviceList;
+    if (devList == NULL) {
+        oam_print_err("%s:No device defined.", __func__);
+        return -OAL_EFAIL;
+    }
+    for (i = 0; i < devList->deviceListSize; i++) {
+        busConfig = &rootConfig->wlanConfig.deviceList.deviceInst[i].bus;
+        ret = bus->ops.init(bus, busConfig);
+        if (ret == 0) {
+            break;
+        }
+    }
+    if (i == devList->deviceListSize) {
+        oam_print_err("%s:sdio init failed", __func__);
+        return -OAL_EFAIL;
+    }
+    busCfg.busType = BUS_SDIO;
+    if (bus->ops.getBusInfo(bus, &busCfg) != 0) {
+        oam_print_err("get bus info failed!\n");
+        return -OAL_EFAIL;
+    }
+    func = busCfg.busInfo.sdioInfo.data;
+    if (func == NULL) {
+        oam_print_err("func is NULL!\n");
+        return -OAL_EFAIL;
+    }
+    hi_sdio->func = func;
 
     /* notify mmc core to detect sdio device */
-    ret = oal_sdio_detectcard_to_core(1);
+    ret = oal_sdio_init(bus);
     if (ret) {
         oam_print_err("fail to detect sdio card, ret=%d\n", ret);
         goto failed_sdio_reg;
     }
+    oal_sdio_claim_host(bus);
+    oal_disable_sdio_state(bus, OAL_SDIO_ALL);
 
-    ret = sdio_register_driver(&oal_sdio_driver);
-    if (ret) {
-        oam_print_err("register sdio driver Failed ret=%d\n", ret);
-        goto failed_sdio_reg;
-    }
-
-    if (oal_wait_for_completion_timeout(&g_sdio_driver_complete, TIMEOUT_MUTIPLE_10 * HZ) != 0) {
-        oam_print_info("hisi sdio load sucuess, sdio enum done.\n");
-    } else {
-        oam_print_err("sdio enum timeout, reason[%s]\n", g_sdio_enum_err_str);
-        goto failed_sdio_reg;
-    }
-
-    oal_sdio_claim_host(hi_sdio);
-    oal_disable_sdio_state(hi_sdio, OAL_SDIO_ALL);
-
-    oal_sdio_release_host(hi_sdio);
+    oal_sdio_release_host(bus);
 
     return HI_SUCCESS;
 failed_sdio_reg:
@@ -2274,19 +2049,16 @@ hi_s32 oal_sdio_func_reset(void)
 {
     hi_s32 ret;
     hi_s32 l_need_retry = 1;
+    struct BusDev *bus = oal_get_bus_default_handler();
     OAL_INIT_COMPLETION(&g_sdio_driver_complete);
 
-    ret = oal_sdio_detectcard_to_core(0);
-    if (ret) {
-        oam_print_err("fail to detect sdio card, ret=%d\n", ret);
-        goto failed_sdio_enum;
-    }
+    oal_sdio_func_remove(bus);
 #ifndef _PRE_FEATURE_NO_GPIO
     wlan_rst();
 #endif
 detect_retry:
     /* notify mmc core to detect sdio device */
-    ret = oal_sdio_detectcard_to_core(1);
+    ret = oal_sdio_init(bus);
     if (ret) {
         oam_print_err("fail to detect sdio card, ret=%d\n", ret);
         goto failed_sdio_enum;
@@ -2307,31 +2079,30 @@ detect_retry:
     return HI_SUCCESS;
 
 failed_sdio_enum:
-    sdio_unregister_driver(&oal_sdio_driver);
     hi_wlan_power_set(0);
     return -OAL_EFAIL;
 }
 
-hi_void oal_sdio_func_remove(oal_channel_stru *hi_sdio)
+hi_void oal_sdio_func_remove(struct BusDev *bus)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     hi_unref_param(hi_sdio);
-    sdio_unregister_driver(&oal_sdio_driver);
-    if (oal_sdio_detectcard_to_core(0) != OAL_SUCC) {
-        printk("oal_sdio_detectcard_to_core fail.\n");
-    }
+    oal_wake_lock_exit(&hi_sdio->st_sdio_wakelock);
+    oal_sdio_dev_deinit(bus);
+    oal_sdio_free(hi_sdio);
+    oal_sema_destroy(&g_chan_wake_sema);
 
-    /* if user burn 3861L after host reset in one board, can not reset 3861L.
-      hi_wlan_power_set(0); */
+    printk("hisilicon connectivity sdio driver has been removed.");
 }
 
-hi_void oal_sdio_credit_info_init(oal_channel_stru *hi_sdio)
+static hi_void oal_sdio_credit_info_init(oal_channel_stru *hi_sdio)
 {
     hi_sdio->sdio_credit_info.large_free_cnt = 0;
     hi_sdio->sdio_credit_info.short_free_cnt = 0;
     oal_spin_lock_init(&hi_sdio->sdio_credit_info.credit_lock);
 }
 
-oal_channel_stru *oal_sdio_init_module(hi_void *data)
+oal_channel_stru *oal_sdio_init_module(struct BusDev *bus, hi_void *data)
 {
 #ifdef CONFIG_HISDIO_H2D_SCATT_LIST_ASSEMBLE
     hi_u32 tx_scatt_buff_len = 0;
@@ -2376,10 +2147,6 @@ oal_channel_stru *oal_sdio_init_module(hi_void *data)
     }
     memset_s(hi_sdio->sdio_extend, sizeof(hisdio_extend_func), 0, sizeof(hisdio_extend_func));
     hi_sdio->bus_data = data;
-    g_hi_sdio_ = hi_sdio;
-#ifdef CONFIG_SDIO_DEBUG
-    g_hi_sdio_debug = hi_sdio;
-#endif
     hi_sdio->scatt_info[SDIO_READ].max_scatt_num = HISDIO_DEV2HOST_SCATT_MAX + 1;
 
     hi_sdio->scatt_info[SDIO_READ].sglist =
@@ -2424,11 +2191,12 @@ oal_channel_stru *oal_sdio_init_module(hi_void *data)
 
     printk("alloc scatt_buff ok,request %u bytes\n", tx_scatt_buff_len);
 #endif
-
-    hi_s32 ret = oal_sdio_message_register(hi_sdio, D2H_MSG_DEVICE_PANIC, oal_device_panic_callback, HI_NULL);
+    bus->priData.data = (void *)hi_sdio;
+    hi_s32 ret = oal_sdio_message_register(bus, D2H_MSG_DEVICE_PANIC, oal_device_panic_callback, HI_NULL);
     if (ret != HI_SUCCESS) {
         printk("oal_sdio_message_register fail\n");
     }
+    g_bus = bus;
     return hi_sdio;
 
 #ifdef CONFIG_HISDIO_H2D_SCATT_LIST_ASSEMBLE
@@ -2449,9 +2217,10 @@ failed_rx_reserved_buff_alloc:
 }
 EXPORT_SYMBOL(oal_sdio_init_module);
 
-hi_void oal_sdio_exit_module(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_exit_module(void *data)
 {
     printk("sdio module unregistered\n");
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)data;
 #ifdef CONFIG_HISDIO_H2D_SCATT_LIST_ASSEMBLE
     oal_free(hi_sdio->scatt_buff.buff);
 #endif
@@ -2461,31 +2230,37 @@ hi_void oal_sdio_exit_module(oal_channel_stru *hi_sdio)
     oal_free(hi_sdio->sdio_extend);
     oal_free(hi_sdio->rx_reserved_buff);
     oal_free(hi_sdio);
-    g_hi_sdio_ = HI_NULL;
-#ifdef CONFIG_SDIO_DEBUG
-    g_hi_sdio_debug = HI_NULL;
-#endif
+    hi_sdio = NULL;
+    g_bus = NULL;
+    return HI_SUCCESS;
 }
 EXPORT_SYMBOL(oal_sdio_exit_module);
 
-hi_u32 oal_sdio_func_max_req_size(const oal_channel_stru *hi_sdio)
+hi_u32 oal_sdio_func_max_req_size(struct BusDev *bus)
 {
     hi_u32 max_blocks;
     hi_u32 size, size_device;
     hi_u32 size_host;
+    hi_s32 ret;
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
+    struct BusConfig busCfg = {0};
 
     /* host transer limit */
     /* Blocks per command is limited by host count, host transfer
      * size and the maximum for IO_RW_EXTENDED of 511 blocks. */
-    if (hi_sdio == HI_NULL || hi_sdio->func == HI_NULL || hi_sdio->func->card == HI_NULL) {
-        printk("oal_sdio_func_max_req_size:hi_sdio /hi_sdio->func /hi_sdio->func->card null!\n");
+    if (hi_sdio == HI_NULL) {
+        printk("oal_sdio_func_max_req_size:hi_sdio is null!\n");
         return -OAL_EFAIL;
     }
-    max_blocks = oal_min(sdio_get_max_block_count(hi_sdio->func), 511u);
+    busCfg.busType = BUS_SDIO;
+    ret = bus->ops.getBusInfo(bus, &busCfg);
+    if (ret != 0) {
+        printk("get bus info failed!\n");
+        return -OAL_EFAIL;
+    }
+    max_blocks = oal_min(busCfg.busInfo.sdioInfo.maxBlockNum, 511u);
     size = max_blocks * HISDIO_BLOCK_SIZE;
-
-    size = oal_min(size, sdio_get_max_req_size(hi_sdio->func));
-
+    size = oal_min(size, busCfg.busInfo.sdioInfo.maxRequestSize);
     /* device transer limit,per adma descr limit 32K in bootloader,
     and total we have 20 descs */
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
@@ -2504,16 +2279,16 @@ hi_u32 oal_sdio_func_max_req_size(const oal_channel_stru *hi_sdio)
     return size;
 }
 
-hi_s32 oal_sdio_transfer_prepare(oal_channel_stru *hi_sdio)
+hi_s32 oal_sdio_transfer_prepare(struct BusDev *bus)
 {
-    oal_enable_sdio_state(hi_sdio, OAL_SDIO_ALL);
+    oal_enable_sdio_state(bus, OAL_SDIO_ALL);
 #ifdef _PRE_FEATURE_NO_GPIO
-    if (oal_register_sdio_intr(hi_sdio) < 0) {
+    if (oal_register_sdio_intr(bus) < 0) {
         printk("failed to register sdio interrupt\n");
         return -OAL_EFAIL;
     }
 #else
-    oal_wlan_gpio_intr_enable(hi_sdio, HI_TRUE);
+    oal_wlan_gpio_intr_enable(bus, HI_TRUE);
 #endif
     return HI_SUCCESS;
 }
@@ -2566,100 +2341,17 @@ hi_u32 oal_sdio_get_large_pkt_free_cnt(oal_channel_stru *hi_sdio)
     return free_cnt;
 }
 
-#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-hi_s32 oal_sdio_reinit(void)
-{
-    hi_s32 ret;
-    hi_s32 reset_retry_count = SDIO_RESET_RETRY;
-    oal_channel_stru *pst_sdio = HI_NULL;
-    struct sdio_func *pst_func = HI_NULL;
-
-    pst_sdio = oal_get_sdio_default_handler();
-    if (pst_sdio == HI_NULL) {
-        printk("sdio handler is NULL!\n");
-        return -OAL_EFAIL;
-    }
-
-    pst_func = pst_sdio->func;
-    if ((pst_func == HI_NULL) || (pst_func->card->host == HI_NULL)) {
-        printk("sdio func is NULL!\n");
-        return -OAL_EFAIL;
-    }
-
-    oal_sdio_claim_host(pst_sdio);
-    oal_disable_sdio_state(pst_sdio, OAL_SDIO_ALL);
-
-    while (1) {
-        if (sdio_reset_comm(pst_func->card) == HI_SUCCESS) {
-            break;
-        }
-        reset_retry_count--;
-        if (reset_retry_count == 0) { // by frost
-            dprintf("reset sdio failed after retry %d times,exit %s!", SDIO_RESET_RETRY, __FUNCTION__);
-            oal_sdio_release_host(pst_sdio);
-            return -OAL_EFAIL;
-        }
-    }
-
-    sdio_en_timeout(pst_func) = 1000; /* 超时时间为1000ms  */
-    ret = sdio_enable_func(pst_func);
-    if (ret < 0) {
-        printk("failed to enable sdio function! ret=%d\n", ret);
-        goto failed_enabe_func;
-    }
-    ret = sdio_set_block_size(pst_func, HISDIO_BLOCK_SIZE);
-    if (ret) {
-        printk("failed to set sdio blk size! ret=%d\n", ret);
-        goto failed_set_block_size;
-    }
-    if (pst_func->card->host->caps.bits.cap_sdio_irq) {
-        oal_sdio_writeb(pst_func, HISDIO_FUNC1_INT_MASK, HISDIO_REG_FUNC1_INT_ENABLE, &ret);
-        if (ret < 0) {
-            printk("failed to enable sdio interrupt! ret=%d\n", ret);
-            printf("failed to enable sdio interrupt! ret=%d\n", ret);
-            goto failed_enable_func1;
-        }
-    }
-    oal_enable_sdio_state(pst_sdio, OAL_SDIO_ALL);
-    oal_sdio_release_host(pst_sdio);
-
-    oam_info_log1(0, OAM_SF_SDIO, "sdio function %d enabled.\n", sdio_func_num(pst_func));
-    oam_info_log0(0, OAM_SF_SDIO, "pm reinit sdio success...\n");
-
-    return HI_SUCCESS;
-
-failed_enable_func1:
-failed_set_block_size:
-    sdio_disable_func(pst_func);
-failed_enabe_func:
-    oal_sdio_release_host(pst_sdio);
-    return ret;
-}
-#endif
-
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-hi_s32 sdio_dev_init(struct sdio_func *func)
+hi_s32 sdio_dev_init(struct BusDev *bus)
 {
     hi_s32 ret;
-    oal_channel_stru *pst_sdio = oal_get_sdio_default_handler();
-    if (pst_sdio == HI_NULL || func == HI_NULL) {
+    hi_u32 data;
+    oal_channel_stru *pstSdio = (oal_channel_stru *)bus->priData.data;
+    if (pstSdio == HI_NULL || pstSdio->func == HI_NULL) {
         printk("sdio handler is NULL or func is NULL!\n");
         return -OAL_EFAIL;
     }
-
-    sdio_claim_host(func);
-
-    func->enable_timeout = 1000; /* timeout 1000 */
-
-    ret = sdio_enable_func(func);
-    if (ret < 0) {
-        oam_info_log1(0, OAM_SF_ANY, "{failed to enable sdio function! ret=%d!}", ret);
-    }
-
-    ret = sdio_set_block_size(func, HISDIO_BLOCK_SIZE);
-    if (ret < 0) {
-        oam_info_log1(0, OAM_SF_ANY, "{failed to set sdio blk size! ret=%d}", ret);
-    }
+    bus->ops.claimHost(bus);
 
     /* before enable sdio function 1, clear its interrupt flag, no matter it exist or not */
     /* if clear the interrupt, host can't receive dev wake up ok ack. debug by 1131c */
@@ -2670,68 +2362,16 @@ hi_s32 sdio_dev_init(struct sdio_func *func)
      * message from arm is available
      * device has receive message from host
      *  */
-    oal_sdio_writeb(func, HISDIO_FUNC1_INT_MASK, HISDIO_REG_FUNC1_INT_ENABLE, &ret);
+    data = HISDIO_FUNC1_INT_MASK;
+    ret = bus->ops.writeData(bus, HISDIO_REG_FUNC1_INT_ENABLE, ONE_BYTE, (hi_u8 *)&data);
     if (ret < 0) {
         oam_info_log1(0, OAM_SF_ANY, "{failed to enable sdio interrupt! ret=%d}", ret);
     }
-    oal_enable_sdio_state(pst_sdio, OAL_SDIO_ALL);
-    sdio_release_host(func);
+    oal_enable_sdio_state(bus, OAL_SDIO_ALL);
+    bus->ops.releaseHost(bus);
 
-    oam_info_log1(0, OAM_SF_ANY, "{sdio function %d enabled.}", func->num);
+    oam_info_log1(0, OAM_SF_ANY, "{sdio function %d enabled.}", pstSdio->func->num);
     return ret;
-}
-
-hi_s32 oal_sdio_reinit(void)
-{
-    hi_s32 ret = 0;
-    hi_s32 retry_times = SDIO_REINIT_RETRY;
-    oal_channel_stru *pst_sdio = oal_get_sdio_default_handler();
-    if (pst_sdio == HI_NULL) {
-        printk("sdio handler is NULL!\n");
-        return -FAILURE;
-    }
-
-    oal_sdio_claim_host(pst_sdio);
-    oal_disable_sdio_state(pst_sdio, OAL_SDIO_ALL);
-
-    while (retry_times--) {
-        oam_info_log0(0, OAM_SF_ANY, "{start to power restore sdio.}");
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
-        ret = mmc_sw_reset(pst_sdio->func->card->host);
-#else
-        ret = mmc_power_save_host(pst_sdio->func->card->host);
-        if (ret < 0) {
-            oam_info_log1(0, OAM_SF_ANY, "{failed to mmc_power_save_host fail return %x.}", ret);
-        }
-        pst_sdio->func->card->host->pm_flags &= ~MMC_PM_KEEP_POWER;
-        ret = mmc_power_restore_host(pst_sdio->func->card->host);
-        pst_sdio->func->card->host->pm_flags |= MMC_PM_KEEP_POWER;
-#endif
-        if (ret < 0) {
-            oam_info_log1(0, OAM_SF_ANY, "{failed to mmc_power_restore_host fail return %x.}", ret);
-        } else {
-            oam_info_log0(0, OAM_SF_ANY, "{mmc_power_restore_succ.}");
-            break;
-        }
-        mdelay(10); /* delay 10ms */
-    }
-
-    if (ret < 0) {
-        oam_info_log1(0, OAM_SF_ANY, "{failed to reinit sdio,fail return %x.}", ret);
-        oal_sdio_release_host(pst_sdio);
-        return -FAILURE;
-    }
-
-    if (sdio_dev_init(pst_sdio->func) != SUCCESS) {
-        oam_info_log0(0, OAM_SF_ANY, "{sdio dev reinit failed.}");
-        oal_sdio_release_host(pst_sdio);
-        return -FAILURE;
-    }
-
-    oal_sdio_release_host(pst_sdio);
-    oam_info_log0(0, OAM_SF_ANY, "{sdio_dev_init ok.}");
-
-    return SUCCESS;
 }
 #endif
 
