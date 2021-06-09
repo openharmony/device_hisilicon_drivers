@@ -20,8 +20,6 @@ MODULE_NAME := hdf_mmc
 HDF_MMC_INC = $(LITEOSTOPDIR)/../../device/hisilicon/drivers/mmc
 
 LOCAL_CFLAGS += $(HDF_INCLUDE)
-LOCAL_INCLUDE = $(HDF_MMC_INC)/proc
-LOCAL_SRCS += proc/proc_adapter.c
 
 ifeq ($(LOSCFG_PLATFORM_HI3516DV300), y)
     LOCAL_INCLUDE = $(HDF_MMC_INC)/himci_v200/proc
