@@ -161,7 +161,7 @@ static hi_s32 firmware_read_msg(hi_u8 *data, hi_s32 len)
         return -OAL_EFAIL;
     }
 
-    l_len = oal_channel_patch_readsb(data, len, READ_MEG_TIMEOUT);
+    l_len = oal_bus_patch_readsb(data, len, READ_MEG_TIMEOUT);
 
     return l_len;
 }
@@ -175,7 +175,7 @@ static hi_s32 firmware_read_msg_timeout(hi_u8 *data, hi_s32 len, hi_u32 timeout)
         return -OAL_EFAIL;
     }
 
-    l_len = oal_channel_patch_readsb(data, len, timeout);
+    l_len = oal_bus_patch_readsb(data, len, timeout);
 
     return l_len;
 }
@@ -195,7 +195,7 @@ static hi_s32 firmware_send_msg(hi_u8 *data, hi_s32 len)
     print_hex_dump_bytes("firmware_send_msg :", DUMP_PREFIX_ADDRESS, data, (len < 128 ? len : 128)); /* len 128 */
 #endif
 
-    l_ret = oal_channel_patch_writesb(data, len);
+    l_ret = oal_bus_patch_writesb(data, len);
     return l_ret;
 }
 
@@ -216,7 +216,7 @@ static firmware_mem_stru *firmware_mem_request(void)
 #endif
     firmware_mem->ul_data_buf_len = usb_max_req_size();
 #elif (_PRE_FEATURE_SDIO == _PRE_FEATURE_CHANNEL_TYPE)
-    firmware_mem->ul_data_buf_len = oal_sdio_func_max_req_size(oal_get_sdio_default_handler());
+    firmware_mem->ul_data_buf_len = oal_sdio_func_max_req_size(oal_get_bus_default_handler());
     oam_warning_log1(0, 0, "sdio max transmit size is [%d]\n", firmware_mem->ul_data_buf_len);
     if (firmware_mem->ul_data_buf_len < HISDIO_BLOCK_SIZE) {
         oam_warning_log1(0, 0, "sdio max transmit size [%d] is error!\n", firmware_mem->ul_data_buf_len);

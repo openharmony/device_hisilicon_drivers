@@ -61,6 +61,8 @@ extern "C" {
 #define OAL_SDIO_RX                 (1<<1)
 #define OAL_SDIO_ALL                (OAL_SDIO_TX | OAL_SDIO_RX)
 
+#define ONE_BYTE 1
+#define FOUR_BYTE 4
 /* ****************************************************************************
   3 枚举 结构体定义
 **************************************************************************** */
@@ -194,111 +196,116 @@ extern oal_semaphore_stru g_chan_wake_sema;
 /* ****************************************************************************
   4 外部函数声明
 **************************************************************************** */
-hi_s32 oal_sdio_get_credit(const oal_channel_stru *hi_sdio, hi_u32 *uc_priority_cnt);
+hi_s32 oal_sdio_get_credit(struct BusDev *bus, hi_u32 *uc_priority_cnt);
 hi_u32 oal_sdio_get_large_pkt_free_cnt(oal_channel_stru *hi_sdio);
 hi_void oal_netbuf_list_hex_dump(const oal_netbuf_head_stru *head);
 hi_void oal_netbuf_hex_dump(const oal_netbuf_stru *netbuf);
 #ifdef CONFIG_MMC
 hi_s32 oal_sdio_get_state(const oal_channel_stru *hi_sdio, hi_u32 mask);
-hi_void oal_enable_sdio_state(oal_channel_stru *hi_sdio, hi_u32 mask);
-hi_void oal_disable_sdio_state(oal_channel_stru *hi_sdio, hi_u32 mask);
+hi_void oal_enable_sdio_state(struct BusDev *bus, hi_u32 mask);
+hi_void oal_disable_sdio_state(struct BusDev *bus, hi_u32 mask);
 hi_void oal_sdio_info_show(oal_channel_stru *hi_sdio);
 hi_void oal_netbuf_list_hex_dump(const oal_netbuf_head_stru *head);
 hi_void oal_netbuf_hex_dump(const oal_netbuf_stru *netbuf);
-hi_s32 oal_sdio_build_rx_netbuf_list(oal_channel_stru *hi_sdio, oal_netbuf_head_stru *head);
+hi_s32 oal_sdio_build_rx_netbuf_list(struct BusDev *bus, oal_netbuf_head_stru    *head);
 hi_void oal_gpio_intr_enable(oal_channel_stru *hi_sdio, hi_char enable);
-hi_s32 oal_sdio_func_probe(oal_channel_stru *hi_sdio);
+hi_s32 oal_sdio_func_init(struct BusDev *bus);
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-hi_s32 oal_sdio_func_probe_resume(void);
+hi_s32 oal_sdio_func_probe_resume(struct BusDev *bus);
 #endif
-hi_s32 oal_sdio_reinit(void);
 hi_s32 oal_sdio_func_reset(void);
-hi_void oal_sdio_func_remove(oal_channel_stru *hi_sdio);
-hi_s32 oal_sdio_message_register(oal_channel_stru *hi_sdio, hi_u8 msg, sdio_msg_rx cb, hi_void *data);
-hi_void oal_sdio_message_unregister(oal_channel_stru *hi_sdio, hi_u8 msg);
-hi_s32 oal_sdio_transfer_rx_register(oal_channel_stru *hi_sdio, hisdio_rx rx);
-hi_void oal_sdio_credit_update_cb_register(oal_channel_stru *hi_sdio, hisdio_rx cb);
-hi_void oal_sdio_transfer_rx_unregister(oal_channel_stru *hi_sdio);
-extern hi_s32 oal_sdio_transfer_tx(const oal_channel_stru *hi_sdio, oal_netbuf_stru *netbuf);
-hi_s32 oal_sdio_transfer_netbuf_list(const oal_channel_stru *hi_sdio, const oal_netbuf_head_stru *head, hi_s32 rw);
-extern oal_channel_stru *oal_sdio_init_module(hi_void *data);
-extern hi_void oal_sdio_exit_module(oal_channel_stru *hi_sdio);
-hi_s32 oal_sdio_send_msg(oal_channel_stru *hi_sdio, unsigned long val);
-extern oal_channel_stru *oal_get_sdio_default_handler(hi_void);
-extern unsigned long oal_sdio_get_sleep_state(oal_channel_stru *hi_sdio);
-extern hi_void oal_sdio_get_dev_pm_state(oal_channel_stru *hi_sdio, unsigned long *pst_ul_f1, unsigned long *pst_ul_f2,
-    unsigned long *pst_ul_f3, unsigned long *pst_ul_f4);
-extern hi_s32 oal_sdio_wakeup_dev(oal_channel_stru *hi_sdio);
-extern hi_s32 oal_sdio_sleep_dev(oal_channel_stru *hi_sdio);
-extern void oal_sdio_wake_lock(oal_channel_stru *pst_hi_sdio);
-extern void oal_sdio_wake_unlock(oal_channel_stru *pst_hi_sdio);
+hi_void oal_sdio_func_remove(struct BusDev *bus);
+hi_s32 oal_sdio_message_register(struct BusDev *bus, hi_u8 msg, sdio_msg_rx cb, hi_void *data);
+hi_void oal_sdio_message_unregister(struct BusDev *bus, hi_u8 msg);
+hi_s32 oal_sdio_transfer_rx_register(struct BusDev *bus, hisdio_rx rx);
+hi_void  oal_sdio_credit_update_cb_register(oal_channel_stru *hi_sdio, hisdio_rx cb);
+hi_void oal_sdio_transfer_rx_unregister(struct BusDev *bus);
+extern hi_s32 oal_sdio_transfer_tx(struct BusDev *bus, oal_netbuf_stru *netbuf);
+hi_s32 oal_sdio_transfer_netbuf_list(struct BusDev *bus, const oal_netbuf_head_stru *head, hi_s32 rw);
+extern oal_channel_stru  *oal_sdio_init_module(struct BusDev *bus, hi_void *data);
+extern hi_s32  oal_sdio_exit_module(void *data);
+hi_s32 oal_sdio_send_msg(struct BusDev *bus, unsigned long val);
+extern struct BusDev *oal_get_sdio_default_handler(hi_void);
+extern unsigned long oal_sdio_get_sleep_state(struct BusDev *bus);
+extern hi_void oal_sdio_get_dev_pm_state(struct BusDev *bus, unsigned long *pst_ul_f1,
+    unsigned long *pst_ul_f2, unsigned long *pst_ul_f3, unsigned long *pst_ul_f4);
+extern hi_s32 oal_sdio_wakeup_dev(struct BusDev *bus);
+extern hi_s32 oal_sdio_sleep_dev(struct BusDev *bus);
+extern void oal_sdio_wake_lock(struct BusDev *bus);
+extern void oal_sdio_wake_unlock(struct BusDev *bus);
 extern unsigned long oal_sdio_wakelock_active(oal_channel_stru *pst_hi_sdio);
-extern hi_void oal_sdio_wakelocks_release_detect(oal_channel_stru *pst_hi_sdio);
-extern hi_u32 oal_sdio_func_max_req_size(const oal_channel_stru *pst_hi_sdio);
-extern hi_void oal_wlan_gpio_intr_enable(oal_channel_stru *hi_sdio, hi_u32 ul_en);
-extern hi_s32 oal_sdio_transfer_prepare(oal_channel_stru *hi_sdio);
-hi_void oal_unregister_sdio_intr(const oal_channel_stru *hi_sdio);
-hi_void oal_sdio_isr(struct sdio_func *func);
+extern hi_void oal_sdio_wakelocks_release_detect(struct BusDev *bus);
+extern hi_u32 oal_sdio_func_max_req_size(struct BusDev *bus);
+extern hi_void oal_wlan_gpio_intr_enable(struct BusDev *bus, hi_u32 ul_en);
+extern hi_s32 oal_sdio_transfer_prepare(struct BusDev *bus);
+hi_void oal_unregister_sdio_intr(struct BusDev *bus);
+hi_void oal_sdio_isr(void *func);
 #endif /* #ifdef CONFIG_MMC */
 
-static inline hi_void oal_sdio_claim_host(const oal_channel_stru *hi_sdio)
+static inline hi_void oal_sdio_claim_host(struct BusDev *bus)
 {
+    oal_channel_stru *hi_sdio = NULL;
 #ifdef CONFIG_MMC
+    hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (OAL_WARN_ON(hi_sdio == NULL)) {
         return;
     }
-
     if (OAL_WARN_ON(hi_sdio->func == NULL)) {
         return;
     }
-    sdio_claim_host(hi_sdio->func);
+    bus->ops.claimHost(bus);
 #endif
 }
 
-static inline hi_void oal_sdio_release_host(const oal_channel_stru *hi_sdio)
+static inline hi_void oal_sdio_release_host(struct BusDev *bus)
 {
+    oal_channel_stru *hi_sdio = NULL;
 #ifdef CONFIG_MMC
+    hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (OAL_WARN_ON(hi_sdio == NULL)) {
         return;
     }
-
     if (OAL_WARN_ON(hi_sdio->func == NULL)) {
         return;
     }
-    sdio_release_host(hi_sdio->func);
+    bus->ops.releaseHost(bus);
 #endif
 }
 
-static inline hi_void oal_sdio_rx_transfer_lock(oal_channel_stru *hi_sdio)
+static inline hi_void oal_sdio_rx_transfer_lock(struct BusDev *bus)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     /* wakelock modified */
     hi_unref_param(hi_sdio);
 }
 
-static inline hi_void oal_sdio_rx_transfer_unlock(oal_channel_stru *hi_sdio)
+static inline hi_void oal_sdio_rx_transfer_unlock(struct BusDev *bus)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     /* wakelock modified */
     hi_unref_param(hi_sdio);
 }
 
-static inline hi_void oal_sdio_func1_int_mask(oal_channel_stru *hi_sdio, hi_u32 func1_int_mask)
+static inline hi_void oal_sdio_func1_int_mask(struct BusDev *bus, hi_u32 func1_int_mask)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (OAL_WARN_ON(hi_sdio == NULL)) {
         return;
     }
-    oal_sdio_claim_host(hi_sdio);
+    oal_sdio_claim_host(bus);
     hi_sdio->func1_int_mask &= ~func1_int_mask;
-    oal_sdio_release_host(hi_sdio);
+    oal_sdio_release_host(bus);
 }
 
-static inline hi_void oal_sdio_func1_int_unmask(oal_channel_stru *hi_sdio, hi_u32 func1_int_mask)
+static inline hi_void oal_sdio_func1_int_unmask(struct BusDev *bus, hi_u32 func1_int_mask)
 {
+    oal_channel_stru *hi_sdio = (oal_channel_stru *)bus->priData.data;
     if (OAL_WARN_ON(hi_sdio == NULL)) {
         return;
     }
-    oal_sdio_claim_host(hi_sdio);
+    oal_sdio_claim_host(bus);
     hi_sdio->func1_int_mask |= func1_int_mask;
-    oal_sdio_release_host(hi_sdio);
+    oal_sdio_release_host(bus);
 }
 
 /* ****************************************************************************
@@ -316,7 +323,7 @@ static inline hi_void oal_sdio_func1_int_unmask(oal_channel_stru *hi_sdio, hi_u3
     修改内容   : 新生成函数
 
 **************************************************************************** */
-#define oal_sdio_wake_lock(pst_hi_sdio) oal_wake_lock(&(pst_hi_sdio)->st_sdio_wakelock)
+#define oal_sdio_wake_lock(bus) oal_wake_lock(&((oal_channel_stru *)(bus->priData.data))->st_sdio_wakelock)
 
 /* ****************************************************************************
  函 数 名  : oal_sdio_wake_unlock
@@ -333,7 +340,7 @@ static inline hi_void oal_sdio_func1_int_unmask(oal_channel_stru *hi_sdio, hi_u3
     修改内容   : 新生成函数
 
 **************************************************************************** */
-#define oal_sdio_wake_unlock(pst_hi_sdio) oal_wake_unlock(&(pst_hi_sdio)->st_sdio_wakelock)
+#define oal_sdio_wake_unlock(bus) oal_wake_unlock(&((oal_channel_stru *)bus->priData.data)->st_sdio_wakelock)
 
 /* ****************************************************************************
  函 数 名  : wlan_pm_wakelock_active

@@ -34,37 +34,36 @@ extern "C" {
 #endif
 #endif
 
-#define oal_get_channel_default_handler() oal_get_sdio_default_handler()
+#define oal_get_bus_default_handler()     oal_get_sdio_default_handler()
 
-#define oal_channel_wake_lock(pst_channel) oal_sdio_wake_lock(pst_channel)
-#define oal_channel_wake_unlock(pst_channel) oal_sdio_wake_unlock(pst_channel)
+#define oal_bus_wake_lock(bus)     oal_sdio_wake_lock(bus)
+#define oal_bus_wake_unlock(bus)     oal_sdio_wake_unlock(bus)
 
-#define oal_channel_message_register(pst_channel, msg, cb, data) oal_sdio_message_register(pst_channel, msg, cb, data)
-#define oal_channel_message_unregister(pst_channel, msg) oal_sdio_message_unregister(pst_channel, msg)
+#define oal_bus_message_register(bus, msg, cb, data)  oal_sdio_message_register(bus, msg, cb, data)
+#define oal_bus_message_unregister(bus, msg)    oal_sdio_message_unregister(bus, msg)
 
-#define oal_channel_patch_readsb(buf, len, ms_timeout) sdio_patch_readsb(buf, len, ms_timeout)
-#define oal_channel_patch_writesb(buf, len) sdio_patch_writesb(buf, len)
+#define oal_bus_patch_readsb(buf, len, ms_timeout)  sdio_patch_readsb(buf, len, ms_timeout)
+#define oal_bus_patch_writesb(buf, len)  sdio_patch_writesb(buf, len)
 
-#define oal_channel_claim_host(pst_channel) oal_sdio_claim_host(pst_channel)
-#define oal_channel_release_host(pst_channel) oal_sdio_release_host(pst_channel)
+#define oal_bus_claim_host(bus)     oal_sdio_claim_host(bus)
+#define oal_bus_release_host(bus)     oal_sdio_release_host(bus)
 
-#define oal_channel_send_msg(pst_channel, val) oal_sdio_send_msg(pst_channel, val)
+#define oal_bus_send_msg(bus, val)     oal_sdio_send_msg(bus, val)
 
-#define oal_disable_channel_state(pst_channel, mask) oal_disable_sdio_state(pst_channel, mask)
+#define oal_disable_bus_state(bus, mask)     oal_disable_sdio_state(bus, mask)
 
-#define oal_channel_rx_transfer_lock(pst_channel) oal_sdio_rx_transfer_lock(pst_channel)
-#define oal_channel_rx_transfer_unlock(pst_channel) oal_sdio_rx_transfer_unlock(pst_channel)
+#define oal_bus_rx_transfer_lock(bus)     oal_sdio_rx_transfer_lock(bus)
+#define oal_bus_rx_transfer_unlock(bus)     oal_sdio_rx_transfer_unlock(bus)
 
-#define oal_channel_init_module(pdata) oal_sdio_init_module(pdata)
-#define oal_channel_exit_module(pst_channel) oal_sdio_exit_module(pst_channel)
+#define oal_bus_init_module(bus, pdata)     oal_sdio_init_module(bus, pdata)
 
-#define oal_channel_transfer_rx_register(pst_channel, rx_handler) oal_sdio_transfer_rx_register(pst_channel, rx_handler)
-#define oal_channel_transfer_rx_unregister(pst_channel) oal_sdio_transfer_rx_unregister(pst_channel)
+#define oal_bus_transfer_rx_register(bus, rx_handler) oal_sdio_transfer_rx_register(bus, rx_handler)
+#define oal_bus_transfer_rx_unregister(bus)     oal_sdio_transfer_rx_unregister(bus)
 
-#define oal_channel_func_probe(pst_channel) oal_sdio_func_probe(pst_channel)
-#define oal_channel_func_remove(pst_channel) oal_sdio_func_remove(pst_channel)
+#define oal_bus_func_init(bus)     oal_sdio_func_init(bus)
+#define oal_bus_func_remove(bus)     oal_sdio_func_remove(bus)
 
-#define oal_channel_transfer_prepare(pst_channel) oal_sdio_transfer_prepare(pst_channel)
+#define oal_bus_transfer_prepare(bus)   oal_sdio_transfer_prepare(bus)
 
 #ifdef __cplusplus
 #if __cplusplus

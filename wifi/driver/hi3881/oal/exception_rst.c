@@ -105,12 +105,13 @@ hi_s32 oal_exception_is_busy(void)
 hi_s32 oal_trigger_exception(hi_s32 is_sync)
 {
     unsigned long timeout_jiffies;
+    struct BusDev *bus = oal_get_bus_default_handler();
     if (oal_exception_is_busy() == HI_TRUE) {
         return HI_TRUE;
     }
     printk("oal_trigger_exception start\n");
     /* trigger device panic */
-    if (oal_channel_send_msg(oal_get_channel_default_handler(), H2D_MSG_TEST) != HI_SUCCESS) {
+    if (oal_bus_send_msg(bus, H2D_MSG_TEST) != HI_SUCCESS) {
         printk("send sdio panic message failed!\n");
         return HI_FALSE;
     }

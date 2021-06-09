@@ -34,7 +34,7 @@ int32_t InitHi3881Chip(struct HdfWlanDevice *device)
     uint8_t maxPortCount = 1;
     int32_t ret = HI_SUCCESS;
     uint8_t maxRetryCount = 3;
-    if (device == NULL) {
+    if (device == NULL || device->bus == NULL) {
         HDF_LOGE("%s:NULL ptr!", __func__);
         return HI_FAIL;
     }
@@ -46,7 +46,7 @@ int32_t InitHi3881Chip(struct HdfWlanDevice *device)
             }
             HDF_LOGE("%s:Retry init hi3881!last ret=%d", __func__, ret);
         }
-        ret = hi_wifi_init(maxPortCount);
+        ret = hi_wifi_init(maxPortCount, device->bus);
     } while (ret != 0 && --maxRetryCount > 0);
 
     if (ret != 0) {
