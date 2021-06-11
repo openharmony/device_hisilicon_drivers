@@ -117,14 +117,7 @@ endif
 
 # mmc dirvers
 ifeq ($(LOSCFG_DRIVERS_MMC), y)
-    MMC_HOST_DIR := himci
     LITEOS_BASELIB  += -lmmc
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS        += $(HISILICON_DRIVERS_SOURCE_ROOT)/mmc
-    LITEOS_MMC_INCLUDE += -I $(HISILICON_DRIVERS_SOURCE_ROOT)/mmc/include
-else
-    LITEOS_MMC_INCLUDE += -I $(HISILICON_DRIVERS_ROOT)/include/mmc/include
-endif
 endif
 
 # mtd drivers
