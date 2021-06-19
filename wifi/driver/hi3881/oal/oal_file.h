@@ -26,10 +26,9 @@
 #include <linux/fs.h>
 #include <linux/uaccess.h>
 #elif (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-#include <fs/fs.h>
+#include <fs/driver.h>
 #include <fcntl.h>
 #include <hi_types.h>
-#include <fs/file.h>
 #endif
 #include "oal_mm.h"
 
