@@ -54,7 +54,7 @@ hi_u32 hi_task_create(hi_u32 *taskid, const hi_task_attr *attr, hi_void *(*task_
     my_task.uwResved = LOS_TASK_STATUS_DETACHED;
     my_task.pfnTaskEntry = (TSK_ENTRY_FUNC)task_route;
     my_task.auwArgs[0] = (hi_u32)(uintptr_t)arg;
-#if (LOSCFG_KERNEL_SMP == YES)
+#ifdef LOSCFG_KERNEL_SMP
     my_task.usCpuAffiMask = CPUID_TO_AFFI_MASK(0);
 #endif
     ret = LOS_TaskCreate(taskid, &my_task);
