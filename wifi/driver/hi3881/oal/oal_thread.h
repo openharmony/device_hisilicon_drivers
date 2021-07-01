@@ -205,7 +205,7 @@ static inline oal_kthread_stru *oal_kthread_create(char *pc_thread_name, oal_thr
     st_sd_task.pcName        = pc_thread_name;
     st_sd_task.usTaskPrio    = (hi_u16)thread_param->l_prio;
     st_sd_task.uwResved      = LOS_TASK_STATUS_DETACHED;
-#if (LOSCFG_KERNEL_SMP == YES)
+#ifdef LOSCFG_KERNEL_SMP
     st_sd_task.usCpuAffiMask = CPUID_TO_AFFI_MASK(0);
 #endif
     ret = LOS_TaskCreate(&ul_taskid, &st_sd_task);
