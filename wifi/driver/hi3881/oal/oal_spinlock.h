@@ -74,7 +74,7 @@ typedef struct _oal_spin_lock_stru_ {
 
 static inline hi_void oal_spin_lock_init(oal_spin_lock_stru *pst_lock)
 {
-#if (LOSCFG_KERNEL_SMP == YES)
+#ifdef LOSCFG_KERNEL_SMP
     LOS_SpinInit(&pst_lock->lock);
 #else
     (void)pst_lock;
@@ -86,7 +86,7 @@ static inline hi_void oal_spin_lock_init(oal_spin_lock_stru *pst_lock)
 */
 static inline hi_void oal_spin_lock(oal_spin_lock_stru *pst_lock)
 {
-#if (LOSCFG_KERNEL_SMP == YES)
+#ifdef LOSCFG_KERNEL_SMP
     LOS_SpinLock(&pst_lock->lock);
 #else
     (void)pst_lock;
@@ -95,7 +95,7 @@ static inline hi_void oal_spin_lock(oal_spin_lock_stru *pst_lock)
 }
 static inline hi_void oal_spin_unlock(oal_spin_lock_stru *pst_lock)
 {
-#if (LOSCFG_KERNEL_SMP == YES)
+#ifdef LOSCFG_KERNEL_SMP
     LOS_SpinUnlock(&pst_lock->lock);
 #else
     (void)pst_lock;
@@ -108,7 +108,7 @@ static inline hi_void oal_spin_unlock(oal_spin_lock_stru *pst_lock)
 */
 static inline hi_void oal_spin_lock_bh(oal_spin_lock_stru *pst_lock)
 {
-#if (LOSCFG_KERNEL_SMP == YES)
+#ifdef LOSCFG_KERNEL_SMP
     LOS_SpinLock(&pst_lock->lock);
 #else
     (void)pst_lock;
@@ -117,7 +117,7 @@ static inline hi_void oal_spin_lock_bh(oal_spin_lock_stru *pst_lock)
 }
 static inline hi_void oal_spin_unlock_bh(oal_spin_lock_stru *pst_lock)
 {
-#if (LOSCFG_KERNEL_SMP == YES)
+#ifdef LOSCFG_KERNEL_SMP
     LOS_SpinUnlock(&pst_lock->lock);
 #else
     (void)pst_lock;
@@ -130,7 +130,7 @@ static inline hi_void oal_spin_unlock_bh(oal_spin_lock_stru *pst_lock)
 */
 static inline hi_void oal_spin_lock_irq_save(oal_spin_lock_stru *pst_lock, unsigned long *flags)
 {
-#if (LOSCFG_KERNEL_SMP == YES)
+#ifdef LOSCFG_KERNEL_SMP
     LOS_SpinLockSave(&pst_lock->lock, (UINT32 *)flags);
 #else
     (void)pst_lock;
@@ -139,7 +139,7 @@ static inline hi_void oal_spin_lock_irq_save(oal_spin_lock_stru *pst_lock, unsig
 }
 static inline hi_void oal_spin_unlock_irq_restore(oal_spin_lock_stru *pst_lock, unsigned long *flags)
 {
-#if (LOSCFG_KERNEL_SMP == YES)
+#ifdef LOSCFG_KERNEL_SMP
     LOS_SpinUnlockRestore(&pst_lock->lock, (UINT32)*flags);
 #else
     (void)pst_lock;
