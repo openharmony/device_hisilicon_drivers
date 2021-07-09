@@ -35,7 +35,7 @@ config DRIVERS_NETDEV
 choice
     depends on DRIVERS_NETDEV
     prompt "MAC"
-    default n
+    default DRIVERS_HIETH_SF
     help
       Enable higmac for hi3516a hi3519 hi3559a_cortex-a53_aarch64.
       Enable hieth-sf for hi3516cv300 hi3516ev200 and hi3518ev200.
