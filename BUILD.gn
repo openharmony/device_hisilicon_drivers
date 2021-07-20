@@ -1,0 +1,121 @@
+# Copyright (c) 2013-2019 Huawei Technologies Co., Ltd. All rights reserved.
+# Copyright (c) 2020-2021 Huawei Device Co., Ltd. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this list of
+#    conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list
+#    of conditions and the following disclaimer in the documentation and/or other materials
+#    provided with the distribution.
+#
+# 3. Neither the name of the copyright holder nor the names of its contributors may be used
+#    to endorse or promote products derived from this software without specific prior written
+#    permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+# PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import("//drivers/adapter/khdf/liteos/hdf.gni")
+
+hdf_driver("hiedmac") {
+  module_switch = defined(LOSCFG_DRIVERS_HIEDMAC)
+  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libhiedmac.a" ]
+}
+
+hdf_driver("hieth-sf") {
+  module_switch = defined(LOSCFG_DRIVERS_HIETH_SF)
+  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libhieth-sf.a" ]
+}
+
+hdf_driver("mmc") {
+  module_switch = defined(LOSCFG_DRIVERS_MMC)
+  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libmmc.a" ]
+}
+
+hdf_driver("mtd_common") {
+  module_switch = defined(LOSCFG_DRIVERS_MTD)
+  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libmtd_common.a" ]
+}
+
+hdf_driver("spinor_flash") {
+  module_switch = defined(LOSCFG_DRIVERS_MTD_SPI_NOR) && defined(LOSCFG_SHELL)
+  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libspinor_flash.a" ]
+}
+
+hdf_driver("spinor_flash_noshell") {
+  module_switch = defined(LOSCFG_DRIVERS_MTD_SPI_NOR) && !defined(LOSCFG_SHELL)
+  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libspinor_flash_noshell.a" ]
+}
+
+hdf_driver("nand_flash") {
+  module_switch = defined(LOSCFG_DRIVERS_MTD_NAND)
+  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libnand_flash.a" ]
+}
+
+hdf_driver("hdf_vendor_wifi") {
+  module_switch = defined(LOSCFG_DRIVERS_HDF_WIFI)
+  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libhdf_vendor_wifi.a" ]
+}
+
+hdf_driver("hi3881") {
+  module_switch = defined(LOSCFG_DRIVERS_HDF_WIFI) && defined(LOSCFG_DRIVERS_HI3881)
+  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libhi3881.a" ]
+}
+
+group("drivers") {
+  public_deps = [
+    ":hiedmac",
+    ":hieth-sf",
+    ":mmc",
+    ":mtd_common",
+    ":spinor_flash",
+    ":spinor_flash_noshell",
+    ":nand_flash",
+    ":hdf_vendor_wifi",
+    ":hi3881",
+  ]
+  deps = [
+    "dmac",
+    "gpio",
+    "hisi_sdk",
+    "i2c",
+    "mipi_dsi",
+    "mmc",
+    "pwm",
+    "rtc",
+    "spi",
+    "uart",
+    "watchdog",
+  ]
+}
+
+config("public") {
+  include_dirs = []
+  if (defined(LOSCFG_DRIVERS_HIEDMAC)) {
+    include_dirs += [ "include/hiedmac/include" ]
+  }
+  if (defined(LOSCFG_DRIVERS_HIETH_SF)) {
+    include_dirs += [ "include/hieth-sf/include" ]
+  }
+  if (defined(LOSCFG_DRIVERS_MTD)) {
+    include_dirs += [ "include/mtd/common/include" ]
+  }
+  if (defined(LOSCFG_DRIVERS_MTD_SPI_NOR)) {
+    include_dirs += [ "include/mtd/spi_nor/include" ]
+  }
+  if (defined(LOSCFG_DRIVERS_MTD_NAND)) {
+    include_dirs += [ "include/mtd/nand/include" ]
+  }
+}
