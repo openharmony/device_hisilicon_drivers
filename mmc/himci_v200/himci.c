@@ -1650,7 +1650,7 @@ static uint32_t HimciCmdIrq(struct HimciHost *host, uint32_t state)
 
     if ((state & RTO_INT_STATUS) > 0) {
         error = HDF_ERR_TIMEOUT;
-    } else if ((state & (RCRC_INT_STATUS | RE_INT_STATUS | SBE_INT_STATUS)) > 0) {
+    } else if ((state & (RCRC_INT_STATUS | RE_INT_STATUS)) > 0) {
         error = HDF_MMC_ERR_ILLEGAL_SEQ;
     }
 
