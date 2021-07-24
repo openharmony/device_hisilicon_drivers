@@ -87,8 +87,9 @@ extern "C" {
 #define HIMCI_SAP_DLL_ELEMENT_SHIFT       8
 
 /* HI MCI CONFIGS */
-#define HIMCI_REQUEST_TIMEOUT    (10 * LOSCFG_BASE_CORE_TICK_PER_SECOND) /* 5s */
+#define HIMCI_REQUEST_TIMEOUT    (10 * LOSCFG_BASE_CORE_TICK_PER_SECOND) /* 10s */
 #define HIMCI_TUNINT_REQ_TIMEOUT (LOSCFG_BASE_CORE_TICK_PER_SECOND / 5)  /* 0.2s */
+#define HIMCI_CARD_COMPLETE_TIMEOUT (5 * LOSCFG_BASE_CORE_TICK_PER_SECOND) /* 5s */
 
 #define HIMCI_READL(addr) OSAL_READL((uintptr_t)(addr))
 
@@ -159,6 +160,7 @@ enum HimciHostRegister {
     MMC_FIFOTH = 0x004C,
     MMC_CDETECT = 0x0050,
     MMC_WRTPRT = 0x0054,
+    MMC_GPIO = 0x0058,
     MMC_TCBCNT = 0x005C,
     MMC_TBBCNT = 0x0060,
     MMC_DEBNCE = 0x0064,
@@ -316,6 +318,12 @@ enum HimciHostRegister {
  * [0] 0: card read/write; 1: card readonly.
  */
 #define CARD_READONLY (1U << 0)
+
+/*
+ * MMC_GPIO(0x0058) details.
+ * [23] 0: dto fix bypass; 1: dto fix enable.
+ */
+#define DTO_FIX_ENABLE (1U << 23)
 
 /*
  * MMC_DEBNCE(0x0064) details.
