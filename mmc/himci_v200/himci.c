@@ -738,6 +738,29 @@ static int32_t HimciSetupData(struct HimciHost *host, struct MmcData *data)
     return HDF_SUCCESS;
 }
 
+static bool HimciWaitCardComplete(struct HimciHost *host)
+{
+    uint64_t timeout;
+    uint32_t cycle, busy;
+
+    timeout = LOS_TickCountGet() + HIMCI_CARD_COMPLETE_TIMEOUT;
+    do {
+        for (cycle = 0; cycle < HIMCI_MAX_RETRY_COUNT; cycle++) {
+            busy = HIMCI_READL((uintptr_t)host->base + MMC_STATUS);
+            if ((busy & DATA_BUSY) == 0) {
+                return true;
+            }
+        }
+        if (HimciCardPluged(host->mmc) == false) {
+            HDF_LOGE("card is unplugged.");
+            return false;
+        }
+        LOS_Schedule();
+    } while (LOS_TickCountGet() < timeout);
+
+    return false;
+}
+
 static int32_t HimciDoRequest(struct MmcCntlr *cntlr, struct MmcCmd *cmd)
 {
     struct HimciHost *host = NULL;
@@ -751,6 +774,12 @@ static int32_t HimciDoRequest(struct MmcCntlr *cntlr, struct MmcCmd *cmd)
     (void)OsalMutexLock(&host->mutex);
     if (HimciCardPluged(cntlr) == false) {
         cmd->returnError = HDF_PLT_ERR_NO_DEV;
+        goto _END;
+    }
+
+    if (HimciWaitCardComplete(host) == false) {
+        HDF_LOGE("card is busy, can not send cmd.");
+        cmd->returnError = HDF_ERR_TIMEOUT;
         goto _END;
     }
 
@@ -1523,6 +1552,15 @@ static void HimciHostRegistersInit(struct HimciHost *host)
     HimciControlPower(host, HOST_POWER_OFF, true);
     /* host power on */
     HimciControlPower(host, HOST_POWER_ON, true);
+
+    /*
+     * Walkaround: controller config gpio
+     * the value of this register should be 0x80a400,
+     * but the reset value is 0xa400. 
+     */
+    value = HIMCI_READL((uintptr_t)host->base + MMC_GPIO);
+    value |= DTO_FIX_ENABLE;
+    HIMCI_WRITEL(value, (uintptr_t)host->base + MMC_GPIO);
 
     value = ((DRV_PHASE_SHIFT << CLK_DRV_PHS_OFFSET)
            | (SMPL_PHASE_SHIFT << CLK_SMPL_PHS_OFFSET));
