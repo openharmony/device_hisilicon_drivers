@@ -31,60 +31,80 @@ import("//drivers/adapter/khdf/liteos/hdf.gni")
 
 hdf_driver("hiedmac") {
   module_switch = defined(LOSCFG_DRIVERS_HIEDMAC)
-  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libhiedmac.a" ]
+  libs = [ target_name ]
 }
 
 hdf_driver("hieth-sf") {
   module_switch = defined(LOSCFG_DRIVERS_HIETH_SF)
-  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libhieth-sf.a" ]
+  libs = [ target_name ]
 }
 
 hdf_driver("mmc") {
   module_switch = defined(LOSCFG_DRIVERS_MMC)
-  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libmmc.a" ]
+  libs = [ target_name ]
 }
 
 hdf_driver("mtd_common") {
   module_switch = defined(LOSCFG_DRIVERS_MTD)
-  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libmtd_common.a" ]
+  libs = [ target_name ]
 }
 
-hdf_driver("spinor_flash") {
-  module_switch = defined(LOSCFG_DRIVERS_MTD_SPI_NOR) && defined(LOSCFG_SHELL)
-  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libspinor_flash.a" ]
+spinor_flash = "spinor_flash"
+if (!defined(LOSCFG_SHELL)) {
+  spinor_flash = "spinor_flash_noshell"
 }
 
-hdf_driver("spinor_flash_noshell") {
-  module_switch = defined(LOSCFG_DRIVERS_MTD_SPI_NOR) && !defined(LOSCFG_SHELL)
-  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libspinor_flash_noshell.a" ]
+hdf_driver(spinor_flash) {
+  module_switch = defined(LOSCFG_DRIVERS_MTD_SPI_NOR)
+  libs = [ target_name ]
 }
 
 hdf_driver("nand_flash") {
   module_switch = defined(LOSCFG_DRIVERS_MTD_NAND)
-  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libnand_flash.a" ]
+  libs = [ target_name ]
 }
 
 hdf_driver("hdf_vendor_wifi") {
   module_switch = defined(LOSCFG_DRIVERS_HDF_WIFI)
-  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libhdf_vendor_wifi.a" ]
+  libs = [ target_name ]
 }
 
 hdf_driver("hi3881") {
   module_switch = defined(LOSCFG_DRIVERS_HDF_WIFI) && defined(LOSCFG_DRIVERS_HI3881)
-  libs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM/libhi3881.a" ]
+  libs = [ target_name ]
+}
+
+action("extra_ld_options") {
+  script = "//build/lite/run_shell_cmd.py"
+  args = [ "true" ]
+  outputs = [
+    "$root_out_dir/-Wl,--push-state,--whole-archive",
+    "$root_out_dir/-Wl,--pop-state",
+  ]
+}
+
+hdf_driver("start_whole_archive") {
+  deps = [ ":extra_ld_options" ]
+  libs = [ "$root_out_dir/-Wl,--push-state,--whole-archive" ]
+}
+
+hdf_driver("end_whole_archive") {
+  deps = [ ":extra_ld_options" ]
+  libs = [ "$root_out_dir/-Wl,--pop-state" ]
 }
 
 group("drivers") {
   public_deps = [
+    ":start_whole_archive",
     ":hiedmac",
     ":hieth-sf",
     ":mmc",
     ":mtd_common",
-    ":spinor_flash",
-    ":spinor_flash_noshell",
+    ":$spinor_flash",
     ":nand_flash",
     ":hdf_vendor_wifi",
     ":hi3881",
+    ":end_whole_archive",
   ]
   deps = [
     "dmac",
@@ -103,6 +123,7 @@ group("drivers") {
 
 config("public") {
   include_dirs = []
+  lib_dirs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM" ]
   if (defined(LOSCFG_DRIVERS_HIEDMAC)) {
     include_dirs += [ "include/hiedmac/include" ]
   }
