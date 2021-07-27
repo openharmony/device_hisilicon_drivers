@@ -91,6 +91,7 @@ group("drivers") {
     "gpio",
     "hisi_sdk",
     "i2c",
+    "adc",
     "mipi_dsi",
     "mmc",
     "pwm",
