@@ -281,9 +281,9 @@ typedef struct _hisi_remain_on_channel_stru {
 typedef struct _hisi_if_add_stru {
     hi_s8 type;
 } hisi_if_add_stru;
-
+#define WIFI_IFNAME_MAX_SIZE 16
 typedef struct _hisi_if_remove_stru {
-    hi_u8 ifname[IFNAMSIZ];
+    hi_u8 ifname[WIFI_IFNAME_MAX_SIZE];
 } hisi_if_remove_stru;
 
 typedef struct _hisi_get_p2p_addr_stru {

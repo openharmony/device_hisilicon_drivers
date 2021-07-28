@@ -53,6 +53,8 @@ extern "C" {
 /* Driver supports a dedicated interface for P2P Device */
 #define HISI_DRIVER_FLAGS_DEDICATED_P2P_DEVICE       0x20000000
 
+#define MAX_ACTION_DATA_LEN 1024
+
 /* ****************************************************************************
   3 枚举定义
 **************************************************************************** */
@@ -112,7 +114,7 @@ hi_s32 hwal_ioctl_enable_eapol(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_disable_eapol(const hi_char *puc_ifname, const hi_void *buf);
 hi_s32 hwal_ioctl_get_addr(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_get_hw_feature(const hi_char *puc_ifname, hi_void *buf);
-hi_s32 hisi_hwal_wpa_ioctl(hi_char *pc_ifname, hisi_ioctl_command_stru *cmd);
+//hi_s32 hisi_hwal_wpa_ioctl(hi_char *pc_ifname, hisi_ioctl_command_stru *cmd);
 hi_s32 hwal_ioctl_scan(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_disconnect(const hi_char *puc_ifname, const hi_void *buf);
 hi_s32 hwal_ioctl_assoc(const hi_char *puc_ifname, hi_void *buf);

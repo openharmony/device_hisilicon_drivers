@@ -641,14 +641,14 @@ hi_u32 wal_p2p_listen_timeout(frw_event_mem_stru *event_mem)
 
     wdev = p2p_listen_expired->wdev;
     listen_channel = p2p_listen_expired->st_listen_channel;
-#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION) && !defined(_PRE_HDF_LINUX)
     /* 获取mac_device_stru */
     mac_dev = mac_res_get_dev();
     ull_cookie = mac_dev->p2p_info.ull_last_roc_id;
     cfg80211_remain_on_channel_expired(wdev, ull_cookie, &listen_channel, GFP_ATOMIC);
 #endif
     /* 调用内核接口，上报报监听超时 */
-    ret = cfg80211_cancel_remain_on_channel(wdev->netdev, listen_channel.center_freq);
+    ret = HdfWifiEventCancelRemainOnChannel(wdev->netdev, listen_channel.center_freq);
     if (ret != HI_SUCCESS) {
         oam_error_log1(event->event_hdr.vap_id, OAM_SF_P2P, "{wal_p2p_listen_timeout!}", ret);
         return ret;
@@ -1254,18 +1254,19 @@ hi_u32 wal_p2p_action_tx_status(frw_event_mem_stru *event_mem)
     /* 获取到当前发送ACTION帧的net_device */
     for (netdev_index = 0; netdev_index < WLAN_VAP_NUM_PER_BOARD; netdev_index++) {
         netdev = oal_get_past_net_device_by_index(netdev_index);
-        if (netdev != HI_NULL && netdev->ml_priv != HI_NULL) {
-            tmp_mac_vap = (mac_vap_stru *)netdev->ml_priv;
+        if (netdev != HI_NULL && netdev->mlPriv != HI_NULL) {
+            tmp_mac_vap = (mac_vap_stru *)netdev->mlPriv;
             if (mac_vap->vap_id == tmp_mac_vap->vap_id) {
                 is_get_net_device = HI_TRUE;
                 break;
             }
         }
     }
-
+    
+    hi_unref_param(wdev);
     if (is_get_net_device == HI_TRUE) {
-        wdev = netdev->ieee80211_ptr; /* past_net_device不会是空指针，误报lint,-g- lin_t !e613 */
-        HdfWifiEventMgmtTxStatus(netdev, p2p_tx_status->puc_buf, p2p_tx_status->len, p2p_tx_status->ack);
+        wdev = netdev->ieee80211Ptr; /* past_net_device不会是空指针，误报lint,-g- lin_t !e613 */
+        HdfWifiEventMgmtTxStatus(wdev->netdev, p2p_tx_status->puc_buf, p2p_tx_status->len, p2p_tx_status->ack);
         ret = HI_SUCCESS;
     }
 

@@ -218,7 +218,7 @@ extern "C" {
 #define WLAN_ASSOC_USER_IDX_BMAP_LEN         1          /* 关联用户索引位图长度 8 >> 3 */
 #define WLAN_ACTIVE_USER_IDX_BMAP_LEN        1          /* 活跃用户索引位图长度 8 >> 3 */
 #define WLAN_AP_NUM_PER_DEVICE               1          /* AP的规格 1131H: 1个AP */
-#define WLAN_STA_NUM_PER_DEVICE              1          /* STA的规格 1131H: 2个STA */
+#define WLAN_STA_NUM_PER_DEVICE              2          /* STA的规格 1131H: 2个STA */
 #define WLAN_CFG_VAP_NUM_PER_DEVICE          1          /* 配置VAP个数 1个芯片1个 */
 #define WLAN_SERVICE_VAP_NUM_PER_DEVICE  (WLAN_AP_NUM_PER_DEVICE + WLAN_STA_NUM_PER_DEVICE)  /* AP+STA */
 #define WLAN_VAP_NUM_PER_DEVICE    (WLAN_AP_NUM_PER_DEVICE + WLAN_STA_NUM_PER_DEVICE + WLAN_CFG_VAP_NUM_PER_DEVICE)
@@ -356,7 +356,7 @@ extern "C" {
 #define WLAN_MEM_EVENT_CNT2                 6               /* 单用户下事件池子池2数量 */
 #define WLAN_MEM_EVENT_MULTI_USER_CNT2      8               /* 多用户下事件池子池2数量 */
 #define WLAN_MEM_EVENT_CNT1                 40              /* 单用户下事件池子池1数量 */
-#define WLAN_WPS_IE_MAX_SIZE                (WLAN_MEM_EVENT_SIZE2 - 32)   /* 32表示事件自身占用的空间 */
+#define WLAN_WPS_IE_MAX_SIZE                352 // (WLAN_MEM_EVENT_SIZE2 - 32)   /* 32表示事件自身占用的空间 */
 /* ****************************************************************************
   37 MIB内存池
 **************************************************************************** */

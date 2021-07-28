@@ -1347,7 +1347,7 @@ static hi_u32 hmac_ap_asoc_pmf_process(const hmac_vap_stru *hmac_vap, hmac_user_
 
 #ifdef _PRE_WLAN_FEATURE_P2P
 static hi_void hmac_ap_asoc_p2p_process(const hmac_vap_stru *hmac_vap, hi_u8 mgmt_frm_type, hi_u32 payload_len,
-    const hmac_user_stru *hmac_user)
+    hi_u8 *puc_payload, const hmac_user_stru *hmac_user)
 {
         hi_s32 l_len = ((mgmt_frm_type == WLAN_FC0_SUBTYPE_REASSOC_REQ) ? (MAC_CAP_INFO_LEN + MAC_LISTEN_INT_LEN +
                                                WLAN_MAC_ADDR_LEN) : (MAC_CAP_INFO_LEN + MAC_LISTEN_INT_LEN));
@@ -1419,7 +1419,8 @@ static hi_u32 hmac_ap_asoc_req_process(hmac_ap_asoc_req_stru asoc_req, hmac_ap_a
                 MAC_USER_STATE_AUTH_COMPLETE);
         }
 #ifdef _PRE_WLAN_FEATURE_P2P
-        hmac_ap_asoc_p2p_process(asoc_req.hmac_vap, asoc_req.mgmt_frm_type, asoc_req.payload_len, asoc_info.hmac_user);
+        hmac_ap_asoc_p2p_process(asoc_req.hmac_vap, asoc_req.mgmt_frm_type, asoc_req.payload_len,
+            asoc_req.puc_payload, asoc_info.hmac_user);
 #endif
     }
 

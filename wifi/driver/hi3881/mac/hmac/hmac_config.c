@@ -38,6 +38,7 @@
 #include "hmac_scan.h"
 #include "hmac_sme_sta.h"
 #include "hmac_blockack.h"
+#include "hmac_p2p.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -963,11 +964,6 @@ static hi_u32 hmac_config_init_hmac_vap(hi_u8 vap_id, hmac_vap_stru *hmac_vap, m
     hmac_user_add_multi_user(hmac_vap->base_vap, &param->muti_user_id);
     mac_vap_set_multi_user_idx(hmac_vap->base_vap, param->muti_user_id);
     mac_device_set_vap_id(mac_dev, hmac_vap->base_vap, param, vap_id, HI_TRUE);
-#ifdef _PRE_WLAN_FEATURE_P2P
-    if (param->vap_mode == WLAN_VAP_MODE_BSS_STA && param->p2p_mode == WLAN_P2P_DEV_MODE) {
-        mac_dev->sta_num++;
-    }
-#endif
 
     if (param->vap_mode == WLAN_VAP_MODE_BSS_AP
 #ifdef _PRE_WLAN_FEATURE_MESH
@@ -3946,7 +3942,7 @@ static hi_u32 hmac_config_connect_ie(mac_vap_stru *mac_vap, hmac_scanned_bss_inf
     return HI_SUCCESS;
 }
 
-static hi_u32 hmac_config_connect_dev(const mac_vap_stru *mac_vap, const mac_cfg80211_connect_param_stru *connect_param,
+static hi_u32 hmac_config_connect_dev(const mac_vap_stru *mac_vap, mac_cfg80211_connect_param_stru *connect_param,
     hmac_vap_stru *hmac_vap, hmac_bss_mgmt_stru *bss_mgmt)
 {
     hi_unref_param(mac_vap);
@@ -4006,7 +4002,7 @@ static hi_u32 hmac_config_connect_conn_init(const mac_cfg80211_connect_param_str
 }
 
 hi_u32 hmac_config_connect_hmac(mac_vap_stru *mac_vap, mac_cfg80211_connect_security_stru *conn_sec,
-    const mac_cfg80211_connect_param_stru *connect_param, hmac_vap_stru *hmac_vap)
+    mac_cfg80211_connect_param_stru *connect_param, hmac_vap_stru *hmac_vap)
 {
     hmac_device_stru *hmac_dev = hmac_get_device_stru();
     /* 获取管理扫描的bss结果的结构体 */
