@@ -89,6 +89,7 @@ hi_s32 wal_init_drv_wlan_netdev(nl80211_iftype_uint8 type, wal_phy_mode mode, oa
 hi_s32 wal_deinit_drv_wlan_netdev(oal_net_device_stru *netdev);
 oal_net_device_ops_stru *wal_get_net_dev_ops(hi_void);
 hi_u32 wal_get_efuse_mac_addr(hi_void);
+hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type);
 #ifdef __cplusplus
 #if __cplusplus
 }

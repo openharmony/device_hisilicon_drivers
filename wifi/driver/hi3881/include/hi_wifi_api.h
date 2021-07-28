@@ -141,7 +141,7 @@ extern "C" {
  *
  * default max num of vap.CNcomment:默认支持的设备最大个数.CNend
  */
-#define WIFI_MAX_NUM_VAP 2
+#define WIFI_MAX_NUM_VAP 3
 
 /* *
  * @ingroup hi_wifi_basic

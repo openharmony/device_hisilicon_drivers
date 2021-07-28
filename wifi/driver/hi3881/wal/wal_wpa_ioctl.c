@@ -49,6 +49,7 @@ extern "C" {
     修改内容   : 新生成函数
 
 **************************************************************************** */
+#if 0
 hi_s32 hisi_hwal_wpa_ioctl(hi_char *pc_ifname, hisi_ioctl_command_stru *cmd)
 {
     (void)pc_ifname;
@@ -56,7 +57,7 @@ hi_s32 hisi_hwal_wpa_ioctl(hi_char *pc_ifname, hisi_ioctl_command_stru *cmd)
 
     return -HISI_EFAIL;
 }
-
+#endif
 #ifdef __cplusplus
 #if __cplusplus
 }

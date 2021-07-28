@@ -31,7 +31,7 @@
 
 int32_t InitHi3881Chip(struct HdfWlanDevice *device)
 {
-    uint8_t maxPortCount = 1;
+    uint8_t maxPortCount = 3;
     int32_t ret = HI_SUCCESS;
     uint8_t maxRetryCount = 3;
     if (device == NULL || device->bus == NULL) {
@@ -81,6 +81,9 @@ int32_t Hi3881Init(struct HdfChipDriver *chipDriver, struct NetDevice *netDevice
 
     if (mode == WAL_WIFI_MODE_STA) {
         type = NL80211_IFTYPE_STATION;
+        if (InitNetdev(netDevice, NL80211_IFTYPE_P2P_DEVICE) != HI_SUCCESS) {
+            return HI_FAIL;
+        }
     } else if (mode == WAL_WIFI_MODE_AP) {
         type = NL80211_IFTYPE_AP;
     } else {

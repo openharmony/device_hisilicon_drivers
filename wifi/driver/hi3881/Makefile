@@ -89,6 +89,9 @@ hmac-objs := hmac_11i.o hmac_blockack.o hmac_chan_mgmt.o hmac_config.o hmac_cryp
 ifeq ($(CFG_EDCA_OPT_AP), y)
 hmac-objs += hmac_edca_opt.o
 endif
+ifeq ($(CFG_P2P), y)
+hmac-objs += hmac_p2p.o
+endif
 ifeq ($(CFG_TCP_OPT), y)
 hmac-objs += hmac_tcp_opt.o
 endif

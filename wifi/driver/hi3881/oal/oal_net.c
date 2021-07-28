@@ -695,7 +695,11 @@ hi_u32 oal_net_check_and_get_devname(nl80211_iftype_uint8 type, char *dev_name, 
             strncpy_s(dev_name, *len, "wlan0", strlen("wlan0") + 1);
             break;
         case NL80211_IFTYPE_P2P_DEVICE:
+#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
             strncpy_s(dev_name, *len, "p2p", strlen("p2p") + 1);
+#elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+            strncpy_s(dev_name, *len, "p2p%d", strlen("p2p%d") + 1);
+#endif
             break;
         case NL80211_IFTYPE_P2P_CLIENT:
             /* fall-through */

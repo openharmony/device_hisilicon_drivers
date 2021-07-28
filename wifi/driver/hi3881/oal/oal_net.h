@@ -511,7 +511,7 @@ enum hwifi_ioctl_cmd {
 };
 
 enum app_ie_type {
-    OAL_APP_BEACON_IE       = 0,
+    OAL_APP_BEACON_IE       = 1,
     OAL_APP_PROBE_REQ_IE    = 1,
     OAL_APP_PROBE_RSP_IE    = 2,
     OAL_APP_ASSOC_REQ_IE    = 3,
@@ -1395,8 +1395,6 @@ typedef struct cfg80211_connect_params      oal_cfg80211_connect_params_stru;
 typedef struct cfg80211_scan_request        oal_cfg80211_scan_request_stru;
 #endif
 typedef struct cfg80211_sched_scan_request  oal_cfg80211_sched_scan_request_stru;
-typedef struct ieee80211_iface_combination  oal_ieee80211_iface_combination;
-typedef struct ieee80211_iface_limit        oal_ieee80211_iface_limit;
 typedef struct ethtool_ops                  oal_ethtool_ops_stru;
 #endif
 
@@ -1561,7 +1559,7 @@ typedef struct oal_eth_header_info_stru {
     hi_u32 len;
 } oal_eth_header_info_stru;
 
-#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
+#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION) || defined(_PRE_HDF_LINUX)
 struct ieee80211_txrx_stypes {
     hi_u16 tx;
     hi_u16 rx;
