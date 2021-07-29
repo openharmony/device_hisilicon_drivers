@@ -34,11 +34,6 @@ hdf_driver("hiedmac") {
   libs = [ target_name ]
 }
 
-hdf_driver("hieth-sf") {
-  module_switch = defined(LOSCFG_DRIVERS_HIETH_SF)
-  libs = [ target_name ]
-}
-
 hdf_driver("mmc") {
   module_switch = defined(LOSCFG_DRIVERS_MMC)
   libs = [ target_name ]
@@ -97,7 +92,6 @@ group("drivers") {
   public_deps = [
     ":start_whole_archive",
     ":hiedmac",
-    ":hieth-sf",
     ":mmc",
     ":mtd_common",
     ":$spinor_flash",
@@ -109,6 +103,7 @@ group("drivers") {
   deps = [
     "dmac",
     "gpio",
+    "hieth-sf",
     "hisi_sdk",
     "i2c",
     "mipi_dsi",
@@ -126,9 +121,6 @@ config("public") {
   lib_dirs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM" ]
   if (defined(LOSCFG_DRIVERS_HIEDMAC)) {
     include_dirs += [ "include/hiedmac/include" ]
-  }
-  if (defined(LOSCFG_DRIVERS_HIETH_SF)) {
-    include_dirs += [ "include/hieth-sf/include" ]
   }
   if (defined(LOSCFG_DRIVERS_MTD)) {
     include_dirs += [ "include/mtd/common/include" ]

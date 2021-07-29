@@ -323,8 +323,6 @@ hi_u32 hmac_rx_msdu_proc(const hmac_vap_stru *hmac_vap, oal_netbuf_head_stru *ne
 static hi_u32 hmac_rx_prepare_msdu_list_to_wlan(const hmac_vap_stru *hmac_vap, oal_netbuf_head_stru *netbuf_header,
     oal_netbuf_stru *netbuf, mac_ieee80211_frame_stru *frame_hdr)
 {
-    hmac_msdu_stru msdu = {0};     /* 保存解析出来的每一个MSDU */
-    hmac_msdu_proc_state_stru msdu_state = {0};    /* 记录MPDU的处理信息 */
     hi_u32 ret;
     hmac_rx_ctl_stru *rx_ctrl = (hmac_rx_ctl_stru *)oal_netbuf_cb(netbuf); /* 获取该MPDU的控制信息 */
 
@@ -672,7 +670,6 @@ hi_u32 hmac_rx_lan_frame_classify(const hmac_vap_stru *hmac_vap, oal_netbuf_stru
     mac_ieee80211_frame_stru *frame_hdr)
 {
     hmac_msdu_stru msdu = { 0 };                                    /* 保存解析出来的每一个MSDU */
-    hmac_msdu_proc_state_stru msdu_state = { 0 };                   /* 记录MPDU的处理信息 */
     hi_u8 *mac_addr = HI_NULL;
 
     if (oal_unlikely(frame_hdr == HI_NULL)) {
