@@ -1334,8 +1334,9 @@ hi_s32 wal_init_netdev(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
 
 hi_s32 wal_init_netif(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
 {
+    (void)type;
     /* 注册net_device */
-    hi_u32 ret = NetDeviceAdd(netdev, (Protocol80211IfType)type);
+    hi_u32 ret = NetDeviceAdd(netdev);
     if (oal_unlikely(ret != 0)) {
         oam_warning_log1(0, OAM_SF_ANY, "{wal_init_netif::NetDeviceAdd return error code %d}", ret);
         oal_net_unregister_netdev(netdev);

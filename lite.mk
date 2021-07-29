@@ -98,11 +98,8 @@ endif
 
 ifeq ($(LOSCFG_DRIVERS_HIETH_SF), y)
     LITEOS_BASELIB    += -lhieth-sf
-ifeq ($(BUILD_FROM_SOURCE), y)
-    LIB_SUBDIRS       +=  $(HISILICON_DRIVERS_SOURCE_ROOT)/hieth-sf
-    LITEOS_HIETH_SF_INCLUDE += -I $(HISILICON_DRIVERS_SOURCE_ROOT)/hieth-sf/include
-endif
-    LITEOS_HIETH_SF_INCLUDE += -I $(HISILICON_DRIVERS_ROOT)/include/hieth-sf/include
+    LIB_SUBDIRS       +=  $(HISILICON_DRIVERS_ROOT)/hieth-sf
+    LITEOS_HIETH_SF_INCLUDE += -I $(HISILICON_DRIVERS_ROOT)/hieth-sf/include
 endif
 
 # mmc dirvers
