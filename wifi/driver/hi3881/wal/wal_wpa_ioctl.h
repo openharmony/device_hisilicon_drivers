@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 #endif
-
+#include "hi_wifi_driver_wpa_if.h"
 /* ****************************************************************************
   2 宏定义
 **************************************************************************** */
@@ -114,7 +114,7 @@ hi_s32 hwal_ioctl_enable_eapol(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_disable_eapol(const hi_char *puc_ifname, const hi_void *buf);
 hi_s32 hwal_ioctl_get_addr(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_get_hw_feature(const hi_char *puc_ifname, hi_void *buf);
-//hi_s32 hisi_hwal_wpa_ioctl(hi_char *pc_ifname, hisi_ioctl_command_stru *cmd);
+hi_s32 hisi_hwal_wpa_ioctl(hi_char *pc_ifname, hisi_ioctl_command_stru *cmd);
 hi_s32 hwal_ioctl_scan(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_disconnect(const hi_char *puc_ifname, const hi_void *buf);
 hi_s32 hwal_ioctl_assoc(const hi_char *puc_ifname, hi_void *buf);

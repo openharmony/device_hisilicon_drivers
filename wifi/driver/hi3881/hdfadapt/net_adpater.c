@@ -1490,9 +1490,9 @@ hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
     }
 
     if (ret != HI_SUCCESS) {
-        oam_error_log2(0, OAM_SF_ANY, "InitP2pNetdev %s failed.l_return:%d\n", netdev->name, ret);
+        oam_error_log2(0, OAM_SF_ANY, "InitP2pNetdev %s failed. return:%d\n", netdev->name, ret);
     }
-    oam_error_log2(0, OAM_SF_ANY, "InitNetdev %s success.l_return:%d\n", netdev->name, ret);
+
     return ret;
 }
 

@@ -1008,14 +1008,14 @@ hi_u32 hmac_p2p_send_action(mac_vap_stru *mac_vap, hi_u16 us_len, const hi_u8 *p
         oam_warning_log0(mac_vap->vap_id, OAM_SF_P2P, "{hmac_p2p_send_action:hmac_p2p_action_tx_status_event ERR}");
     }
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-    // oal_netbuf_free(puc_data);
+    oal_netbuf_free(puc_data);
 #endif
     /* 释放上层申请的puc_data空间 */
     if (action_data->data_len > 0) {
-        // oal_free(action_data->data);
-        // action_data->data = HI_NULL;
+        oal_free(action_data->data);
+        action_data->data = HI_NULL;
     }
-    // oal_free(puc_data_header);
+    oal_free(puc_data_header);
     return HI_SUCCESS;
 }
 
