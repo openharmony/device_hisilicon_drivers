@@ -1013,8 +1013,8 @@ int32_t WalSendAction(struct NetDevice *netDev, WifiActionData *actionData)
         return HI_FAIL;
     }
     if (actionParam->data != HI_NULL) {
-        // OsalMemFree(actionParam->data);
-        // actionParam->data = HI_NULL;
+        OsalMemFree(actionParam->data);
+        actionParam->data = HI_NULL;
     }
 
     return HI_SUCCESS;
