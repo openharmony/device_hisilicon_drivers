@@ -325,15 +325,16 @@ hi_u32 hmac_vap_creat_netdev(hmac_vap_stru *hmac_vap, hi_char *puc_netdev_name, 
 
     mac_vap = hmac_vap->base_vap;
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-    netdev = NetDeviceInit(puc_netdev_name, strlen(puc_netdev_name), LITE_OS);
+    netdev = NetDeviceInit(puc_netdev_name, strlen(puc_netdev_name), WIFI_LINK, LITE_OS);
 #elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-    netdev = NetDeviceInit(puc_netdev_name, strlen(puc_netdev_name), FULL_OS);
+    netdev = NetDeviceInit(puc_netdev_name, strlen(puc_netdev_name), WIFI_LINK, FULL_OS);
 #endif
     if (oal_unlikely(netdev == HI_NULL)) {
         oam_warning_log0(mac_vap->vap_id, OAM_SF_ANY, "{hmac_vap_creat_netdev::pst_net_device null.}");
 
         return HI_ERR_CODE_PTR_NULL;
     }
+    netdev->funType.wlanType = PROTOCOL_80211_IFTYPE_STATION;
 
     /* 如下对netdevice的赋值暂时按如下操作 */
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
