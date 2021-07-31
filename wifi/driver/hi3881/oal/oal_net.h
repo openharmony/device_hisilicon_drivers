@@ -1941,8 +1941,11 @@ static inline oal_net_device_stru *oal_net_alloc_netdev(hi_u32 sizeof_priv, cons
     if (netdev_name == HI_NULL || set_up == HI_NULL) {
         return HI_NULL;
     }
-
-    return NetDeviceInit(netdev_name, strlen(netdev_name), FULL_OS);
+    oal_net_device_stru *netdev = NetDeviceInit(netdev_name, strlen(netdev_name), WIFI_LINK, FULL_OS);
+    if (netdev != NULL) {
+        netdev->funType.wlanType = PROTOCOL_80211_IFTYPE_STATION;
+    }
+    return netdev;
 #else
     oal_net_device_stru *tmp_netdev = HI_NULL;
 

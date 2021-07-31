@@ -375,7 +375,11 @@ oal_net_device_stru *oal_get_netdevice_by_name(const hi_char *pc_name, hi_u32 le
 oal_net_device_stru *oal_net_alloc_netdev(const hi_char *puc_name, hi_u8 max_name_len)
 {
     (void)max_name_len;
-    return NetDeviceInit(puc_name, strlen(puc_name), LITE_OS);
+    oal_net_device_stru *netdev = NetDeviceInit(puc_name, strlen(puc_name), WIFI_LINK, LITE_OS);
+    if (netdev != NULL) {
+        netdev->funType.wlanType = PROTOCOL_80211_IFTYPE_STATION;
+    }
+    return netdev;
 }
 #endif
 
@@ -489,6 +493,7 @@ hi_void oal_net_free_netdev(oal_net_device_stru *netdev)
 **************************************************************************** */
 hi_u32 oal_net_register_netdev(oal_net_device_stru *netdev, nl80211_iftype_uint8 type)
 {
+    (void)type;
     if (netdev == HI_NULL) {
         oam_error_log0(0, 0, "hwal_lwip_register_netdev parameter NULL.");
         return HI_ERR_CODE_PTR_NULL;
@@ -509,7 +514,7 @@ hi_u32 oal_net_register_netdev(oal_net_device_stru *netdev, nl80211_iftype_uint8
     /* 初始化skb list */
     OalInitSpecialProcPriv(netdev);
 #endif
-    NetDeviceAdd(netdev, (Protocol80211IfType)type);
+    NetDeviceAdd(netdev);
     return HI_SUCCESS;
 }
 

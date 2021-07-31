@@ -133,6 +133,7 @@ hi_void oal_cfg80211_mgmt_tx_status(
 **************************************************************************** */
 hi_void oal_cfg80211_scan_done(oal_cfg80211_scan_request_stru *pst_cfg80211_scan_request, hi_s8 c_aborted)
 {
+    (void)pst_cfg80211_scan_request;
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION) && !defined(_PRE_HDF_LINUX)
 #if (LINUX_VERSION_CODE >= kernel_version(4, 8, 0))
     oal_cfg80211_scan_info_stru scan_info = {
