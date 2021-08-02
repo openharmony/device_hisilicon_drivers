@@ -1474,9 +1474,9 @@ hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
         return HI_FAIL;
     }
 #ifdef _PRE_HDF_LINUX
-    netdev = NetDeviceInit(ifName, strlen(ifName), FULL_OS);
+    netdev = NetDeviceInit(ifName, strlen(ifName), WIFI_LINK, FULL_OS);
 #else
-    netdev = NetDeviceInit(ifName, strlen(ifName), LITE_OS);
+    netdev = NetDeviceInit(ifName, strlen(ifName), WIFI_LINK, LITE_OS);
 #endif
     data = GetPlatformData(netDevice);
     if (data == NULL) {
