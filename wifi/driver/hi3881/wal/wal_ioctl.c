@@ -2508,7 +2508,7 @@ hi_u32 wal_start_vap(oal_net_device_stru *netdev)
     wal_write_msg_hdr_init(&write_msg, WLAN_CFGID_START_VAP, sizeof(mac_cfg_start_vap_param_stru));
     ((mac_cfg_start_vap_param_stru *)write_msg.auc_value)->net_dev = netdev;
 #ifdef _PRE_WLAN_FEATURE_P2P
-    wdev = netdev->ieee80211_ptr;
+    wdev = netdev->ieee80211Ptr;
     p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(wdev->iftype);
     if (WLAN_P2P_BUTT == p2p_mode) {
         oam_error_log0(0, 0, "{wal_start_vap::wal_wireless_iftype_to_mac_p2p_mode return BUFF}\r\n");
@@ -2587,7 +2587,7 @@ hi_u32 wal_stop_vap(oal_net_device_stru *netdev)
     wal_write_msg_hdr_init(&write_msg, WLAN_CFGID_DOWN_VAP, sizeof(mac_cfg_down_vap_param_stru));
     ((mac_cfg_down_vap_param_stru *)write_msg.auc_value)->net_dev = netdev;
 #ifdef _PRE_WLAN_FEATURE_P2P
-    wdev = netdev->ieee80211_ptr;
+    wdev = netdev->ieee80211Ptr;
     p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(wdev->iftype);
     if (WLAN_P2P_BUTT == p2p_mode) {
         oam_error_log0(0, 0, "{wal_stop_vap::wal_wireless_iftype_to_mac_p2p_mode return BUFF}\r\n");
@@ -2761,7 +2761,8 @@ hi_u32 wal_deinit_wlan_vap(oal_net_device_stru *netdev)
     hi_u32                       ret;
 
 #ifdef _PRE_WLAN_FEATURE_P2P
-    wlan_p2p_mode_enum_uint8    p2p_mode = WLAN_LEGACY_VAP_MODE;
+    oal_wireless_dev *wdev = GET_NET_DEV_CFG80211_WIRELESS(netdev);
+    wlan_p2p_mode_enum_uint8    p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(wdev->iftype);
 #endif
 
     if (oal_unlikely(netdev == HI_NULL)) {
@@ -2793,7 +2794,7 @@ hi_u32 wal_deinit_wlan_vap(oal_net_device_stru *netdev)
     /* 删除vap 时需要将参数赋值 */
     ((mac_cfg_del_vap_param_stru *)write_msg.auc_value)->net_dev = netdev;
 #ifdef _PRE_WLAN_FEATURE_P2P
-    ((mac_cfg_del_vap_param_stru *)write_msg.auc_value)->p2p_mode = mac_vap->p2p_mode;
+    ((mac_cfg_del_vap_param_stru *)write_msg.auc_value)->p2p_mode = p2p_mode;
 #endif
 
     wal_write_msg_hdr_init(&write_msg, WLAN_CFGID_DEL_VAP, sizeof(mac_cfg_del_vap_param_stru));

@@ -29,6 +29,7 @@
 #include "wal_main.h"
 #include "oal_net.h"
 #include "wal_scan.h"
+#include "hdf_wlan_utils.h"
 
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
 #include "lwip/tcpip.h"
@@ -1203,6 +1204,7 @@ static inline int32_t oal_net_device_change_mtu(oal_net_device_stru *netdev, hi_
 static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
 {
     oal_sockaddr_stru *mac_addr = HI_NULL;
+    wal_msg_write_stru write_msg;
 
     if (oal_unlikely((netdev == HI_NULL) || (addr == HI_NULL))) {
         oam_error_log2(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::pst_net_dev or p_addr null ptr error %p, %p!}",
@@ -1231,6 +1233,34 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
 
     /* 1131如果return则无法通过命令配置mac地址到寄存器 */
     wal_wake_unlock();
+    /* ****************************************************************************
+                     抛事件到wal层处理
+    **************************************************************************** */
+    wal_write_msg_hdr_init(&write_msg, WLAN_CFGID_STATION_ID, sizeof(mac_cfg_staion_id_param_stru));
+    mac_cfg_staion_id_param_stru *param = (mac_cfg_staion_id_param_stru *)(write_msg.auc_value);
+
+    /* 设置配置命令参数 */
+    if (memcpy_s((param->auc_station_id), WLAN_MAC_ADDR_LEN, (mac_addr->sa_data), WLAN_MAC_ADDR_LEN) != EOK) {
+        oam_warning_log0(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::write_msg mem safe function err!}");
+        return HI_FAIL;
+    }
+#ifdef _PRE_WLAN_FEATURE_P2P
+    /*填写下发net_device 对应p2p 模式*/
+    oal_wireless_dev *wdev = (oal_wireless_dev *)netdev->ieee80211Ptr;
+    param->p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(wdev->iftype);
+    if (param->p2p_mode == WLAN_P2P_BUTT) {
+        oam_warning_log0(0, OAM_SF_ANY, 
+            "{wal_netdev_set_mac_addr::wal_wireless_iftype_to_mac_p2p_mode return BUFF}\r\n");
+        return HI_FAIL;
+    }
+#endif
+
+    hi_u32 ret = wal_send_cfg_event(netdev, WAL_MSG_TYPE_WRITE,
+        WAL_MSG_WRITE_MSG_HDR_LENGTH + sizeof(mac_cfg_staion_id_param_stru), (hi_u8 *)&write_msg, HI_FALSE, HI_NULL);
+    if (oal_unlikely(ret != HI_SUCCESS)) {
+        oam_warning_log1(0, OAM_SF_ANY, "{hwal_lwip_set_mnid::return err code [%u]!}", ret);
+        return (hi_s32)ret;
+    }
     return HI_SUCCESS;
 }
 
@@ -1400,6 +1430,71 @@ hi_s32 wal_init_drv_wlan_netdev(nl80211_iftype_uint8 type, wal_phy_mode mode, oa
     }
 
     return HI_SUCCESS;
+}
+
+int32_t GetIfName(nl80211_iftype_uint8 type, char *ifName, uint32_t len)
+{
+    if (ifName == NULL || len == 0) {
+        HDF_LOGE("%s:para is null!", __func__);
+        return HI_FAIL;
+    }
+    switch (type) {
+        case NL80211_IFTYPE_P2P_DEVICE:
+            if (snprintf_s(ifName, len, len -1, "p2p%d", 0) < 0) {
+                HDF_LOGE("%s:format ifName failed!", __func__);
+                return HI_FAIL;
+            }
+            break;
+        case NL80211_IFTYPE_P2P_CLIENT:
+            /*  fall-through */
+        case NL80211_IFTYPE_P2P_GO:
+            if (snprintf_s(ifName, len, len -1, "p2p-p2p0-%d", 0) < 0) {
+                HDF_LOGE("%s:format ifName failed!", __func__);
+                return HI_FAIL;
+            }
+            break;
+        default:
+            HDF_LOGE("%s:GetIfName::not supported dev type!", __func__);
+            return HI_FAIL;
+    }
+    return HI_SUCCESS;
+}
+
+hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
+{
+    if (netDevice == NULL) {
+        HDF_LOGE("%s:para is null!", __func__);
+        return HI_FAIL;
+    }
+    struct NetDevice *netdev = NULL;
+    char ifName[WIFI_IFNAME_MAX_SIZE] = {0};
+    struct HdfWifiNetDeviceData *data = NULL;
+    hi_s32 ret = HI_FAIL;
+    if (GetIfName(type, ifName, WIFI_IFNAME_MAX_SIZE) != HI_SUCCESS) {
+        HDF_LOGE("%s:get ifName failed!", __func__);
+        return HI_FAIL;
+    }
+#ifdef _PRE_HDF_LINUX
+    netdev = NetDeviceInit(ifName, strlen(ifName), WIFI_LINK, FULL_OS);
+#else
+    netdev = NetDeviceInit(ifName, strlen(ifName), WIFI_LINK, LITE_OS);
+#endif
+    data = GetPlatformData(netDevice);
+    if (data == NULL) {
+        HDF_LOGE("%s:netdevice data null!", __func__);
+        return HI_FAIL;
+    }
+    netdev->classDriverName = netDevice->classDriverName;
+    netdev->classDriverPriv = data;
+    if (netdev != NULL) {
+        ret = wal_init_drv_wlan_netdev(type, WAL_PHY_MODE_11N, netdev);
+    }
+
+    if (ret != HI_SUCCESS) {
+        oam_error_log2(0, OAM_SF_ANY, "InitP2pNetdev %s failed. return:%d\n", netdev->name, ret);
+    }
+
+    return ret;
 }
 
 /* ****************************************************************************

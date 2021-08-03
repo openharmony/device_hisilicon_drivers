@@ -26,6 +26,7 @@
 #include "hmac_rx_filter.h"
 #include "hmac_fsm.h"
 #include "hmac_mgmt_bss_comm.h"
+#include "hmac_event.h"
 #include "mac_frame.h"
 #include "hmac_p2p.h"
 
@@ -258,7 +259,7 @@ hi_u32 hmac_p2p_set_gc_mac_addr(mac_device_stru *mac_dev, const hmac_vap_stru *h
 
     /* 设置mac地址 */
     if (memcpy_s(station_id_param.auc_station_id, WLAN_MAC_ADDR_LEN,
-        param->net_dev->dev_addr, WLAN_MAC_ADDR_LEN) != EOK) {
+        param->net_dev->macAddr, WLAN_MAC_ADDR_LEN) != EOK) {
         /* 此处回退有误，需要对应mac_device_set_vap_id，做回退操作 */
         mac_device_set_vap_id(mac_dev, hmac_vap->base_vap, param, vap_id, HI_FALSE);
 
@@ -467,10 +468,11 @@ hi_u32 hmac_p2p_send_listen_expired_to_host(const hmac_vap_stru *hmac_vap)
     p2p_info = &mac_dev->p2p_info;
 
     /* 填写上报监听超时, 上报的网络设备应该采用p2p0 */
-    if (hmac_vap->p2p0_net_device != HI_NULL && hmac_vap->p2p0_net_device->ieee80211_ptr != HI_NULL) {
-        wdev = hmac_vap->p2p0_net_device->ieee80211_ptr;
+    if (hmac_vap->p2p0_net_device != HI_NULL &&
+        hmac_vap->p2p0_net_device->ieee80211Ptr != HI_NULL) {
+        wdev = hmac_vap->p2p0_net_device->ieee80211Ptr;
     } else {
-        wdev = hmac_vap->net_device->ieee80211_ptr;
+        wdev = hmac_vap->net_device->ieee80211Ptr;
     }
     p2p_listen_expired.st_listen_channel = p2p_info->st_listen_channel;
     p2p_listen_expired.wdev = wdev;
@@ -686,19 +688,19 @@ hi_u32 hmac_p2p_encap_action(hi_u8 *puc_data, const mac_action_data_stru *action
 
     /* 设置 DA address1: 远端节点MAC地址 */
     if (memcpy_s(puc_data + WLAN_HDR_ADDR1_OFFSET, WLAN_MAC_ADDR_LEN,
-                 action_data->puc_dst, WLAN_MAC_ADDR_LEN) != EOK) {
+        action_data->dst, WLAN_MAC_ADDR_LEN) != EOK) {
         oam_error_log0(0, 0, "{hmac_p2p_encap_action::memcpy_s fail.}");
         return 0;
     }
     /* 设置 SA address2: dot11MACAddress */
     if (memcpy_s(puc_data + WLAN_HDR_ADDR2_OFFSET, WLAN_MAC_ADDR_LEN,
-                 action_data->puc_src, WLAN_MAC_ADDR_LEN) != EOK) {
+        action_data->src, WLAN_MAC_ADDR_LEN) != EOK) {
         oam_error_log0(0, 0, "{hmac_p2p_encap_action::memcpy_s fail.}");
         return 0;
     }
     /* 设置 DA address3::BSSID */
     if (memcpy_s(puc_data + WLAN_HDR_ADDR3_OFFSET, WLAN_MAC_ADDR_LEN,
-                 action_data->puc_bssid, WLAN_MAC_ADDR_LEN) != EOK) {
+        action_data->bssid, WLAN_MAC_ADDR_LEN) != EOK) {
         oam_error_log0(0, 0, "{hmac_p2p_encap_action::memcpy_s fail.}");
         return 0;
     }
@@ -706,13 +708,16 @@ hi_u32 hmac_p2p_encap_action(hi_u8 *puc_data, const mac_action_data_stru *action
 
     /* 填充payload信息 */
     if (action_data->data_len > 0) {
-        if (memcpy_s(puc_data, action_data->data_len, action_data->puc_data, action_data->data_len) != EOK) {
+        if (memcpy_s(puc_data, action_data->data_len,
+            action_data->data, action_data->data_len) != EOK) {
             oam_error_log0(0, 0, "{hmac_p2p_encap_action::memcpy_s fail.}");
             return 0;
         }
         puc_data += action_data->data_len;
     }
     us_frame_len = (hi_u32)(puc_data - puc_frame_origin);
+
+    puc_data = puc_frame_origin;
 
     return us_frame_len;
 }
@@ -893,15 +898,15 @@ hi_u32 hmac_p2p_tx_status_event(const mac_vap_stru *mac_vap, const hi_u8 *puc_bu
     mac_p2p_tx_status_stru       p2p_tx_status = {0};
     hi_u32                       ret;
 
-    p2p_tx_status.puc_buf = malloc(len);
+    p2p_tx_status.puc_buf = oal_memalloc(len);
     if (p2p_tx_status.puc_buf == HI_NULL) {
-        oam_unrom_e_log1(0, OAM_SF_P2P, "{hmac_p2p_action_tx_status_event::p2p_tx_status->puc_buf malloc error %p.}",
+        oam_error_log1(0, OAM_SF_P2P, "{hmac_p2p_action_tx_status_event::p2p_tx_status->puc_buf malloc error %p.}",
             (uintptr_t)p2p_tx_status.puc_buf);
         return HI_FALSE;
     }
     if (memcpy_s(p2p_tx_status.puc_buf, len, puc_buf, len) != EOK) {
-        oam_unrom_e_log0(0, OAM_SF_P2P, "{hmac_p2p_action_tx_status_event::mem safe function err!}");
-        free(p2p_tx_status.puc_buf);
+        oam_error_log0(0, OAM_SF_P2P, "{hmac_p2p_action_tx_status_event::mem safe function err!}");
+        oal_free(p2p_tx_status.puc_buf);
         return HI_FALSE;
     }
     p2p_tx_status.len = len;
@@ -910,9 +915,9 @@ hi_u32 hmac_p2p_tx_status_event(const mac_vap_stru *mac_vap, const hi_u8 *puc_bu
     ret = hmac_send_event_to_host(mac_vap, (const hi_u8 *)(&p2p_tx_status), sizeof(mac_p2p_tx_status_stru),
         HMAC_HOST_CTX_EVENT_SUB_TYPE_P2P_TX_STATUS);
     if (ret != HI_SUCCESS) {
-        oam_unrom_w_log1(mac_vap->vap_id, OAM_SF_P2P,
+        oam_warning_log1(mac_vap->vap_id, OAM_SF_P2P,
             "{hmac_p2p_action_tx_status_event::frw_event_dispatch_event fail [%d].}", ret);
-        free(p2p_tx_status.puc_buf);
+        oal_free(p2p_tx_status.puc_buf);
     }
     return ret;
 }
@@ -921,7 +926,7 @@ static inline hi_u32 hmac_p2p_send_action_error(const mac_action_data_stru *acti
 {
     /* 释放上层申请的puc_data空间 */
     if (action_data->data_len > 0) {
-        oal_free(action_data->puc_data);
+        oal_free(action_data->data);
     }
     if (puc_data != HI_NULL) {
         oal_netbuf_free(puc_data);
@@ -945,7 +950,7 @@ hi_u32 hmac_p2p_send_action(mac_vap_stru *mac_vap, hi_u16 us_len, const hi_u8 *p
     }
 
     mac_action_data_stru *action_data = (mac_action_data_stru *)puc_param;
-    hi_u8                 action_code = mac_get_action_code(action_data->puc_data); /* 获取Action category、code */
+    hi_u8                 action_code = mac_get_action_code(action_data->data); /* 获取Action category、code */
     oal_netbuf_stru      *puc_data    = (oal_netbuf_stru *)oal_netbuf_alloc(WLAN_MGMT_NETBUF_SIZE, 0, 4); /* align 4 */
     if (puc_data == HI_NULL) {
         oam_error_log0(mac_vap->vap_id, OAM_SF_P2P, "{hmac_p2p_send_action::[MESH]puc_data null.}");
@@ -964,9 +969,18 @@ hi_u32 hmac_p2p_send_action(mac_vap_stru *mac_vap, hi_u16 us_len, const hi_u8 *p
         oam_error_log1(mac_vap->vap_id, OAM_SF_P2P, "{hmac_p2p_send_action::P2P:self-protected Err:%d}", action_code);
         return hmac_p2p_send_action_error(action_data, puc_data);
     }
-
+    hi_u8 *puc_data_header = HI_NULL;
     hi_u32 action_len = hmac_p2p_encap_action((hi_u8 *)(oal_netbuf_header(puc_data)), action_data);
     if (action_len == 0) { /* 组帧失败 */
+        return hmac_p2p_send_action_error(action_data, puc_data);
+    }
+    puc_data_header = oal_memalloc(action_len);
+    if (puc_data_header == HI_NULL) {
+        return hmac_p2p_send_action_error(action_data, puc_data);
+    }
+    memset_s(puc_data_header, action_len, 0, action_len);
+    if (memcpy_s(puc_data_header, action_len, oal_netbuf_header(puc_data), action_len) != EOK) {
+        oal_free(puc_data_header);
         return hmac_p2p_send_action_error(action_data, puc_data);
     }
 
@@ -986,19 +1000,12 @@ hi_u32 hmac_p2p_send_action(mac_vap_stru *mac_vap, hi_u16 us_len, const hi_u8 *p
 
         ret = hmac_p2p_tx_status_event(mac_vap, (hi_u8 *)(oal_netbuf_header(puc_data)), action_len, HI_FALSE);
         oam_warning_log1(mac_vap->vap_id, OAM_SF_P2P, "{hmac_p2p_send_action:hmac_p2p_action_tx_status_event=%d}", ret);
-
+        oal_free(puc_data_header);
         return hmac_p2p_send_action_error(action_data, puc_data);
     }
 
-    if (hmac_p2p_tx_status_event(mac_vap, (hi_u8 *)(oal_netbuf_header(puc_data)), action_len, HI_TRUE) != HI_SUCCESS) {
+    if (hmac_p2p_tx_status_event(mac_vap, puc_data_header, action_len, HI_TRUE) != HI_SUCCESS) {
         oam_warning_log0(mac_vap->vap_id, OAM_SF_P2P, "{hmac_p2p_send_action:hmac_p2p_action_tx_status_event ERR}");
-    }
-#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-    oal_netbuf_free(puc_data);
-#endif
-    /* 释放上层申请的puc_data空间 */
-    if (action_data->data_len > 0) {
-        oal_free(action_data->puc_data);
     }
     return HI_SUCCESS;
 }
