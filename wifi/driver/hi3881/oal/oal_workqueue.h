@@ -69,6 +69,10 @@ extern struct workqueue_struct *g_pstSystemWq;
 #define OAL_CREATE_SINGLETHREAD_WORKQUEUE(_name)   create_singlethread_workqueue(_name)
 #define oal_create_workqueue(name)                 create_workqueue(name)
 
+hi_u32 oal_workqueue_init(hi_void);
+hi_u32 oal_workqueue_exit(hi_void);
+hi_u32 oal_workqueue_schedule(oal_work_stru *pst_work);
+hi_u32 oal_workqueue_delay_schedule(oal_delayed_work *pst_work, unsigned long delay);
 /* ****************************************************************************
   8 UNION定义
 **************************************************************************** */

@@ -291,9 +291,9 @@ hi_u32 wal_cfg80211_start_disconnect(oal_net_device_stru *netdev, const mac_cfg_
 hi_u32 wal_set_p2p_status(oal_net_device_stru *netdev, wlan_p2p_status_enum_uint32 status);
 #endif
 hi_u32 wal_del_p2p_group(const mac_device_stru *mac_dev);
-hi_u32 wal_cfg80211_remain_on_channel(const oal_wiphy_stru *wiphy, const oal_wireless_dev *wdev,
-    const struct ieee80211_channel *chan, hi_u32 duration, hi_u64 *pull_cookie);
-hi_u32 wal_cfg80211_cancel_remain_on_channel(oal_wiphy_stru *wiphy, const oal_wireless_dev *wdev, hi_u64 ull_cookie);
+hi_s32 wal_cfg80211_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev,
+    struct ieee80211_channel *chan, hi_u32 duration, hi_u64 *pull_cookie);
+hi_s32 wal_cfg80211_cancel_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, hi_u64 ull_cookie);
 #endif
 #ifdef _PRE_WLAN_FEATURE_QUICK_START
 hi_u32 hisi_quick_get_scan_enable(hi_void);

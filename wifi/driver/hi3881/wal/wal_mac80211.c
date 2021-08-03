@@ -26,6 +26,7 @@
 #include "wal_regdb.h"
 #include "wifi_mac80211_ops.h"
 #include "wal_cfg80211.h"
+#include "wal_wpa_ioctl.h"
 #include "net_adpater.h"
 #include "hdf_wlan_utils.h"
 #include "wifi_module.h"
@@ -155,7 +156,7 @@ static int32_t WifiScanSetChannel(const oal_wiphy_stru *wiphy, const struct Wlan
         }
     } else {
         for (loop = 0; loop < params->freqsCount; loop++) {
-            chan = GetChannelByFreq(wiphy, params->freqs[loop]);
+            chan = GetChannelByFreq(wiphy, (uint16_t)(params->freqs[loop]));
             if (chan == NULL) {
                 oam_error_log(0, OAM_SF_ANY, "%s:freq not found!freq=%d", __func__, params->freqs[loop]);
                 continue;
@@ -561,7 +562,8 @@ int32_t WalSetMode(NetDevice *netDev, enum WlanWorkMode iftype)
         .use_4addr = 0,
         .macaddr = NULL
     };
-
+    oam_error_log1(0, OAM_SF_ANY, "{WalSetMode enter iftype:%d!}", iftype);
+    if (iftype == WLAN_WORKMODE_STA || iftype == WLAN_WORKMODE_AP) {
     wal_deinit_drv_wlan_netdev(netDev);
     ret = RenewNetDevice(&netDev);
     if (ret != HDF_SUCCESS) {
@@ -572,6 +574,7 @@ int32_t WalSetMode(NetDevice *netDev, enum WlanWorkMode iftype)
     if (ret != HISI_OK) {
         oam_error_log0(0, OAM_SF_ANY, "wal_init_drv_wlan_netdev failed!");
         return ret;
+        }
     }
     if (g_macStorage.isStorage) {
         ret = PreSetMac(netDev, g_macStorage.mac, ETHER_ADDR_LEN);
@@ -826,6 +829,193 @@ int32_t WalGetHwCapability(struct NetDevice *netDev, struct WlanHwCapability **c
     return HI_SUCCESS;
 }
 
+int32_t WalRemainOnChannel(struct NetDevice *netDev, WifiOnChannel *onChannel)
+{
+    if (netDev == NULL || onChannel == NULL) {
+        HDF_LOGE("%s:NULL ptr!", __func__);
+        return HI_FAIL;
+    }
+    oal_wiphy_stru *wiphy = oal_wiphy_get();
+    oal_wireless_dev *wdev = GET_NET_DEV_CFG80211_WIRELESS(netDev);
+    hi_u64 pullCookie = 0;
+    hi_u8 channelIdx;
+    oal_ieee80211_channel* wifi2ghzChannels = wal_get_g_wifi_2ghz_channels();
+
+    channelIdx = (hi_u8)oal_ieee80211_frequency_to_channel(onChannel->freq);
+
+    return (hi_s32)wal_cfg80211_remain_on_channel(wiphy, wdev, &(wifi2ghzChannels[channelIdx - 1]),
+                                                 (hi_u32)onChannel->duration, &pullCookie);
+}
+
+int32_t WalCancelRemainOnChannel(struct NetDevice *netDev)
+{
+    if (netDev == NULL) {
+        HDF_LOGE("%s:NULL ptr!", __func__);
+        return HI_FAIL;
+    }
+
+    oal_wireless_dev *wdev = GET_NET_DEV_CFG80211_WIRELESS(netDev);
+    return (hi_s32)wal_cfg80211_cancel_remain_on_channel(HI_NULL, wdev, (hi_u64)0);
+}
+
+int32_t WalProbeReqReport(struct NetDevice *netDev, int32_t report)
+{
+    (void)report;
+    if (netDev == NULL) {
+        HDF_LOGE("%s:NULL ptr!", __func__);
+        return HI_FAIL;
+    }
+    return HI_SUCCESS;
+}
+
+int32_t WalAddIf(struct NetDevice *netDev, WifiIfAdd *ifAdd)
+{
+    if (netDev == NULL || ifAdd == NULL) {
+        HDF_LOGE("%s:NULL ptr!", __func__);
+        return HI_FAIL;
+    }
+
+    int32_t ret = InitNetdev(netDev, (nl80211_iftype_uint8)ifAdd->type);
+    if (ret != HI_SUCCESS) {
+        oam_error_log0(0, 0, "hwal_ioctl_add_if: wal_init_drv_wlan_netdev failed!");
+        return -HI_FAIL;
+    }
+    return HI_SUCCESS;
+}
+
+int32_t WalRemoveIf(struct NetDevice *netDev, WifiIfRemove *ifRemove)
+{
+    if (netDev == NULL || ifRemove == NULL) {
+        HDF_LOGE("%s:NULL ptr!", __func__);
+        return HI_FAIL;
+    }
+
+    struct NetDevice *removeNetdev = NULL;
+    removeNetdev = NetDeviceGetInstByName((const char*)(ifRemove->ifname));
+    if (removeNetdev == NULL) {
+        return -HI_FAIL;
+    }
+    int32_t ret = wal_deinit_drv_wlan_netdev(removeNetdev);
+    if (ret != HI_SUCCESS) {
+        oam_error_log0(0, 0, "hwal_ioctl_remove_if: wal_deinit_drv_wlan_netdev failed!");
+        return -HI_FAIL;
+    }
+    return HI_SUCCESS;
+}
+
+int32_t WalSetApWpsP2pIe(struct NetDevice *netDev, WifiAppIe *appIe)
+{
+    if (netDev == NULL || appIe == NULL) {
+        HDF_LOGE("%s:NULL ptr!", __func__);
+        return HI_FAIL;
+    }
+
+    if (appIe->ieLen > WLAN_WPS_IE_MAX_SIZE) {
+        oam_error_log0(0, 0, "app ie length is too large!");
+        return -HI_FAIL;
+    }
+
+    return (hi_s32)wal_ioctl_set_wps_p2p_ie(netDev, appIe->ie, appIe->ieLen,
+                                            appIe->appIeType);
+}
+
+int32_t WalGetDriverFlag(struct NetDevice *netDev, WifiGetDrvFlags **params)
+{
+    if (netDev == NULL || params == NULL) {
+        HDF_LOGE("%s:NULL ptr!", __func__);
+        return HI_FAIL;
+    }
+    oal_wireless_dev *wdev = GET_NET_DEV_CFG80211_WIRELESS(netDev);
+    WifiGetDrvFlags *getDrvFlag = (WifiGetDrvFlags *)OsalMemCalloc(sizeof(WifiGetDrvFlags));
+    switch (wdev->iftype) {
+        case NL80211_IFTYPE_P2P_CLIENT:
+             /* fall-through */
+        case NL80211_IFTYPE_P2P_GO:
+            getDrvFlag->drvFlags = (hi_u64)(HISI_DRIVER_FLAGS_AP);
+            break;
+        case NL80211_IFTYPE_P2P_DEVICE:
+            getDrvFlag->drvFlags = (hi_u64)(HISI_DRIVER_FLAGS_P2P_DEDICATED_INTERFACE |
+                                            HISI_DRIVER_FLAGS_P2P_CONCURRENT |
+                                            HISI_DRIVER_FLAGS_P2P_CAPABLE);
+            break;
+        default:
+            getDrvFlag->drvFlags = 0;
+    }
+    *params = getDrvFlag;
+    return HI_SUCCESS;
+}
+
+int32_t InitMsgHdr (wal_msg_write_stru *writeMsg, WifiActionData *actionData)
+{
+    hi_unref_param(writeMsg);
+
+    if(actionData->data[0] == MAC_ACTION_CATEGORY_SELF_PROTECTED) {
+#ifdef _PRE_WLAN_FEATURE_MESH
+        wal_write_msg_hdr_init(writeMsg, WLAN_CFGID_SEND_MESH_ACTION, sizeof(WifiActionData));
+#else
+        return HI_FAIL;
+#endif
+    } else if (actionData->data[0] == MAC_ACTION_CATEGORY_PUBLIC) {
+#ifdef _PRE_WLAN_FEATURE_P2P
+        wal_write_msg_hdr_init(writeMsg, WLAN_CFGID_SEND_P2P_ACTION, sizeof(WifiActionData));
+#endif
+    } else {
+        return HI_FAIL;
+    }
+
+    return HI_SUCCESS;
+}
+
+int32_t WalSendAction(struct NetDevice *netDev, WifiActionData *actionData)
+{
+    wal_msg_write_stru write_msg;
+
+    if (netDev == NULL || actionData == NULL) {
+        HDF_LOGE("%s:NULL ptr!", __func__);
+        return HI_FAIL;
+    }
+    if (InitMsgHdr(&write_msg, actionData) == HI_FAIL) {
+        return HI_FAIL;
+    }
+
+    mac_action_data_stru *actionParam = (mac_action_data_stru *)(write_msg.auc_value);
+
+    if (memcpy_s(actionParam->dst, WLAN_MAC_ADDR_LEN, actionData->dst, WLAN_MAC_ADDR_LEN) ||
+        memcpy_s(actionParam->src, WLAN_MAC_ADDR_LEN, actionData->src, WLAN_MAC_ADDR_LEN) ||
+        memcpy_s(actionParam->bssid, WLAN_MAC_ADDR_LEN, actionData->bssid, WLAN_MAC_ADDR_LEN)) {
+        oam_error_log0(0, 0, "hwal_ioctol_send_action :oal_copy_from_user_new dst,src or bssid ailed ");
+        return HI_FAIL;    
+    }
+
+    actionParam->data = HI_NULL;
+    if (actionData->dataLen > 0 && actionData->dataLen <= MAX_ACTION_DATA_LEN) {
+        actionParam->data = (hi_u8 *)OsalMemCalloc(actionData->dataLen * sizeof(hi_u8));
+        if (oal_unlikely(actionParam->data == HI_NULL)) {
+            oam_error_log0(0, OAM_SF_CFG, "{hwal_ioctol_send_action ::puc_data alloc mem return null ptr!}");
+            return HI_FAIL;  
+        }
+        if (memcpy_s(actionParam->data, actionData->dataLen, actionData->data, actionData->dataLen)) {
+            oam_error_log0(0, 0, "hwal_ioctl_send_action :oal_copy_from_user_new action_data failed. ");
+            return HI_FAIL;
+        }
+    }
+    actionParam->data_len = actionData->dataLen;
+
+    oam_warning_log4(0, 0, "hwal_ioctl_send_action send action frame(mac addr = %02X:XX:%02X:XX:%02X:%02X)",
+        actionParam->dst[0], actionParam->dst[2],   /* 0 2 */
+        actionParam->dst[4], actionParam->dst[5]);  /* 4 5 */
+
+    hi_s32 ret = wal_send_cfg_event(netDev, WAL_MSG_TYPE_WRITE,
+        WAL_MSG_WRITE_MSG_HDR_LENGTH + sizeof(mac_action_data_stru), (hi_u8 *)&write_msg, HI_FALSE, HI_NULL);
+    if (ret != HI_SUCCESS) {
+        oam_warning_log1(0,0, "{hwal_ioctl_send_action ::send action frame to driver failed[%d].}", ret);
+        OsalMemFree(actionParam->data);
+        return HI_FAIL;
+    }
+
+    return HI_SUCCESS;
+}
+
 static struct HdfMac80211BaseOps g_baseOps = {
     .SetMode = WalSetMode,
     .AddKey = WalAddKey,
@@ -835,7 +1025,15 @@ static struct HdfMac80211BaseOps g_baseOps = {
     .SetMacAddr = WalSetMacAddr,
     .SetTxPower = WalSetTxPower,
     .GetValidFreqsWithBand = WalGetValidFreqsWithBand,
-    .GetHwCapability = WalGetHwCapability
+    .GetHwCapability = WalGetHwCapability,
+    .RemainOnChannel = WalRemainOnChannel,
+    .CancelRemainOnChannel = WalCancelRemainOnChannel,
+    .ProbeReqReport = WalProbeReqReport,
+    .AddIf = WalAddIf,
+    .RemoveIf = WalRemoveIf,
+    .SetApWpsP2pIe = WalSetApWpsP2pIe,
+    .GetDriverFlag = WalGetDriverFlag,
+    .SendAction = WalSendAction,
 };
 
 static struct HdfMac80211STAOps g_staOps = {

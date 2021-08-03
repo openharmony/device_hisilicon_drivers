@@ -557,7 +557,7 @@ hi_s32 hi_wifi_set_pm_switch(hi_u8 enable)
 hi_s32 hi_wifi_set_bandwidth(const hi_char *ifname, unsigned char ifname_len, hi_wifi_bw bw)
 {
     hi_char ac_bw[WAL_BW_STR_MAX_LEN] = {0};
-    hi_char ifname_cpy[IFNAMSIZ + 1] = {0};
+    hi_char ifname_cpy[WIFI_IFNAME_MAX_SIZE + 1] = {0};
     hi_char *ptr_ifname_cpy = ifname_cpy;
 
     if (memcpy_s(ifname_cpy, sizeof(ifname_cpy), ifname, ifname_len) != EOK) {
@@ -609,7 +609,7 @@ hi_wifi_bw hi_wifi_get_bandwidth(const hi_char *ifname, unsigned char ifname_len
     oal_net_device_stru              *netdev  = HI_NULL;
     hal_channel_assemble_enum_uint8  bw_index = WLAN_BAND_ASSEMBLE_20M;
     hi_wifi_bw                       bw       = HI_WIFI_BW_BUTT;
-    hi_char ifname_cpy[IFNAMSIZ + 1] = {0};
+    hi_char ifname_cpy[WIFI_IFNAME_MAX_SIZE + 1] = {0};
     hi_char *ptr_ifname_cpy = ifname_cpy;
 
     if (memcpy_s(ifname_cpy, sizeof(ifname_cpy), ifname, ifname_len) != EOK) {
@@ -883,7 +883,7 @@ hi_s32 hi_wifi_set_channel(const hi_char *ifname, unsigned char ifname_len, hi_s
     wal_msg_write_stru     write_msg;
     oal_net_device_stru    *netdev = HI_NULL;
     wal_msg_stru           *rsp_msg = HI_NULL;
-    hi_char                ifname_cpy[IFNAMSIZ + 1] = {0};
+    hi_char                ifname_cpy[WIFI_IFNAME_MAX_SIZE + 1] = {0};
     hi_char                 *ptr_ifname_cpy = ifname_cpy;
 
     if (memcpy_s(ifname_cpy, sizeof(ifname_cpy), ifname, ifname_len) != EOK) {
@@ -931,7 +931,7 @@ hi_s32 hi_wifi_get_channel(const hi_char *ifname, unsigned char ifname_len)
     wal_msg_query_stru query_msg;
     wal_msg_rsp_stru *queue_rsp_msg = HI_NULL;
     hi_s32 channel;
-    hi_char ifname_cpy[IFNAMSIZ + 1] = {0};
+    hi_char ifname_cpy[WIFI_IFNAME_MAX_SIZE + 1] = {0};
     hi_char *ptr_ifname_cpy = ifname_cpy;
 
     if (memcpy_s(ifname_cpy, sizeof(ifname_cpy), ifname, ifname_len) != EOK) {
@@ -1689,7 +1689,7 @@ hi_u32 hi_wifi_set_tpc(const char *ifname, unsigned char ifname_len, hi_u32 tpc_
 {
     oal_net_device_stru  *netdev = HI_NULL;
     hi_u32               mode;
-    hi_char              ifname_cpy[IFNAMSIZ + 1] = {0};
+    hi_char              ifname_cpy[WIFI_IFNAME_MAX_SIZE + 1] = {0};
     hi_char              *ptr_ifname_cpy = ifname_cpy;
 
     if (memcpy_s(ifname_cpy, sizeof(ifname_cpy), ifname, ifname_len) != EOK) {
@@ -1724,7 +1724,7 @@ hi_u32 hi_wifi_get_tx_params(const char *ifname, unsigned char ifname_len)
     hi_u32 ret;
     oal_net_device_stru *netdev = HI_NULL;
     wal_msg_write_stru write_msg = { 0 };
-    hi_char ifname_cpy[IFNAMSIZ + 1] = {0};
+    hi_char ifname_cpy[WIFI_IFNAME_MAX_SIZE + 1] = {0};
 
     (void)ifname_len;
     if (ifname == HI_NULL) {

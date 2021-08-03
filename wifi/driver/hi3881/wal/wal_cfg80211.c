@@ -112,7 +112,7 @@ static oal_ieee80211_supported_band g_wifi_band_2ghz = {
 
 #ifdef _PRE_WLAN_FEATURE_P2P
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-hi_workqueue_s *g_del_virtual_inf_workqueue = HI_NULL;
+oal_workqueue_stru *g_del_virtual_inf_workqueue = HI_NULL;
 
 static oal_ieee80211_iface_limit g_sta_p2p_limits[] = {
     {
@@ -243,7 +243,6 @@ oal_ieee80211_channel *wal_get_g_wifi_2ghz_channels(hi_void)
 }
 
 #ifdef _PRE_WLAN_FEATURE_P2P
-#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
 /* ****************************************************************************
  函 数 名  : wal_is_p2p_group_exist
  功能描述  : 检查是否存在P2P group
@@ -269,7 +268,6 @@ static hi_u32 wal_is_p2p_group_exist(mac_device_stru *mac_dev)
         return HI_FALSE;
     }
 }
-#endif
 /* ****************************************************************************
  函 数 名  : wal_del_p2p_group
  功能描述  : 删除P2P group
@@ -314,7 +312,7 @@ hi_u32 wal_del_p2p_group(const mac_device_stru *mac_dev)
         }
 
         if (is_p2p_go(mac_vap) || is_p2p_cl(mac_vap)) {
-#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION) && !defined(_PRE_HDF_LINUX)
             mac_cfg_del_vap_param_stru del_vap_param;
 
             /* 规则6.6：禁止使用内存操作类危险函数 例外(1)对固定长度的数组进行初始化 */
@@ -329,7 +327,7 @@ hi_u32 wal_del_p2p_group(const mac_device_stru *mac_dev)
             /* 删除已经存在的P2P group */
             wal_force_scan_complete(netdev);
             wal_stop_vap(netdev);
-#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION) && !defined(_PRE_HDF_LINUX)
             if (wal_cfg80211_del_vap(&del_vap_param) == HI_SUCCESS) {
                 wal_cfg80211_unregister_netdev(netdev);
             }
@@ -428,7 +426,7 @@ hi_u32 wal_cfg80211_add_virtual_intf_p2p_proc(mac_device_stru *mac_device)
  返 回 值  : static hi_s32
 **************************************************************************** */
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-hi_u32 wal_cfg80211_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_ieee80211_channel *chan,
+hi_s32 wal_cfg80211_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_ieee80211_channel *chan,
     hi_u32 duration, hi_u64 *pull_cookie)
 #elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
 hi_s32 wal_cfg80211_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_ieee80211_channel *chan,
@@ -459,7 +457,7 @@ hi_s32 wal_cfg80211_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *w
     remain_on_channel.st_listen_channel = *chan;
     remain_on_channel.listen_channel_type = WLAN_BAND_WIDTH_20M;
 
-    if (chan->band == IEEE80211_BAND_2GHZ) {
+    if ((hi_u8)chan->band == IEEE80211_BAND_2GHZ) {
         remain_on_channel.band = WLAN_BAND_2G;
     } else {
         oam_warning_log1(0, OAM_SF_P2P, "{wal_cfg80211_remain_on_channel::wrong band type[%d]!}\r\n", chan->band);
@@ -482,10 +480,10 @@ hi_s32 wal_cfg80211_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *w
     }
 
     /* 上报暂停在指定信道成功 */
-#if (_PRE_OS_VERSION == _PRE_OS_VERSION_LINUX)
+#if (_PRE_OS_VERSION == _PRE_OS_VERSION_LINUX) && !defined(_PRE_HDF_LINUX)
     cfg80211_ready_on_channel(wdev, ull_cookie, chan, duration, en_gfp);
 #endif
-    ret = cfg80211_remain_on_channel(netdev, chan->center_freq, duration);
+    ret = HdfWifiEventRemainOnChannel(netdev, chan->center_freq, duration);
     if (ret != HI_SUCCESS) {
         oam_error_log1(0, OAM_SF_P2P, "{wal_cfg80211_remain_on_channel::cfg80211_remain_on_channel failed[%u]}\r\n",
             ret);
@@ -516,7 +514,7 @@ fail:
  返 回 值  : static hi_s32
 **************************************************************************** */
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
-hi_u32 wal_cfg80211_cancel_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, hi_u64 ull_cookie)
+hi_s32 wal_cfg80211_cancel_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, hi_u64 ull_cookie)
 #elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
 hi_s32 wal_cfg80211_cancel_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, hi_u64 ull_cookie)
 #endif
@@ -569,8 +567,40 @@ fail:
 #ifndef _PRE_HDF_LINUX
 hi_u32 wal_cfg80211_register_netdev(oal_net_device_stru *netdev)
 {
+    hi_u8 rollback_lock = HI_FALSE;
+
+    /*  DTS2015022603795 nl80211 netlink pre diot 中会获取rntl_lock互斥锁，注册net_device 会获取rntl_lock互斥锁，造成了死锁 */
+    if (rtnl_is_locked())
+    {
+        rtnl_unlock();
+        rollback_lock = HI_TRUE;
+    }
+
     /* 内核注册net_device, 只返回0 */
-    return (hi_u32)oal_net_register_netdev(netdev);
+    hi_u32 ret = (hi_u32)oal_net_register_netdev(netdev);
+    if (rollback_lock)
+    {
+        rtnl_lock();
+    }
+    return ret;
+}
+
+hi_void wal_cfg80211_unregister_netdev(oal_net_device_stru *netdev)
+{
+    hi_u8 rollback_lock = HI_FALSE;
+
+    if (rtnl_is_locked())
+    {
+        rtnl_unlock();
+        rollback_lock = HI_TRUE;
+    }
+    /* 去注册netdev */
+    oal_net_unregister_netdev(netdev);
+
+    if (rollback_lock)
+    {
+        rtnl_lock();
+    }
 }
 #endif
 
@@ -1417,6 +1447,7 @@ oal_wireless_dev *wal_cfg80211_add_virtual_intf_send_event(oal_net_device_stru *
     mac_cfg_add_vap_param_stru *add_vap_param = (mac_cfg_add_vap_param_stru *)(write_msg.auc_value);
     add_vap_param->net_dev  = netdev;
     add_vap_param->vap_mode = vap_mode;
+    add_vap_param->cfg_vap_indx = WLAN_CFG_VAP_ID;
 #ifdef _PRE_WLAN_FEATURE_P2P
     add_vap_param->p2p_mode = p2p_mode;
 #endif
@@ -1439,13 +1470,6 @@ oal_wireless_dev *wal_cfg80211_add_virtual_intf_send_event(oal_net_device_stru *
     mac_vap_stru *mac_vap = oal_net_dev_priv(netdev);
     if (oal_unlikely(mac_vap == HI_NULL)) {
         oam_error_log0(0, OAM_SF_ANY, "{wal_cfg80211_add_virtual_intf::oal_net_dev_priv(pst_net_dev) is null ptr.}");
-        goto ERR_STEP;
-    }
-
-    if (memcpy_s((hi_u8 *)oal_netdevice_mac_addr(netdev), WLAN_MAC_ADDR_LEN,
-        mac_vap->mib_info->wlan_mib_sta_config.auc_dot11_station_id, WLAN_MAC_ADDR_LEN) != EOK) {
-        oam_error_log0(0, OAM_SF_CFG, "{wal_cfg80211_add_virtual_intf::mem safe function err!}");
-        oal_mem_free(wdev);
         goto ERR_STEP;
     }
 
@@ -1498,6 +1522,14 @@ static oal_wireless_dev *wal_cfg80211_add_virtual_intf(oal_wiphy_stru *wiphy, co
     mac_device_stru     *mac_device = wiphy_priv->mac_device;
 
     oam_warning_log1(0, OAM_SF_CFG, "{wal_cfg80211_add_virtual_intf::en_type[%d]!}", type);
+#ifdef _PRE_WLAN_FEATURE_P2P
+    hi_u8 p2p0_vap_idx = mac_device->p2p_info.p2p0_vap_idx;
+    hmac_vap_stru *p2p0_hmac_vap = (hmac_vap_stru *)hmac_vap_get_vap_stru(p2p0_vap_idx);
+    if (p2p0_hmac_vap == HI_NULL) {
+        oam_error_log1(0, OAM_SF_CFG, "{wal_cfg80211_add_virtual_intf::p2p0_hmac_vap[id=%d] null!}", p2p0_vap_idx);
+        return ERR_PTR(-ENODEV);
+    }
+#endif
 
     /* 如果创建的net device已经存在，直接返回 */
     oal_net_device_stru *netdev = oal_get_netdev_by_name(puc_name);
@@ -1537,6 +1569,15 @@ static oal_wireless_dev *wal_cfg80211_add_virtual_intf(oal_wiphy_stru *wiphy, co
     /* 安全编程规则6.6例外（3）从堆中分配内存后，赋予初值 */
     memset_s(wdev, sizeof(oal_wireless_dev), 0, sizeof(oal_wireless_dev));
 
+    if (memcpy_s((hi_u8 *)oal_netdevice_mac_addr(netdev), WLAN_MAC_ADDR_LEN,
+        (hi_u8 *)oal_netdevice_mac_addr(p2p0_hmac_vap->net_device), WLAN_MAC_ADDR_LEN) != EOK) {
+        oam_error_log0(0, OAM_SF_CFG, "{wal_cfg80211_add_virtual_intf::mem safe function err!}");
+        oal_mem_free(wdev);
+        return ERR_PTR(-ENOMEM);
+    }
+    if (p2p_mode == WLAN_P2P_CL_MODE) {
+        ((hi_u8 *)oal_netdevice_mac_addr(netdev))[0] |= 0x02;
+    }
     if (wal_cfg80211_add_virtual_intf_set_wireless_dev(wdev, mac_device, netdev, type) != HI_SUCCESS) {
         return ERR_PTR(-EBUSY);
     }
@@ -1551,7 +1592,7 @@ static oal_wireless_dev *wal_cfg80211_add_virtual_intf(oal_wiphy_stru *wiphy, co
 hi_u32 wal_cfg80211_del_p2p_proc(wal_msg_write_stru *write_msg, oal_net_device_stru *netdev, mac_vap_stru *mac_vap)
 {
 #ifdef _PRE_WLAN_FEATURE_P2P
-    wlan_p2p_mode_enum_uint8 p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(netdev->ieee80211Ptr->iftype);
+    wlan_p2p_mode_enum_uint8 p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype);
     if (p2p_mode == WLAN_P2P_BUTT) {
         oam_error_log0(0, OAM_SF_ANY, "{wal_cfg80211_del_virtual_intf::get p2p mode err}");
         return HI_ERR_CODE_PTR_NULL;
@@ -1630,10 +1671,6 @@ hi_s32 wal_cfg80211_del_virtual_intf(oal_wiphy_stru *wiphy, oal_wireless_dev *wd
     /* 启动linux work 删除net_device */
 #ifdef _PRE_WLAN_FEATURE_P2P
     hmac_vap->del_net_device = netdev;
-#endif
-
-#if defined(_PRE_WLAN_FEATURE_P2P) && (_PRE_OS_VERSION == _PRE_OS_VERSION_LINUX)
-    hi_workqueue_add_work(g_del_virtual_inf_workqueue, &(hmac_vap->del_virtual_inf_worker));
 #endif
 
     ret = wal_send_cfg_event(netdev, WAL_MSG_TYPE_WRITE,
@@ -4168,6 +4205,12 @@ hi_u32 wal_cfg80211_change_virtual_intf(oal_wiphy_stru *wiphy, oal_net_device_st
             (uintptr_t)netdev, (uintptr_t)params);
         return HI_ERR_CODE_PTR_NULL;
     }
+    oam_warning_log1(0, OAM_SF_CFG, "wal_cfg80211_change_virtual_intf::iftype[%d],enter",type);
+
+    if (GET_NET_DEV_CFG80211_WIRELESS(netdev) == NULL)
+    {
+        oam_warning_log0(0, OAM_SF_CFG, "wal_cfg80211_change_virtual_intf:: null");
+    }
 
     /* 检查VAP 当前模式和目的模式是否相同，如果相同则直接返回 */
     if (GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype == type) {
@@ -4614,7 +4657,7 @@ hi_s32 wal_cfg80211_mgmt_tx(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_c
            device will send immediately when receive probe request packet */
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
         HdfWifiEventMgmtTxStatus(wdev->netdev, puc_buf, len, HI_TRUE);
-#elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION) && !defined(_PRE_HDF_LINUX)
         oal_cfg80211_mgmt_tx_status(wdev, *pull_cookie, puc_buf, params->len, HI_TRUE, GFP_KERNEL);
 #endif
         return HI_SUCCESS;
@@ -4646,7 +4689,7 @@ hi_s32 wal_cfg80211_mgmt_tx(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_c
         wal_check_cookie_timeout(g_cookie_array, &g_cookie_array_bitmap);
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
         HdfWifiEventMgmtTxStatus(wdev->netdev, puc_buf, len, HI_FALSE);
-#elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION) && !defined(_PRE_HDF_LINUX)
         oal_cfg80211_mgmt_tx_status(wdev, *pull_cookie, puc_buf, params->len, HI_FALSE, GFP_KERNEL);
 #endif
     } else {
@@ -4655,7 +4698,7 @@ hi_s32 wal_cfg80211_mgmt_tx(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_c
         wal_del_cookie_from_array(g_cookie_array, &g_cookie_array_bitmap, hmac_vap->mgmt_tx.mgmt_frame_id);
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
         HdfWifiEventMgmtTxStatus(wdev->netdev, puc_buf, len, HI_FALSE);
-#elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION) && !defined(_PRE_HDF_LINUX)
         oal_cfg80211_mgmt_tx_status(wdev, *pull_cookie, puc_buf, params->len, HI_FALSE, GFP_KERNEL);
 #endif
     }

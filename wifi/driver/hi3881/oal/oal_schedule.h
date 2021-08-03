@@ -126,10 +126,15 @@ static inline hi_u32 IS_ERR_OR_NULL(const void *ptr)
 **************************************************************************** */
 static inline hi_u32 oal_copy_from_user(hi_void *to, hi_u32 len, const hi_void *from, hi_u32 size)
 {
+#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
     if (memcpy_s(to, len, from, size) != EOK) {
         return HI_FAIL;
     }
     return HI_SUCCESS;
+#else
+    hi_unref_param(len);
+    return (hi_u32)copy_from_user(to, from, (hi_u32)size);
+#endif
 }
 
 /* ****************************************************************************
@@ -143,10 +148,15 @@ static inline hi_u32 oal_copy_from_user(hi_void *to, hi_u32 len, const hi_void *
 **************************************************************************** */
 static inline hi_u32 oal_copy_to_user(hi_void *to, hi_u32 len, const hi_void *from, hi_u32 size)
 {
+#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)    
     if (memcpy_s(to, len, from, size) != EOK) {
         return HI_FAIL;
     }
     return HI_SUCCESS;
+#else
+    hi_unref_param(len);
+    return (hi_u32)copy_to_user(to, from, (hi_u32)size);
+#endif
 }
 
 /* ****************************************************************************

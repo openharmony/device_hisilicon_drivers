@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 #endif
-
+#include "hi_wifi_driver_wpa_if.h"
 /* ****************************************************************************
   2 宏定义
 **************************************************************************** */
@@ -52,6 +52,8 @@ extern "C" {
 #define HISI_DRIVER_FLAGS_P2P_CAPABLE                0x00000800
 /* Driver supports a dedicated interface for P2P Device */
 #define HISI_DRIVER_FLAGS_DEDICATED_P2P_DEVICE       0x20000000
+
+#define MAX_ACTION_DATA_LEN 1024
 
 /* ****************************************************************************
   3 枚举定义

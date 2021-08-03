@@ -49,7 +49,7 @@ static oal_net_device_ops_stru g_vap_net_dev_cfg_vap_ops = {};
 #endif
 
 #ifdef _PRE_WLAN_FEATURE_P2P
-hi_void hmac_del_virtual_inf_worker(hi_work *del_virtual_inf_work);
+hi_void hmac_del_virtual_inf_worker(oal_work_stru *del_virtual_inf_work);
 #endif
 
 hi_u8 *g_puc_hmac_vap_res = HI_NULL;
@@ -259,7 +259,7 @@ hi_u32 hmac_vap_init(hmac_vap_stru *hmac_vap, hi_u8 vap_id, const mac_cfg_add_va
 
 #ifdef _PRE_WLAN_FEATURE_P2P
     /* 初始化删除虚拟网络接口工作队列 */
-    hi_workqueue_init_work(&(hmac_vap->del_virtual_inf_worker), hmac_del_virtual_inf_worker);
+    OAL_INIT_WORK(&(hmac_vap->del_virtual_inf_worker), hmac_del_virtual_inf_worker);
     hmac_vap->del_net_device = HI_NULL;
     hmac_vap->p2p0_net_device = HI_NULL;
 #endif
@@ -752,7 +752,7 @@ hi_u32 hmac_check_opmode_notify(hmac_vap_stru *hmac_vap, hi_u8 *puc_mac_hdr, hi_
     修改内容   : 新生成函数
 
 **************************************************************************** */
-hi_void hmac_del_virtual_inf_worker(hi_work *del_virtual_inf_work)
+hi_void hmac_del_virtual_inf_worker(oal_work_stru *del_virtual_inf_work)
 {
     oal_net_device_stru         *netdev = HI_NULL;
     hmac_vap_stru               *hmac_vap = HI_NULL;
@@ -763,8 +763,9 @@ hi_void hmac_del_virtual_inf_worker(hi_work *del_virtual_inf_work)
 
     /* 不存在rtnl_lock锁问题 */
     oal_net_unregister_netdev(netdev);
+#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
     oal_net_free_netdev(netdev);
-
+#endif
     hmac_vap->del_net_device = HI_NULL;
     hmac_dev = hmac_get_device_stru();
     hmac_p2p_clr_status(&hmac_dev->p2p_intf_status, P2P_STATUS_IF_DELETING);
