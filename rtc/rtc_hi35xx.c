@@ -315,6 +315,8 @@ static int32_t HiRtcWriteTime(struct RtcHost *host, const struct RtcTime *time)
         --cnt;
     } while (((ret != HDF_SUCCESS) || ((value & RTC_LOAD_MASK) == RTC_LOAD_MASK)) && (cnt != 0));
 
+    OsalMSleep(RTC_WAIT_TIME);
+
     if ((ret == HDF_SUCCESS) && ((value & RTC_LOAD_MASK) == RTC_LOAD_MASK)) {
         HDF_LOGE("HiRtcWriteTime: fail!ret[%d], value[%d]", ret, value);
         return HDF_ERR_DEVICE_BUSY;
