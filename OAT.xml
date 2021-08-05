@@ -68,18 +68,20 @@ Note:If the text contains special characters, please escape them according to th
         </policylist>
         <filefilterlist>
             <filefilter name="defaultFilter" desc="Files not to check">
-                <filteritem type="filename" name="LICENSE" desc="End User License Agreement"/>
+                <filteritem type="filename" name="LICENSE" desc="license file"/>
                 <filteritem type="filename" name="*.lds|*.pod"/>
                 <filteritem type="filename" name="*.a|*.d|*.o|*.cmd|*.hcb|*.swp|*.rules|*.bin"/>
                 <filteritem type="filepath" name="firmware/common/wlan/hi3881/wifi_cfg" desc="WLAN fixed-format configuration"/>
                 <filteritem type="filepath" name="dir name underproject/.*" desc="Describe the reason for filtering scan results"/>
             </filefilter>
             <filefilter name="defaultPolicyFilter" desc="Filters for compatibility，license header policies">
+                <filteritem type="filename" name="LICENSE" desc="license file"/>
                 <filteritem type="filename" name="README.OpenSource"/>
                 <filteritem type="filename" name="README"/>
                 <filteritem type="filepath" name="dir name underproject/.*" desc="Describe the reason for filtering scan results"/>
             </filefilter>
             <filefilter name="copyrightPolicyFilter" desc="Filters for copyright header policies" >
+                <filteritem type="filename" name="LICENSE" desc="license file"/>
                 <filteritem type="filename" name="README.OpenSource"/>
                 <filteritem type="filename" name="README"/>
                 <filteritem type="filepath" name="dir name underproject/.*" desc="Describe the reason for filtering scan results"/>
