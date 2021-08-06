@@ -34,7 +34,3 @@ module_name = "hdf_watchdog"
 hdf_driver(module_name) {
   sources = [ "watchdog_hi35xx.c" ]
 }
-
-group("watchdog") {
-  public_deps = [ ":$module_name" ]
-}

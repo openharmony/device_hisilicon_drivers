@@ -34,7 +34,3 @@ module_name = "hdf_mipi_dsi"
 hdf_driver(module_name) {
   sources = [ "mipi_tx_hi35xx.c" ]
 }
-
-group("mipi_dsi") {
-  public_deps = [ ":$module_name" ]
-}

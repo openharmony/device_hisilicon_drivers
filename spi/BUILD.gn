@@ -34,7 +34,3 @@ module_name = "hdf_spi"
 hdf_driver(module_name) {
   sources = [ "spi_hi35xx.c" ]
 }
-
-group("spi") {
-  public_deps = [ ":$module_name" ]
-}

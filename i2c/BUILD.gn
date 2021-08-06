@@ -34,7 +34,3 @@ module_name = "hdf_i2c"
 hdf_driver(module_name) {
   sources = [ "i2c_hi35xx.c" ]
 }
-
-group("i2c") {
-  public_deps = [ ":$module_name" ]
-}

@@ -34,7 +34,3 @@ module_name = "hdf_rtc"
 hdf_driver(module_name) {
   sources = [ "rtc_hi35xx.c" ]
 }
-
-group("rtc") {
-  public_deps = [ ":$module_name" ]
-}
