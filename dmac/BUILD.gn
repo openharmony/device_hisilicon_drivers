@@ -34,7 +34,3 @@ module_name = "hdf_dmac"
 hdf_driver(module_name) {
   sources = [ "dmac_hi35xx.c" ]
 }
-
-group("dmac") {
-  public_deps = [ ":$module_name" ]
-}
