@@ -34,7 +34,3 @@ module_name = "hdf_gpio"
 hdf_driver(module_name) {
   sources = [ "gpio_hi35xx.c" ]
 }
-
-group("gpio") {
-  public_deps = [ ":$module_name" ]
-}

@@ -34,7 +34,3 @@ module_name = "hdf_hisi_sdk"
 hdf_driver(module_name) {
   sources = [ "hisi_sdk.c" ]
 }
-
-group("hisi_sdk") {
-  public_deps = [ ":$module_name" ]
-}

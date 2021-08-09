@@ -46,7 +46,3 @@ hdf_driver(module_name) {
     include_dirs = [ "sdhci/proc" ]
   }
 }
-
-group("mmc") {
-  public_deps = [ ":$module_name" ]
-}
