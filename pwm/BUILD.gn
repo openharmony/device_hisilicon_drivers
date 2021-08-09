@@ -34,7 +34,3 @@ module_name = "hdf_pwm"
 hdf_driver(module_name) {
   sources = [ "pwm_hi35xx.c" ]
 }
-
-group("pwm") {
-  public_deps = [ ":$module_name" ]
-}

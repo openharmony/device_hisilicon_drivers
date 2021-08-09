@@ -34,8 +34,3 @@ module_name = "hdf_adc"
 hdf_driver(module_name) {
   sources = [ "adc_hi35xx.c" ]
 }
-
-group("adc") {
-  public_deps = [ ":$module_name" ]
-}
-
