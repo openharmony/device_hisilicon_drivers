@@ -202,10 +202,6 @@ hi_s32 hi_wifi_init(uint8_t max_port_count, struct BusDev *bus)
         goto wifi_host_init_fail;
     }
 
-    if (hi_wifi_set_pm_switch(PM_SWITCH_ON) != HI_SUCCESS) {
-        oam_error_log0(0, 0, "set_pm_enable failed");
-        goto wifi_host_init_fail;
-    }
     g_wifi_inited_flag = HI_TRUE;
     printk("WiFi driver init successfully!\r\n");
 
