@@ -35,12 +35,13 @@ module_name = "hdf_vendor_wifi"
 HDM_WIFI_ROOT = "//drivers/framework/model/network/wifi"
 
 hdf_driver(module_name) {
-  sources = [ "core/hdf_wlan_sdio_adapt.c", ]
-  include_dirs = [ "$HDM_WIFI_ROOT/include",
-                   "$HDM_WIFI_ROOT/platform/include",
-                   "$HDM_WIFI_ROOT/core",
-                   "//drivers/peripheral/wlan/client/include",
-                   "hi3881/linuxkpi/include"
+  sources = [ "core/hdf_wlan_sdio_adapt.c" ]
+  include_dirs = [
+    "$HDM_WIFI_ROOT/include",
+    "$HDM_WIFI_ROOT/platform/include",
+    "$HDM_WIFI_ROOT/core",
+    "//drivers/peripheral/wlan/client/include",
+    "hi3881/linuxkpi/include",
   ]
 }
 
