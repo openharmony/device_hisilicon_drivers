@@ -4560,7 +4560,7 @@ static hi_u32 wal_mgmt_do_tx(oal_net_device_stru *netdev, const mac_mgmt_frame_s
     }
 
     i_leftime = hi_wait_event_timeout(mgmt_tx->wait_queue, HI_TRUE == mgmt_tx->mgmt_tx_complete,
-        WAL_MGMT_TX_TIMEOUT_MSEC / HI_MILLISECOND_PER_TICK); // 使用非wifi目录定义宏函数,误报告警,lin_t e26告警屏蔽
+        OAL_MSECS_TO_JIFFIES(50)); // 使用非wifi目录定义宏函数,误报告警,lin_t e26告警屏蔽
     if (i_leftime == 0) {
         /* 定时器超时 */
         oam_warning_log0(0, OAM_SF_ANY, "{wal_mgmt_do_tx::mgmt tx timeout!}\r\n");
@@ -4848,7 +4848,7 @@ hi_u32 wal_cfg80211_mgmt_tx_status(frw_event_mem_stru *event_mem)
     if (HI_SUCCESS == wal_check_cookie_from_array(&g_cookie_array_bitmap, mgmt_tx->mgmt_frame_id)) {
         /* 让编译器优化时保证HI_WAIT_QUEUE_WAKE_UP在最后执行 */
         oal_smp_mb();
-        hi_wait_queue_wake_up_interrupt(&mgmt_tx->wait_queue);
+        hi_wait_queue_wake_up(&mgmt_tx->wait_queue);
     }
 
     return HI_SUCCESS;
