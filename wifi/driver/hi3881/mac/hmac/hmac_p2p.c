@@ -1007,6 +1007,8 @@ hi_u32 hmac_p2p_send_action(mac_vap_stru *mac_vap, hi_u16 us_len, const hi_u8 *p
     if (hmac_p2p_tx_status_event(mac_vap, puc_data_header, action_len, HI_TRUE) != HI_SUCCESS) {
         oam_warning_log0(mac_vap->vap_id, OAM_SF_P2P, "{hmac_p2p_send_action:hmac_p2p_action_tx_status_event ERR}");
     }
+
+    oal_free(puc_data_header);
     return HI_SUCCESS;
 }
 
