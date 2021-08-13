@@ -564,16 +564,16 @@ int32_t WalSetMode(NetDevice *netDev, enum WlanWorkMode iftype)
     };
     oam_error_log1(0, OAM_SF_ANY, "{WalSetMode enter iftype:%d!}", iftype);
     if (iftype == WLAN_WORKMODE_STA || iftype == WLAN_WORKMODE_AP) {
-    wal_deinit_drv_wlan_netdev(netDev);
-    ret = RenewNetDevice(&netDev);
-    if (ret != HDF_SUCCESS) {
-        oam_error_log(0, OAM_SF_ANY, "%s:RenewNetDevice failed!ret=%d", __func__, ret);
-        return ret;
-    }
-    ret = wal_init_drv_wlan_netdev(iftype, WAL_PHY_MODE_11N, netDev);
-    if (ret != HISI_OK) {
-        oam_error_log0(0, OAM_SF_ANY, "wal_init_drv_wlan_netdev failed!");
-        return ret;
+        wal_deinit_drv_wlan_netdev(netDev);
+        ret = RenewNetDevice(&netDev);
+        if (ret != HDF_SUCCESS) {
+            oam_error_log(0, OAM_SF_ANY, "%s:RenewNetDevice failed!ret=%d", __func__, ret);
+            return ret;
+        }
+        ret = wal_init_drv_wlan_netdev(iftype, WAL_PHY_MODE_11N, netDev);
+        if (ret != HISI_OK) {
+            oam_error_log0(0, OAM_SF_ANY, "wal_init_drv_wlan_netdev failed!");
+            return ret;
         }
     }
     if (g_macStorage.isStorage) {
@@ -1016,6 +1016,12 @@ int32_t WalSendAction(struct NetDevice *netDev, WifiActionData *actionData)
     return HI_SUCCESS;
 }
 
+int32_t WalGetIftype(struct NetDevice *netDev, uint8_t *iftype)
+{
+    iftype = &(GET_NET_DEV_CFG80211_WIRELESS(netDev)->iftype);
+    return HI_SUCCESS;
+}
+
 static struct HdfMac80211BaseOps g_baseOps = {
     .SetMode = WalSetMode,
     .AddKey = WalAddKey,
@@ -1034,6 +1040,7 @@ static struct HdfMac80211BaseOps g_baseOps = {
     .SetApWpsP2pIe = WalSetApWpsP2pIe,
     .GetDriverFlag = WalGetDriverFlag,
     .SendAction = WalSendAction,
+    .GetIftype = WalGetIftype,
 };
 
 static struct HdfMac80211STAOps g_staOps = {
