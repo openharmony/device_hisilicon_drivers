@@ -113,6 +113,7 @@ group("drivers") {
     "rtc",
     "spi",
     "uart",
+    "i2s",
     "watchdog",
   ]
 }
