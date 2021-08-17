@@ -26,7 +26,6 @@ extern "C" {
 #endif /* __cplusplus */
 #endif /* __cplusplus */
 
-#define I2S_PRINTK_OPEN
 #ifdef I2S_PRINTK_OPEN
 #define I2S_PRINT_LOG_DBG(fmt, arg...) printk("[HDF]-[I2S]:" fmt "\r\n",  ##arg)
 #define I2S_PRINT_LOG_ERR(fmt, arg...) printk("[HDF]-[I2S]:" fmt "\r\n",  ##arg)
