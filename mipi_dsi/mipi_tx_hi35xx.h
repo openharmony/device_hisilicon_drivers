@@ -16,7 +16,6 @@
 #ifndef MIPI_TX_HI35XX_H
 #define MIPI_TX_HI35XX_H
 
-#include "mipi_tx_dev.h"
 /****************************************************************************
  * macro definition                                                         *
  ****************************************************************************/
@@ -103,14 +102,5 @@ typedef struct {
     unsigned int vsaDet;
 } MipiTxDevPhyTag;
 
-void MipiTxDrvSetPhyCfg(const ComboDevCfgTag *cfg);
 void MipiTxDrvGetDevStatus(MipiTxDevPhyTag *phyCtx);
-void MipiTxDrvSetControllerCfg(const ComboDevCfgTag *cfg);
-int MipiTxDrvSetCmdInfo(const CmdInfoTag *cmdInfo);
-int MipiTxDrvGetCmdInfo(GetCmdInfoTag *getCmdInfo);
-void MipiTxDrvEnableInput(const OutPutModeTag outputMode);
-void MipiTxDrvDisableInput(void);
-int MipiTxDrvInit(int smooth);
-void MipiTxDrvExit(void);
-
 #endif
