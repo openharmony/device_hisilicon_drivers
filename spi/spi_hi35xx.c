@@ -688,11 +688,9 @@ static void Pl022Release(struct Pl022 *pl022)
     struct SpiDev *tmpDev = NULL;
 
     DLIST_FOR_EACH_ENTRY_SAFE(dev, tmpDev, &(pl022->deviceList), struct SpiDev, list) {
-        if (dev != NULL) {
-            SpiRemoveDev(dev);
-            DListRemove(&(dev->list));
-            OsalMemFree(dev);
-        }
+        SpiRemoveDev(dev);
+        DListRemove(&(dev->list));
+        OsalMemFree(dev);
     }
     if (pl022->irqNum != 0) {
         (void)OsalUnregisterIrq(pl022->irqNum, pl022);
