@@ -13,78 +13,7 @@
 
 import("//drivers/adapter/khdf/liteos/hdf.gni")
 
-hdf_driver("hiedmac") {
-  module_switch = defined(LOSCFG_DRIVERS_HIEDMAC)
-  libs = [ target_name ]
-}
-
-hdf_driver("mmc") {
-  module_switch = defined(LOSCFG_DRIVERS_MMC)
-  libs = [ target_name ]
-}
-
-hdf_driver("mtd_common") {
-  module_switch = defined(LOSCFG_DRIVERS_MTD)
-  libs = [ target_name ]
-}
-
-spinor_flash = "spinor_flash"
-if (!defined(LOSCFG_SHELL)) {
-  spinor_flash = "spinor_flash_noshell"
-}
-
-hdf_driver(spinor_flash) {
-  module_switch = defined(LOSCFG_DRIVERS_MTD_SPI_NOR)
-  libs = [ target_name ]
-}
-
-hdf_driver("nand_flash") {
-  module_switch = defined(LOSCFG_DRIVERS_MTD_NAND)
-  libs = [ target_name ]
-}
-
-hdf_driver("hdf_vendor_wifi") {
-  module_switch = defined(LOSCFG_DRIVERS_HDF_WIFI)
-  libs = [ target_name ]
-}
-
-hdf_driver("hi3881") {
-  module_switch =
-      defined(LOSCFG_DRIVERS_HDF_WIFI) && defined(LOSCFG_DRIVERS_HI3881)
-  libs = [ target_name ]
-}
-
-action("extra_ld_options") {
-  script = "//build/lite/run_shell_cmd.py"
-  args = [ "true" ]
-  outputs = [
-    "$root_out_dir/-Wl,--push-state,--whole-archive",
-    "$root_out_dir/-Wl,--pop-state",
-  ]
-}
-
-hdf_driver("start_whole_archive") {
-  deps = [ ":extra_ld_options" ]
-  libs = [ "$root_out_dir/-Wl,--push-state,--whole-archive" ]
-}
-
-hdf_driver("end_whole_archive") {
-  deps = [ ":extra_ld_options" ]
-  libs = [ "$root_out_dir/-Wl,--pop-state" ]
-}
-
 group("drivers") {
-  public_deps = [
-    ":start_whole_archive",
-    ":$spinor_flash",
-    ":hdf_vendor_wifi",
-    ":hi3881",
-    ":hiedmac",
-    ":mmc",
-    ":mtd_common",
-    ":nand_flash",
-    ":end_whole_archive",
-  ]
   deps = [
     "adc",
     "dmac",
@@ -106,16 +35,32 @@ group("drivers") {
 config("public") {
   include_dirs = []
   lib_dirs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM" ]
+  ldflags = [ "-Wl,--push-state,--whole-archive" ]
   if (defined(LOSCFG_DRIVERS_HIEDMAC)) {
-    include_dirs += [ "include/hiedmac/include" ]
+    ldflags += [ "-lhiedmac" ]
   }
   if (defined(LOSCFG_DRIVERS_MTD)) {
     include_dirs += [ "include/mtd/common/include" ]
+    ldflags += [ "-lmtd_common" ]
   }
   if (defined(LOSCFG_DRIVERS_MTD_SPI_NOR)) {
-    include_dirs += [ "include/mtd/spi_nor/include" ]
+    if (!defined(LOSCFG_SHELL)) {
+      ldflags += [ "-lspinor_flash_noshell" ]
+    } else {
+      ldflags += [ "-lspinor_flash" ]
+    }
+  }
+  if (defined(LOSCFG_DRIVERS_MMC)) {
+    ldflags += [ "-lmmc" ]
   }
   if (defined(LOSCFG_DRIVERS_MTD_NAND)) {
-    include_dirs += [ "include/mtd/nand/include" ]
+    ldflags += [ "-lnand_flash" ]
   }
+  if (defined(LOSCFG_DRIVERS_HDF_WIFI)) {
+    ldflags += [ "-lhdf_vendor_wifi" ]
+  }
+  if (defined(LOSCFG_DRIVERS_HDF_WIFI) && defined(LOSCFG_DRIVERS_HI3881)) {
+    ldflags += [ "-lhi3881" ]
+  }
+  ldflags += [ "-Wl,--pop-state" ]
 }
