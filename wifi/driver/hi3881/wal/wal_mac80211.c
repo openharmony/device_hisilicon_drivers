@@ -900,6 +900,7 @@ int32_t WalRemoveIf(struct NetDevice *netDev, WifiIfRemove *ifRemove)
         oam_error_log0(0, 0, "hwal_ioctl_remove_if: wal_deinit_drv_wlan_netdev failed!");
         return -HI_FAIL;
     }
+    NetDeviceDeInit(removeNetdev);
     return HI_SUCCESS;
 }
 
