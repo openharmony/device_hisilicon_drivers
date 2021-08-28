@@ -1346,6 +1346,13 @@ hi_s32 wal_init_netdev(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
     wdev->wiphy = oal_wiphy_get();
 #endif
 
+#ifdef _PRE_WLAN_FEATURE_P2P
+    if (type == NL80211_IFTYPE_P2P_DEVICE) {
+        mac_wiphy_priv_stru *wiphy_priv = oal_wiphy_priv(wdev->wiphy);
+        wiphy_priv->mac_device->p2p_info.pst_p2p_net_device = netdev;
+    }
+#endif
+
     oal_netdevice_flags(netdev) &= ~OAL_IFF_RUNNING; /* 将net device的flag设为down */
 #if (_PRE_MULTI_CORE_MODE_OFFLOAD_DMAC == _PRE_MULTI_CORE_MODE)
     /* HCC层用 */

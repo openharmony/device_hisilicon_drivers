@@ -1229,11 +1229,14 @@ hi_u32 hmac_p2p_listen_timeout(mac_vap_stru *mac_vap)
 
     /* 由于P2P0 和P2P_CL 共用vap 结构体，监听超时，返回监听前保存的状态 */
     mac_vap_state_change(mac_vap, mac_dev->p2p_info.last_vap_state);
-    hmac_set_rx_filter_value(mac_vap);
+    hmac_device_stru *hmac_dev = hmac_get_device_stru();
+    hmac_scan_record_stru *pst_scan_record = &(hmac_dev->scan_mgmt.scan_record_mgmt);
 
     /* 3.1 抛事件到WAL ，上报监听结束 */
-    if (hmac_p2p_send_listen_expired_to_host(hmac_vap) != HI_SUCCESS) {
-        oam_warning_log0(mac_vap->vap_id, OAM_SF_P2P, "hmac_p2p_send_listen_expired_to_host return NON SUCCESS. ");
+    if (pst_scan_record->ull_cookie == mac_dev->p2p_info.ull_last_roc_id) {
+        if (hmac_p2p_send_listen_expired_to_host(hmac_vap) != HI_SUCCESS) {
+            oam_warning_log0(mac_vap->vap_id, OAM_SF_P2P, "hmac_p2p_send_listen_expired_to_host return NON SUCCESS");
+        }
     }
 
     /* 3.2 抛事件到DMAC ，返回监听信道 */

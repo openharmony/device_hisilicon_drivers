@@ -804,6 +804,13 @@ typedef enum {
 } wlan_pkt_type;
 typedef hi_u8 wlan_pkt_type_uint8;
 
+typedef enum {
+    IEEE80211_ROC_TYPE_NORMAL = 0,
+    IEEE80211_ROC_TYPE_MGMT_TX,
+    IEEE80211_ROC_TYPE_BUTT,
+}wlan_ieee80211_roc_type;
+typedef hi_u8 wlan_ieee80211_roc_type_uint8;
+
 /* ****************************************************************************
   4 全局变量声明
 **************************************************************************** */

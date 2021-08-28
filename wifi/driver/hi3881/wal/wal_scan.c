@@ -705,7 +705,7 @@ hi_u32 wal_force_scan_complete(oal_net_device_stru *netdev)
         HdfWifiEventScanDone(netdev, (WifiScanStatus)HISI_SCAN_SUCCESS);
         wal_free_scan_mgmt_resource(scan_mgmt);
 #elif (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
-        oal_cfg80211_scan_done(scan_mgmt->request, 0);
+        oal_cfg80211_scan_done(scan_mgmt->request, HI_TRUE);
         scan_mgmt->request = HI_NULL;
 #endif
         scan_mgmt->complete = HI_TRUE;
