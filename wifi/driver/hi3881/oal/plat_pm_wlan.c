@@ -63,6 +63,7 @@
 #include <asm/siginfo.h>
 #include <linux/pid_namespace.h>
 #include <linux/pid.h>
+#include <linux/version.h>
 #include "oal_sdio_comm.h"
 #include "oal_sdio_host_if.h"
 #include "plat_pm_wlan.h"
@@ -247,7 +248,11 @@ hi_s32 wlan_pm_close_done_callback(void *data)
 
 hi_void wlan_pm_wkfail_send_sig(void)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,0,0)
+    struct kernel_siginfo info = { 0 };
+#else
     struct siginfo info = { 0 };
+#endif
     int ret;
     if (g_wk_fail_process_pid <= 0) {
         printk("wk fail process not register \n");
