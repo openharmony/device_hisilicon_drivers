@@ -169,6 +169,9 @@ typedef struct hmac_vap_tag {
     oal_net_device_stru            *p2p0_net_device;              /* 指向p2p0 net device */
     oal_net_device_stru            *del_net_device;               /* 指向需要通过cfg80211 接口删除的 net device */
     oal_work_stru                   del_virtual_inf_worker;    /* 删除net_device 工作队列 */
+    hi_u8                           en_wait_roc_end;
+    hi_u8                           auc_resv0[3];
+    oal_completion                  st_roc_end_ready;         /* roc end completion */
 #endif
 #ifdef _PRE_WLAN_FEATURE_SMP_SUPPORT
     oal_netbuf_head_stru            tx_queue_head[2];              /* 2个发送队列，2个线程pinpon操作 */

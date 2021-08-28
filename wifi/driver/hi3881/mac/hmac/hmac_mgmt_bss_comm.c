@@ -2654,8 +2654,8 @@ hi_u32 hmac_wpas_mgmt_tx(mac_vap_stru *mac_vap, hi_u16 us_len, const hi_u8 *puc_
     tx_ctl->frame_header = (mac_ieee80211_frame_stru *)oal_netbuf_header(netbuf_mgmt_tx);
     tx_ctl->mac_head_type = 1;
     tx_ctl->frame_header_length = MAC_80211_FRAME_LEN;
+    tx_ctl->us_tx_user_idx = MAC_INVALID_USER_ID;
 
-    mac_vap_set_cb_tx_user_idx(mac_vap, tx_ctl, tx_ctl->frame_header->auc_address1); /* 发送完成需要获取user结构体 */
 
     /* Buffer this frame in the Memory Queue for transmission */
     hi_u32 ret = hmac_tx_mgmt_send_event(mac_vap, netbuf_mgmt_tx, mgmt_tx->us_len);
