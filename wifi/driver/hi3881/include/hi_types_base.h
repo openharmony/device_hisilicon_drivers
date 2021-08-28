@@ -19,6 +19,8 @@
 #ifndef __HI_TYPES_BASE_H__
 #define __HI_TYPES_BASE_H__
 
+#include <linux/version.h>
+
 #if defined(__CC_ARM)
 #define HI_HAVE_CROSS_COMPILER_ARM_ARMCC
 #elif defined(__GNUC__)
