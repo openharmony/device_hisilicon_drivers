@@ -643,23 +643,23 @@ static inline hi_u32 *oal_get_virt_addr(hi_u32 *phy_addr)
     return (hi_u32 *)oal_phy_to_virt_addr(phy_addr);
 }
 
-#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION) || defined(_PRE_HDF_LINUX)
 /* ****************************************************************************
  功能描述  : 获取当前时间
 **************************************************************************** */
 static inline hi_u32 oal_get_curr_time_ms(hi_void)
 {
+#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
     struct timeval tv = {
         .tv_sec = 0,
         .tv_usec = 0,
     };
 
-#if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
     gettimeofday(&tv, HI_NULL);
-#endif
     return (hi_u32)(tv.tv_sec * 1000 + tv.tv_usec / 1000); /* 1000 时间单位转换 */
-}
+#elif defined(_PRE_HDF_LINUX)
+    return 0;
 #endif
+}
 
 static inline unsigned long oal_simple_strtoul(const hi_char *string, char **result, hi_u32 base)
 {

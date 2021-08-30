@@ -58,7 +58,6 @@ extern "C" {
 
 
 extern hi_u8 wal_lwip_set_hwaddr(oal_net_device_stru *netDev, uint8_t *addr, uint8_t len);
-extern hi_u32 hi_get_seconds(hi_void);
 /* ****************************************************************************
   2 全局变量定义
 **************************************************************************** */

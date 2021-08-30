@@ -58,7 +58,9 @@ extern "C" {
 #endif
 
 /* 获取高精度毫秒时间戳,精度1ms */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
 #define OAL_TIME_GET_HIGH_PRECISION_MS() oal_get_time_stamp_from_timeval()
+#endif
 
 #define OAL_ENABLE_CYCLE_COUNT()
 #define OAL_DISABLE_CYCLE_COUNT()
@@ -132,6 +134,8 @@ typedef struct rtc_time oal_rtctime_stru;
   10 函数声明
 **************************************************************************** */
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
 /* ****************************************************************************
  功能描述  : 获取微妙精度级的时间戳
  输入参数  : pst_usec: 时间结构体指针
@@ -145,7 +149,7 @@ static inline hi_void oal_time_get_stamp_us(oal_time_us_stru *pst_usec)
     pst_usec->i_sec     = ts.tv_sec;
     pst_usec->i_usec    = ts.tv_nsec / 1000; /* 1us 是 1000ns */
 }
-
+#endif
 /* ****************************************************************************
  功能描述  : 调用内核函数获取当前时间戳
  输入参数  : hi_void
@@ -168,6 +172,7 @@ static inline oal_time_t_stru oal_ktime_sub(const oal_time_t_stru lhs, const oal
     return ktime_sub(lhs, rhs);
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
 /* ****************************************************************************
  功能描述  : 获取时间精度
  输入参数  : 无
@@ -196,6 +201,7 @@ static inline hi_void oal_rtc_time_to_tm(unsigned long time, oal_rtctime_stru *t
 {
     rtc_time_to_tm(time, tm);
 }
+#endif
 
 /* ****************************************************************************
  功能描述  : 判断ul_time是否比当前时间早
