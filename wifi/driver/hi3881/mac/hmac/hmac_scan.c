@@ -1398,12 +1398,14 @@ hi_u32 hmac_scan_proc_scan_comp_event(frw_event_mem_stru *event_mem)
     scan_mgmt->is_scanning = HI_FALSE;
 
 #ifdef _PRE_WLAN_FEATURE_P2P
-    oam_error_log1(0, OAM_SF_SCAN, "{fd::hmac_scan_proc_scan_comp_event:: hmac_vap->base_vap->vap_state is %d}", hmac_vap->base_vap->vap_state);
+    oam_error_log1(0, OAM_SF_SCAN, "{fd::hmac_scan_proc_scan_comp_event:: hmac_vap->base_vap->vap_state is %d}",
+        hmac_vap->base_vap->vap_state);
     if (hmac_vap->base_vap->vap_state == MAC_VAP_STATE_STA_LISTEN) {
         hmac_p2p_listen_timeout(hmac_vap->base_vap);
     }
     if (hmac_vap->en_wait_roc_end == HI_TRUE) {
-        oam_warning_log1(event_hdr->vap_id, OAM_SF_SCAN, "{hmac_scan_proc_scan_comp_event::scan rsp status[%d]}", d2h_scan_rsp_info->scan_rsp_status);
+        oam_warning_log1(event_hdr->vap_id, OAM_SF_SCAN, "{hmac_scan_proc_scan_comp_event::scan rsp status[%d]}",
+            d2h_scan_rsp_info->scan_rsp_status);
         OAL_COMPLETE(&(hmac_vap->st_roc_end_ready));
         hmac_vap->en_wait_roc_end = HI_FALSE;
     }
