@@ -3046,7 +3046,6 @@ hi_u32 wal_priv_cmd(oal_net_device_stru *netdev, oal_ifreq_stru *ifr, hi_s32 cmd
     oam_info_log2(0, 0, "{wal_priv_cmd:: private cmd total_len:%d, used_len:%d}",
         priv_cmd.l_total_len, priv_cmd.l_used_len);
 
-
     /* 执行命令字 */
     ret = wal_priv_cmd_exec(netdev, puc_command, (hi_u32)priv_cmd.l_total_len);
     oal_free(puc_command);
