@@ -44,7 +44,3 @@ hdf_driver(module_name) {
     "hi3881/linuxkpi/include",
   ]
 }
-
-group("driver") {
-  public_deps = [ ":$module_name" ]
-}
