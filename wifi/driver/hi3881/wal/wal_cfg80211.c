@@ -102,7 +102,7 @@ static const hi_u32 g_wifi_cipher_suites[] = {
 /* 2.4G 频段信息 */
 static oal_ieee80211_supported_band g_wifi_band_2ghz = {
     .channels   = g_wifi_2ghz_channels,
-    .n_channels = sizeof(g_wifi_2ghz_channels)/sizeof(oal_ieee80211_channel),
+    .n_channels = sizeof(g_wifi_2ghz_channels) / sizeof(oal_ieee80211_channel),
     .bitrates   = WIFI_G_RATES,
     .n_bitrates = WIFI_G_RATES_SIZE,
     .ht_cap = {
@@ -475,7 +475,8 @@ hi_s32 wal_drv_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, 
 #endif /* #ifdef _PRE_WLAN_FEATURE_WAPI */
     oam_error_log1(0, OAM_SF_P2P, "{wal_drv_remain_on_channel::mac_vap->vap_state is %d}\r\n", mac_vap->vap_state);
     if (mac_vap->vap_state == MAC_VAP_STATE_STA_LISTEN) {
-        oam_warning_log1(mac_vap->vap_id, OAM_SF_P2P, "{wal_drv_remain_on_channel::new roc type[%d],cancel old roc!}", en_roc_type);
+        oam_warning_log1(mac_vap->vap_id, OAM_SF_P2P, "{wal_drv_remain_on_channel::new roc type[%d],cancel old roc!}",
+            en_roc_type);
         if (wal_p2p_stop_roc(mac_vap, netdev) != HI_SUCCESS) {
             oam_warning_log0(0, OAM_SF_CFG, "{wal_p2p_stop_roc fail!}");
             goto fail;
@@ -4592,7 +4593,8 @@ static hi_u32 wal_mgmt_do_tx(oal_net_device_stru *netdev, const mac_mgmt_frame_s
 
     if (en_offchan == HI_TRUE) {
         if (mac_vap->vap_state != MAC_VAP_STATE_STA_LISTEN) {
-            oam_warning_log1(mac_vap->vap_id, OAM_SF_CFG, "{wal_mgmt_do_tx::pst_mac_vap state[%d]not in listen!}\r\n", mac_vap->vap_state);
+            oam_warning_log1(mac_vap->vap_id, OAM_SF_CFG, "{wal_mgmt_do_tx::pst_mac_vap state[%d]not in listen!}\r\n",
+                mac_vap->vap_state);
             return HI_INVALID;
         }
     }
@@ -4772,14 +4774,17 @@ hi_s32 wal_cfg80211_mgmt_tx(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_c
         oam_warning_log1(mac_vap->vap_id, OAM_SF_ANY, "{wal_cfg80211_mgmt_tx::wait is 0, set it to %d ms}", wait);
     }
 
-    oam_error_log4(mac_vap->vap_id, OAM_SF_CFG, "{wal_cfg80211_mgmt_tx::offchannel[%d].channel[%d]vap state[%d],wait[%d]}\r\n",
+    oam_error_log4(mac_vap->vap_id, OAM_SF_CFG,
+        "{wal_cfg80211_mgmt_tx::offchannel[%d].channel[%d]vap state[%d],wait[%d]}\r\n",
         en_need_offchan, mgmt_tx.channel, mac_vap->vap_state, wait);
 #ifdef _PRE_WLAN_FEATURE_P2P
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0))
     if (en_need_offchan == HI_TRUE) {
-        ret = wal_drv_remain_on_channel(wiphy, pst_roc_wireless_dev, chan, wait, pull_cookie, IEEE80211_ROC_TYPE_MGMT_TX);
+        ret = wal_drv_remain_on_channel(wiphy, pst_roc_wireless_dev, chan, wait, pull_cookie,
+            IEEE80211_ROC_TYPE_MGMT_TX);
         if (ret != HI_SUCCESS) {
-            oam_warning_log4(mac_vap->vap_id, OAM_SF_CFG, "{wal_cfg80211_mgmt_tx::wal_drv_remain_on_channel[%d]!!!offchannel[%d].channel[%d],vap state[%d]}\r\n",
+            oam_warning_log4(mac_vap->vap_id, OAM_SF_CFG,
+                "{wal_cfg80211_mgmt_tx::wal_drv_remain_on_channel[%d]!!!offchannel[%d].channel[%d],vap state[%d]}\r\n",
                 ret, en_need_offchan, mgmt_tx.channel, mac_vap->vap_state);
             return -OAL_EBUSY;
         }
@@ -4791,7 +4796,7 @@ hi_s32 wal_cfg80211_mgmt_tx(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_c
     hi_u8 retry = 0;
     /* 发送失败，则尝试重传 */
     do {
-       ret = wal_mgmt_do_tx(netdev, &mgmt_tx, en_need_offchan, wait);
+        ret = wal_mgmt_do_tx(netdev, &mgmt_tx, en_need_offchan, wait);
         retry++;
     } while ((ret != HI_SUCCESS) && (ret != HI_INVALID) && (retry < = WAL_MGMT_TX_RETRY_CNT) && 
         (oal_time_before(OAL_TIME_JIFFY, start_time_stamp + OAL_MSECS_TO_JIFFIES(wait))));
@@ -5155,7 +5160,6 @@ static oal_cfg80211_ops_stru g_wal_cfg80211_ops =
 #endif /* (LINUX_VERSION_CODE >= kernel_version(4,1,0)) */
 };
 #endif /* #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION) && !defined(_PRE_HDF_LINUX) */
-
 
 wal_wifi_mode_enum_int wal_get_vap_mode(hi_void)
 {
