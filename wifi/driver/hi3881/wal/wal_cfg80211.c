@@ -518,11 +518,11 @@ hi_s32 wal_drv_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, 
 if (en_roc_type == IEEE80211_ROC_TYPE_NORMAL) {
     /* 上报暂停在指定信道成功 */
 #if (_PRE_OS_VERSION == _PRE_OS_VERSION_LINUX) && !defined(_PRE_HDF_LINUX)
-        cfg80211_ready_on_channel(wdev, *pull_cookie, chan, duration, GFP_KERNEL);
+    cfg80211_ready_on_channel(wdev, *pull_cookie, chan, duration, GFP_KERNEL);
 #else
     ret = HdfWifiEventRemainOnChannel(netdev, chan->center_freq, duration);
     if (ret != HI_SUCCESS) {
-            oam_error_log1(0, OAM_SF_P2P, "{wal_drv_remain_on_channel::cfg80211_remain_on_channel failed[%u]}\r\n",
+        oam_error_log1(0, OAM_SF_P2P, "{wal_drv_remain_on_channel::cfg80211_remain_on_channel failed[%u]}\r\n",
             ret);
         goto fail;
     }
@@ -4616,7 +4616,7 @@ static hi_u32 wal_mgmt_do_tx(oal_net_device_stru *netdev, const mac_mgmt_frame_s
     }
 
     i_leftime = hi_wait_event_timeout(mgmt_tx->wait_queue, HI_TRUE == mgmt_tx->mgmt_tx_complete,
-        OAL_MSECS_TO_JIFFIES(wait)); // 使用非wifi目录定义宏函数误报告警,lin_t e26告警屏蔽
+        OAL_MSECS_TO_JIFFIES(wait)); // 使用非wifi目录定义宏函数,误报告警,lin_t e26告警屏蔽
     if (i_leftime == 0) {
         /* 定时器超时 */
         oam_warning_log0(0, OAM_SF_ANY, "{wal_mgmt_do_tx::mgmt tx timeout!}\r\n");
