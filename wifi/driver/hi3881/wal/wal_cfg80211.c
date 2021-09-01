@@ -129,7 +129,6 @@ static oal_ieee80211_iface_limit g_sta_p2p_limits[] = {
         .max = 2,
         .types = bit(NL80211_IFTYPE_P2P_GO) | BIT(NL80211_IFTYPE_P2P_CLIENT),
     },
-
 #ifdef _PRE_WLAN_FEATURE_MESH
     {
         .max = 1,
@@ -197,7 +196,6 @@ g_wal_cfg80211_default_mgmt_stypes[NUM_NL80211_IFTYPES] = {
         bit(IEEE80211_STYPE_DEAUTH >> 4) |
         bit(IEEE80211_STYPE_ACTION >> 4)
     },
-
     [NL80211_IFTYPE_P2P_DEVICE] = {
         .tx = 0xffff,
         .rx = bit(IEEE80211_STYPE_ACTION >> 4) |
@@ -4618,7 +4616,7 @@ static hi_u32 wal_mgmt_do_tx(oal_net_device_stru *netdev, const mac_mgmt_frame_s
     }
 
     i_leftime = hi_wait_event_timeout(mgmt_tx->wait_queue, HI_TRUE == mgmt_tx->mgmt_tx_complete,
-        OAL_MSECS_TO_JIFFIES(wait)); // 使用非wifi目录定义宏函�?误报告警,lin_t e26告警屏蔽
+        OAL_MSECS_TO_JIFFIES(wait)); // 使用非wifi目录定义宏函数误报告警,lin_t e26告警屏蔽
     if (i_leftime == 0) {
         /* 定时器超时 */
         oam_warning_log0(0, OAM_SF_ANY, "{wal_mgmt_do_tx::mgmt tx timeout!}\r\n");
