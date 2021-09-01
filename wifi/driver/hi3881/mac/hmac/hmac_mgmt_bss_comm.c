@@ -2656,7 +2656,6 @@ hi_u32 hmac_wpas_mgmt_tx(mac_vap_stru *mac_vap, hi_u16 us_len, const hi_u8 *puc_
     tx_ctl->frame_header_length = MAC_80211_FRAME_LEN;
     tx_ctl->us_tx_user_idx = MAC_INVALID_USER_ID;
 
-
     /* Buffer this frame in the Memory Queue for transmission */
     hi_u32 ret = hmac_tx_mgmt_send_event(mac_vap, netbuf_mgmt_tx, mgmt_tx->us_len);
     if (ret != HI_SUCCESS) {

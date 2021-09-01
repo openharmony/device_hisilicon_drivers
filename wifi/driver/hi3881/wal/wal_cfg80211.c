@@ -483,7 +483,6 @@ hi_s32 wal_drv_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, 
         }
     }
 
-
     /* 2.1 消息参数准备 */
     hi_u16 us_center_freq = chan->center_freq;
     hi_s32 l_channel = (hi_s32)oal_ieee80211_frequency_to_channel((hi_s32)us_center_freq);
