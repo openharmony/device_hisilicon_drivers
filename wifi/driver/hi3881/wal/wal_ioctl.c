@@ -3037,7 +3037,7 @@ hi_u32 wal_priv_cmd(oal_net_device_stru *netdev, oal_ifreq_stru *ifr, hi_s32 cmd
     ret = oal_copy_from_user(puc_command, (hi_u32)(priv_cmd.l_total_len), ((hi_u8 *)ifr->ifr_data) + 8, /* 数据偏移量8 */
         (hi_u32)(priv_cmd.l_total_len));
 #endif
-    if (ret != 0) {
+    if (ret != HI_SUCCESS) {
         oam_error_log1(0, 0, "{wal_priv_cmd::oal_copy_from_user: err code [%u] }", ret);
         oal_free(puc_command);
         return ret;

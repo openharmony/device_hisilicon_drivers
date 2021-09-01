@@ -56,7 +56,6 @@ extern "C" {
 #endif
 #endif
 
-
 extern hi_u8 wal_lwip_set_hwaddr(oal_net_device_stru *netDev, uint8_t *addr, uint8_t len);
 extern hi_u32 hi_get_seconds(hi_void);
 /* ****************************************************************************
@@ -1491,11 +1490,13 @@ hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
         HDF_LOGE("%s:netdevice data null!", __func__);
         return HI_FAIL;
     }
+	if (netdev == NULL) {
+        HDF_LOGE("%s:netdev is null!", __func__);
+        return HI_FAIL;
+    }
     netdev->classDriverName = netDevice->classDriverName;
     netdev->classDriverPriv = data;
-    if (netdev != NULL) {
-        ret = wal_init_drv_wlan_netdev(type, WAL_PHY_MODE_11N, netdev);
-    }
+    ret = wal_init_drv_wlan_netdev(type, WAL_PHY_MODE_11N, netdev);
 
     if (ret != HI_SUCCESS) {
         oam_error_log2(0, OAM_SF_ANY, "InitP2pNetdev %s failed. return:%d\n", netdev->name, ret);

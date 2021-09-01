@@ -717,8 +717,6 @@ hi_u32 hmac_p2p_encap_action(hi_u8 *puc_data, const mac_action_data_stru *action
     }
     us_frame_len = (hi_u32)(puc_data - puc_frame_origin);
 
-    puc_data = puc_frame_origin;
-
     return us_frame_len;
 }
 
