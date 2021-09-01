@@ -38,7 +38,3 @@ hdf_driver(module_name) {
     "i2s_hi35xx.c",
   ]
 }
-
-group("i2s") {
-  public_deps = [ ":$module_name" ]
-}
