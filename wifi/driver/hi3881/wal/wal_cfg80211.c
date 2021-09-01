@@ -676,7 +676,7 @@ hi_u32 wal_find_wmm_uapsd(hi_u8 *puc_frame_body, hi_s32 l_len)
     /* 判断 WMM UAPSD 是否使能 */
     while (l_index < l_len) {
         if ((puc_frame_body[l_index] == MAC_EID_WMM) &&
-            (0 == memcmp(puc_frame_body + l_index + 2, auc_oui, MAC_OUI_LEN)) && /* 2：偏移位 */
+            (memcmp(puc_frame_body + l_index + 2, auc_oui, MAC_OUI_LEN) == 0) && /* 2：偏移位 */
             (puc_frame_body[l_index + 2 + MAC_OUI_LEN] == MAC_OUITYPE_WMM) && /* 2：偏移位 */
             (puc_frame_body[l_index + MAC_WMM_QOS_INFO_POS] & BIT7)) {
             return HI_TRUE;
@@ -2375,7 +2375,7 @@ hi_u32 wal_parse_rsn_ie(const hi_u8 *puc_ie, mac_beacon_param_stru *beacon_param
 
     index += 2; /* 2: 获取加密套件 */
     for (us_temp = 0; us_temp < us_pcip_num; us_temp++) {
-        if (0 != memcmp(auc_oui, puc_ie + index, MAC_OUI_LEN)) {
+        if (memcmp(auc_oui, puc_ie + index, MAC_OUI_LEN) != 0) {
             oam_error_log0(0, OAM_SF_ANY, "{wal_parse_rsn_ie::RSN paerwise OUI illegal!}\r\n");
             return HI_FAIL;
         }
@@ -4289,7 +4289,7 @@ hi_u32 wal_cfg80211_change_virtual_intf(oal_wiphy_stru *wiphy, oal_net_device_st
         return HI_SUCCESS;
     }
 
-    if (0 == (strcmp("p2p0", (const hi_char *)netdev->name))) {
+    if ((strcmp("p2p0", (const hi_char *)netdev->name)) == 0) {
         /* 解决异常情况下,wpa_supplicant下发p2p0设备切换到p2p go/cli模式导致fastboot的问题 */
         oam_warning_log0(0, OAM_SF_CFG,
             "{wal_cfg80211_change_virtual_intf::p2p0 netdevice can not change to P2P CLI/GO.}\r\n");

@@ -1363,7 +1363,6 @@ hi_s32 wal_init_netdev(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
     CreateEapolData(netdev);
 #endif
 
-
     return HI_SUCCESS;
 }
 
