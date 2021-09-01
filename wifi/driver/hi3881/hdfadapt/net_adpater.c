@@ -1485,13 +1485,13 @@ hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
 #else
     netdev = NetDeviceInit(ifName, strlen(ifName), WIFI_LINK, LITE_OS);
 #endif
+    if (netdev == NULL) {
+        HDF_LOGE("%s:netdev is null!", __func__);
+        return HI_FAIL;
+    }
     data = GetPlatformData(netDevice);
     if (data == NULL) {
         HDF_LOGE("%s:netdevice data null!", __func__);
-        return HI_FAIL;
-    }
-	if (netdev == NULL) {
-        HDF_LOGE("%s:netdev is null!", __func__);
         return HI_FAIL;
     }
     netdev->classDriverName = netDevice->classDriverName;
