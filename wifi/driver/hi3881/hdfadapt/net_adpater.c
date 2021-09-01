@@ -1497,7 +1497,6 @@ hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
     netdev->classDriverName = netDevice->classDriverName;
     netdev->classDriverPriv = data;
     ret = wal_init_drv_wlan_netdev(type, WAL_PHY_MODE_11N, netdev);
-
     if (ret != HI_SUCCESS) {
         oam_error_log2(0, OAM_SF_ANY, "InitP2pNetdev %s failed. return:%d\n", netdev->name, ret);
     }

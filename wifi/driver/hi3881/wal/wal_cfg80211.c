@@ -619,16 +619,14 @@ hi_u32 wal_cfg80211_register_netdev(oal_net_device_stru *netdev)
     hi_u8 rollback_lock = HI_FALSE;
 
     /*  DTS2015022603795 nl80211 netlink pre diot 中会获取rntl_lock互斥锁，注册net_device 会获取rntl_lock互斥锁，造成了死锁 */
-    if (rtnl_is_locked())
-    {
+    if (rtnl_is_locked()) {
         rtnl_unlock();
         rollback_lock = HI_TRUE;
     }
 
     /* 内核注册net_device, 只返回0 */
     hi_u32 ret = (hi_u32)oal_net_register_netdev(netdev);
-    if (rollback_lock)
-    {
+    if (rollback_lock) {
         rtnl_lock();
     }
     return ret;
@@ -638,16 +636,14 @@ hi_void wal_cfg80211_unregister_netdev(oal_net_device_stru *netdev)
 {
     hi_u8 rollback_lock = HI_FALSE;
 
-    if (rtnl_is_locked())
-    {
+    if (rtnl_is_locked()) {
         rtnl_unlock();
         rollback_lock = HI_TRUE;
     }
     /* 去注册netdev */
     oal_net_unregister_netdev(netdev);
 
-    if (rollback_lock)
-    {
+    if (rollback_lock) {
         rtnl_lock();
     }
 }
@@ -2187,7 +2183,7 @@ hi_u32 wal_cfg80211_del_vap(const mac_cfg_del_vap_param_stru *del_vap_param)
 
     netdev = del_vap_param->net_dev;
     /* 设备在up状态不允许删除，必须先down */
-    if (oal_unlikely(0 != (OAL_IFF_RUNNING & oal_netdevice_flags(netdev)))) {
+    if (oal_unlikely((OAL_IFF_RUNNING & oal_netdevice_flags(netdev)) != 0)) {
         oam_error_log1(0, OAM_SF_ANY, "{wal_cfg80211_del_vap::device is busy, please down it first %d!}\r\n",
             oal_netdevice_flags(netdev));
         return HI_ERR_CODE_CONFIG_BUSY;
@@ -2398,7 +2394,7 @@ hi_u32 wal_parse_rsn_ie(const hi_u8 *puc_ie, mac_beacon_param_stru *beacon_param
 
     /* 获取认证类型 */
     for (auth_temp = 0; auth_temp < us_auth_num; auth_temp++) {
-        if (0 != memcmp(auc_oui, puc_ie + index, MAC_OUI_LEN)) {
+        if (memcmp(auc_oui, puc_ie + index, MAC_OUI_LEN) != 0) {
             oam_error_log0(0, OAM_SF_ANY, "{wal_parse_rsn_ie::RSN auth OUI illegal!}\r\n");
             return HI_FAIL;
         }
@@ -4150,7 +4146,7 @@ hi_s32 wal_cfg80211_change_virtual_intf(oal_wiphy_stru *wiphy, oal_net_device_st
         return HI_SUCCESS;
     }
 
-    if (0 == (strcmp("p2p0", (const hi_char *)net_dev->name))) {
+    if ((strcmp("p2p0", (const hi_char *)net_dev->name)) == 0) {
         /* 解决异常情况下,wpa_supplicant下发p2p0设备切换到p2p go/cli模式导致fastboot的问题 */
         oam_warning_log0(0, OAM_SF_CFG,
             "{wal_cfg80211_change_virtual_intf::p2p0 netdevice can not change to P2P CLI/GO.}\r\n");
@@ -4741,8 +4737,8 @@ hi_s32 wal_cfg80211_mgmt_tx(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_c
     switch (mac_vap->vap_mode) {
         case WLAN_VAP_MODE_BSS_AP:
             oam_info_log3(mac_vap->vap_id, OAM_SF_ANY,
-            "{wal_cfg80211_mgmt_tx::p2p mode[%d] (0=Legacy,1=GO,2=Dev,3=Gc), vap ch[%d], mgmt ch [%d]}",
-            mac_vap->p2p_mode, mac_vap->channel.idx, mgmt_tx.channel);
+                "{wal_cfg80211_mgmt_tx::p2p mode[%d] (0=Legacy,1=GO,2=Dev,3=Gc), vap ch[%d], mgmt ch [%d]}",
+                mac_vap->p2p_mode, mac_vap->channel.idx, mgmt_tx.channel);
             if ((mac_vap->channel.idx != mgmt_tx.channel) && is_p2p_go(mac_vap)) {
                 if (mac_dev->p2p_info.pst_p2p_net_device == HI_NULL) {
                     oam_error_log0(mac_vap->vap_id, OAM_SF_ANY, "{wal_cfg80211_mgmt_tx::go mode but p2p dev is null}");
@@ -4751,7 +4747,7 @@ hi_s32 wal_cfg80211_mgmt_tx(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_c
                 pst_roc_wireless_dev = oal_netdevice_wdev(mac_dev->p2p_info.pst_p2p_net_device);
                 en_need_offchan = HI_TRUE;
             }
-        break;
+            break;
         case WLAN_VAP_MODE_BSS_STA:
             if ((en_offchan == HI_TRUE) && (wiphy->flags & WIPHY_FLAG_OFFCHAN_TX)) {
                 en_need_offchan = HI_TRUE;
@@ -4759,9 +4755,9 @@ hi_s32 wal_cfg80211_mgmt_tx(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_c
             if ((mac_vap->p2p_mode == WLAN_LEGACY_VAP_MODE) && (mac_vap->vap_state == MAC_VAP_STATE_UP)) {
                 en_need_offchan = HI_FALSE;
             }
-        break;
+            break;
         default:
-        break;
+            break;
     }
 
     if ((en_need_offchan == HI_TRUE) && !chan) {
