@@ -56,7 +56,6 @@ extern "C" {
 #endif
 #endif
 
-
 extern hi_u8 wal_lwip_set_hwaddr(oal_net_device_stru *netDev, uint8_t *addr, uint8_t len);
 /* ****************************************************************************
   2 全局变量定义
@@ -1345,6 +1344,13 @@ hi_s32 wal_init_netdev(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
     wdev->wiphy = oal_wiphy_get();
 #endif
 
+#ifdef _PRE_WLAN_FEATURE_P2P
+    if (type == NL80211_IFTYPE_P2P_DEVICE) {
+        mac_wiphy_priv_stru *wiphy_priv = oal_wiphy_priv(wdev->wiphy);
+        wiphy_priv->mac_device->p2p_info.pst_p2p_net_device = netdev;
+    }
+#endif
+
     oal_netdevice_flags(netdev) &= ~OAL_IFF_RUNNING; /* 将net device的flag设为down */
 #if (_PRE_MULTI_CORE_MODE_OFFLOAD_DMAC == _PRE_MULTI_CORE_MODE)
     /* HCC层用 */
@@ -1356,10 +1362,8 @@ hi_s32 wal_init_netdev(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
     CreateEapolData(netdev);
 #endif
 
-
     return HI_SUCCESS;
 }
-
 
 hi_s32 wal_init_netif(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
 {
@@ -1478,6 +1482,10 @@ hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
 #else
     netdev = NetDeviceInit(ifName, strlen(ifName), WIFI_LINK, LITE_OS);
 #endif
+    if (netdev == NULL) {
+        HDF_LOGE("%s:netdev is null!", __func__);
+        return HI_FAIL;
+    }
     data = GetPlatformData(netDevice);
     if (data == NULL) {
         HDF_LOGE("%s:netdevice data null!", __func__);
@@ -1485,10 +1493,7 @@ hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
     }
     netdev->classDriverName = netDevice->classDriverName;
     netdev->classDriverPriv = data;
-    if (netdev != NULL) {
-        ret = wal_init_drv_wlan_netdev(type, WAL_PHY_MODE_11N, netdev);
-    }
-
+    ret = wal_init_drv_wlan_netdev(type, WAL_PHY_MODE_11N, netdev);
     if (ret != HI_SUCCESS) {
         oam_error_log2(0, OAM_SF_ANY, "InitP2pNetdev %s failed. return:%d\n", netdev->name, ret);
     }

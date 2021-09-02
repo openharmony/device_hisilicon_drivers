@@ -457,8 +457,9 @@ typedef struct {
     /* P2P0/P2P_CL 共用VAP 结构，监听场景下保存VAP 进入监听前的状态 */
     mac_vap_state_enum_uint8        last_vap_state;
     hi_u8                           p2p_ps_pause;                /* P2P 节能是否处于pause状态 */
+    oal_net_device_stru             *pst_p2p_net_device;
     oal_nl80211_channel_type_uint8  listen_channel_type;
-    hi_u8                           resv[7];                     /* reserve 7byte */
+    hi_u8                           resv[3];                     /* reserve 3byte */
     oal_ieee80211_channel_stru      st_listen_channel;
 } mac_p2p_info_stru;
 
