@@ -21,13 +21,14 @@ group("drivers") {
     "hieth-sf",
     "hisi_sdk",
     "i2c",
+    "i2s",
     "mipi_dsi",
     "mmc",
+    "mtd",
     "pwm",
     "rtc",
     "spi",
     "uart",
-    "i2s",
     "watchdog",
   ]
 }
@@ -39,22 +40,26 @@ config("public") {
   if (defined(LOSCFG_DRIVERS_HIEDMAC)) {
     ldflags += [ "-lhiedmac" ]
   }
-  if (defined(LOSCFG_DRIVERS_MTD)) {
-    include_dirs += [ "include/mtd/common/include" ]
-    ldflags += [ "-lmtd_common" ]
-  }
-  if (defined(LOSCFG_DRIVERS_MTD_SPI_NOR)) {
-    if (!defined(LOSCFG_SHELL)) {
-      ldflags += [ "-lspinor_flash_noshell" ]
-    } else {
-      ldflags += [ "-lspinor_flash" ]
+
+  if (!defined(LOSCFG_DRIVERS_HDF_STORAGE_MTD)) {
+    if (defined(LOSCFG_DRIVERS_MTD)) {
+      include_dirs += [ "include/mtd/common/include" ]
+      ldflags += [ "-lmtd_common" ]
+    }
+    if (defined(LOSCFG_DRIVERS_MTD_SPI_NOR)) {
+      if (!defined(LOSCFG_SHELL)) {
+        ldflags += [ "-lspinor_flash_noshell" ]
+      } else {
+        ldflags += [ "-lspinor_flash" ]
+      }
+    }
+    if (defined(LOSCFG_DRIVERS_MTD_NAND)) {
+      ldflags += [ "-lnand_flash" ]
     }
   }
+
   if (defined(LOSCFG_DRIVERS_MMC)) {
     ldflags += [ "-lmmc" ]
-  }
-  if (defined(LOSCFG_DRIVERS_MTD_NAND)) {
-    ldflags += [ "-lnand_flash" ]
   }
   if (defined(LOSCFG_DRIVERS_HDF_WIFI)) {
     ldflags += [ "-lhdf_vendor_wifi" ]

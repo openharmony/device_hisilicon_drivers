@@ -63,6 +63,11 @@ ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_MMC), y)
     LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/mmc
 endif
 
+ifeq ($(LOSCFG_DRIVERS_HDF_STORAGE_MTD), y)
+    LITEOS_BASELIB += -lhdf_mtd_hisilicon
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/mtd
+endif
+
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_RTC), y)
     LITEOS_BASELIB += -lhdf_rtc
     LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/rtc
@@ -118,14 +123,16 @@ ifeq ($(LOSCFG_DRIVERS_MMC), y)
 endif
 
 # mtd drivers
+ifneq ($(LOSCFG_DRIVERS_HDF_STORAGE_MTD), y)
 ifeq ($(LOSCFG_DRIVERS_MTD), y)
-    LITEOS_BASELIB    += -lmtd_common
 ifeq ($(BUILD_FROM_SOURCE), y)
     LIB_SUBDIRS       += $(HISILICON_DRIVERS_SOURCE_ROOT)/mtd/common
     LITEOS_MTD_SPI_NOR_INCLUDE  +=  -I $(HISILICON_DRIVERS_SOURCE_ROOT)/mtd/common/include
 else
     LITEOS_MTD_SPI_NOR_INCLUDE  +=  -I $(HISILICON_DRIVERS_ROOT)/include/mtd/common/include
 endif
+
+    LITEOS_BASELIB    += -lmtd_common
 
     ifeq ($(LOSCFG_DRIVERS_MTD_SPI_NOR), y)
     ifeq ($(LOSCFG_DRIVERS_MTD_SPI_NOR_HISFC350), y)
@@ -156,6 +163,7 @@ endif
         LIB_SUBDIRS      += $(HISILICON_DRIVERS_SOURCE_ROOT)/mtd/nand
         LITEOS_MTD_NAND_INCLUDE  +=  -I $(HISILICON_DRIVERS_ROOT)/mtd/nand/include
     endif
+endif
 endif
 
 # wifi dirvers
