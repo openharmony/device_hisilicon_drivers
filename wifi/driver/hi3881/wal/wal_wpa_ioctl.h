@@ -108,7 +108,7 @@ hi_s32 hwal_ioctl_set_ap(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_change_beacon(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_send_mlme(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_send_eapol(const hi_char *puc_ifname, hi_void *buf);
-hi_s32 hwal_ioctl_set_mode(const hi_char *puc_ifname, hi_void *buf);
+hi_s32 hwal_ioctl_set_mode(const hi_char *puc_ifname, const hi_void *buf);
 hi_s32 hwal_ioctl_receive_eapol(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_enable_eapol(const hi_char *puc_ifname, hi_void *buf);
 hi_s32 hwal_ioctl_disable_eapol(const hi_char *puc_ifname, const hi_void *buf);
