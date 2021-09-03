@@ -1395,7 +1395,7 @@ hi_s32 wal_init_netif(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
 /* 建议5.5误检，在2024行作为strncpy_s函数的第一个参数传入 */
 hi_s32 wal_init_drv_wlan_netdev(nl80211_iftype_uint8 type, wal_phy_mode mode, oal_net_device_stru *netdev)
 {
-    const hi_char *ac_mode_str = NULL;
+    hi_char *ac_mode_str = NULL;
     hi_s32 ret;
     if (oal_unlikely(netdev == HI_NULL)) {
         oam_error_log0(0, OAM_SF_ANY, "{netdev is null!}");
