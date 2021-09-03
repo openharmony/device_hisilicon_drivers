@@ -121,7 +121,7 @@ hi_u32 wal_recover_ini_main_gloabal(hi_void);
 hi_u32 wal_host_dev_exit(const oal_net_device_stru *netdev);
 
 hi_u32 wal_ioctl_set_freq(oal_net_device_stru *netdev, hi_char *pc_param);
-hi_u32 wal_ioctl_set_mode(oal_net_device_stru *netdev, const hi_char *pc_param);
+hi_u32 wal_ioctl_set_mode(oal_net_device_stru *netdev, hi_char *pc_param);
 hi_u32 wal_ioctl_set_essid(oal_net_device_stru *netdev, hi_char *pc_param);
 hi_u32 wal_ioctl_set_txpower(oal_net_device_stru *netdev, hi_char *pc_param);
 hi_u32 wal_get_cmd_one_arg(const hi_char *pc_cmd, hi_char *pc_arg, hi_u32 pc_arg_len, hi_u32 *pul_cmd_offset);
