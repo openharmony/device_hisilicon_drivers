@@ -655,7 +655,7 @@ static hi_u32 wal_ioctl_get_mode(oal_net_device_stru *netdev, hi_s8 *pc_param)
     修改内容   : 新生成函数
 
 **************************************************************************** */
-hi_u32 wal_ioctl_set_mode(oal_net_device_stru *netdev, hi_char *pc_param)
+hi_u32 wal_ioctl_set_mode(oal_net_device_stru *netdev, const hi_char *pc_param)
 {
     hi_char            ac_mode_str[WAL_HIPRIV_CMD_NAME_MAX_LEN] = {0};     /* 预留协议模式字符串空间 */
     hi_u8              prot_idx;
