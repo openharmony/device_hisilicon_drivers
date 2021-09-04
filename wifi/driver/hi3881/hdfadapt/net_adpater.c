@@ -1395,7 +1395,7 @@ hi_s32 wal_init_netif(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
 /* 建议5.5误检，在2024行作为strncpy_s函数的第一个参数传入 */
 hi_s32 wal_init_drv_wlan_netdev(nl80211_iftype_uint8 type, wal_phy_mode mode, oal_net_device_stru *netdev)
 {
-    hi_char              ac_mode_str[40] = {0}; /* 40 预留协议模式字符串空间 */
+    hi_char *ac_mode_str = NULL;
     hi_s32 ret;
     if (oal_unlikely(netdev == HI_NULL)) {
         oam_error_log0(0, OAM_SF_ANY, "{netdev is null!}");
@@ -1412,14 +1412,11 @@ hi_s32 wal_init_drv_wlan_netdev(nl80211_iftype_uint8 type, wal_phy_mode mode, oa
         if (ret != HI_SUCCESS) {
             break;
         }
-        /* 安全编程规则6.6例外（5）源内存全部是静态字符串常量（目标内存已有足够的存储空间） */
-        strcpy_s(ac_mode_str, sizeof(ac_mode_str) / sizeof(ac_mode_str[0]), "11bgn");
+        ac_mode_str = "11bgn";
         if (mode == WAL_PHY_MODE_11G) {
-            /* 安全编程规则6.6例外（5）源内存全部是静态字符串常量（目标内存已有足够的存储空间） */
-            strcpy_s(ac_mode_str, sizeof(ac_mode_str) / sizeof(ac_mode_str[0]), "11bg");
+            ac_mode_str = "11bg";
         } else if (mode == WAL_PHY_MODE_11B) {
-            /* 安全编程规则6.6例外（5）源内存全部是静态字符串常量（目标内存已有足够的存储空间） */
-            strcpy_s(ac_mode_str, sizeof(ac_mode_str) / sizeof(ac_mode_str[0]), "11b");
+            ac_mode_str = "11b";
         }
 
         ret = wal_ioctl_set_mode(netdev, ac_mode_str);
