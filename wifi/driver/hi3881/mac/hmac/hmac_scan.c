@@ -1398,8 +1398,6 @@ hi_u32 hmac_scan_proc_scan_comp_event(frw_event_mem_stru *event_mem)
     scan_mgmt->is_scanning = HI_FALSE;
 
 #ifdef _PRE_WLAN_FEATURE_P2P
-    oam_error_log1(0, OAM_SF_SCAN, "{fd::hmac_scan_proc_scan_comp_event:: hmac_vap->base_vap->vap_state is %d}",
-        hmac_vap->base_vap->vap_state);
     if (hmac_vap->base_vap->vap_state == MAC_VAP_STATE_STA_LISTEN) {
         hmac_p2p_listen_timeout(hmac_vap->base_vap);
     }
