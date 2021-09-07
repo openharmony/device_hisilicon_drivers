@@ -1498,6 +1498,32 @@ hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
     return ret;
 }
 
+hi_s32 DeinitNetdev(nl80211_iftype_uint8 type)
+{
+    char ifName[WIFI_IFNAME_MAX_SIZE] = {0};
+    struct NetDevice *netDevice = NULL;
+    hi_s32 ret = HI_FAIL;
+
+    if (GetIfName(type, ifName, WIFI_IFNAME_MAX_SIZE) != HI_SUCCESS) {
+        HDF_LOGE("%s:get ifName failed!", __func__);
+        return HI_FAIL;
+    }
+    netDevice = NetDeviceGetInstByName(ifName);
+
+    ret = wal_deinit_drv_wlan_netdev(netDevice);
+    if (ret != HDF_SUCCESS) {
+        HDF_LOGE("%s:wal_deinit_drv_wlan_netdev failed!", __func__);
+        return ret;
+    }
+    ret = NetDeviceDeInit(netDevice);
+    if (ret != HDF_SUCCESS) {
+        HDF_LOGE("%s:NetDeviceDeInit failed!", __func__);
+        return ret;
+    }
+
+    return ret;
+}
+
 /* ****************************************************************************
  功能描述  : 去初始化wlan设备
  输入参数  : *ifname 设备名
