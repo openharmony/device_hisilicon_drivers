@@ -425,7 +425,6 @@ hi_u32 wal_cfg80211_add_virtual_intf_p2p_proc(mac_device_stru *mac_device)
 hi_u32 wal_p2p_stop_roc(mac_vap_stru *mac_vap, oal_net_device_stru *netdev)
 {
 #ifdef _PRE_WLAN_FEATURE_P2P
-    oam_error_log0(0, OAM_SF_P2P, "{fd::wal_p2p_stop_roc:: enter...........}\r\n");
     if (mac_vap->vap_state == MAC_VAP_STATE_STA_LISTEN) {
         hmac_vap_stru *hmac_vap = hmac_vap_get_vap_stru(mac_vap->vap_id);
         if (hmac_vap == HI_NULL) {
@@ -473,7 +472,6 @@ hi_s32 wal_drv_remain_on_channel(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, 
         goto fail;
     }
 #endif /* #ifdef _PRE_WLAN_FEATURE_WAPI */
-    oam_error_log1(0, OAM_SF_P2P, "{wal_drv_remain_on_channel::mac_vap->vap_state is %d}\r\n", mac_vap->vap_state);
     if (mac_vap->vap_state == MAC_VAP_STATE_STA_LISTEN) {
         oam_warning_log1(mac_vap->vap_id, OAM_SF_P2P, "{wal_drv_remain_on_channel::new roc type[%d],cancel old roc!}",
             en_roc_type);
@@ -4769,7 +4767,7 @@ hi_s32 wal_cfg80211_mgmt_tx(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_c
         oam_warning_log1(mac_vap->vap_id, OAM_SF_ANY, "{wal_cfg80211_mgmt_tx::wait is 0, set it to %d ms}", wait);
     }
 
-    oam_error_log4(mac_vap->vap_id, OAM_SF_CFG,
+    oam_info_log4(mac_vap->vap_id, OAM_SF_CFG,
         "{wal_cfg80211_mgmt_tx::offchannel[%d].channel[%d]vap state[%d],wait[%d]}\r\n",
         en_need_offchan, mgmt_tx.channel, mac_vap->vap_state, wait);
 #ifdef _PRE_WLAN_FEATURE_P2P
