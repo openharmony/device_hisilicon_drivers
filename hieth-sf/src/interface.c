@@ -45,16 +45,23 @@ static int32_t g_phyModeVal = INVALID_PHY_MODE;
 struct HiethPlatformData *g_stHiethPlatformData = NULL;
 OSAL_DECLARE_SPINLOCK(hiethGlbRegLock);
 extern unsigned long msecs_to_jiffies(const uint32_t msecs);
+#define TIME_MEDIUM 100
+#define TIME_LONG 300
+#define EXCESS_SIZE 4
 
 static bool IsLinkUp(struct EthDevice *ethDevice)
 {
-    NetIfLinkStatus status;
+    NetIfLinkStatus status = NETIF_LINK_DOWN;
 
     if (NetIfGetLinkStatus(ethDevice->netdev, &status) != 0) {
         HDF_LOGE("%s: net device is invalid", __func__);
         return false;
     }
-    return status == NETIF_LINK_UP;
+    if (status == NETIF_LINK_UP) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 static void RestartTimer(OsalTimer *timer, uint32_t interval, OsalTimerFunc func, uintptr_t arg)
@@ -277,7 +284,7 @@ static void HiethDeliver(struct EthDevice *ethDevice)
                 rxPktInfo = HwGetRxpkgInfo(ld);
                 rlen = (rxPktInfo >> BITS_RXPKG_LEN_OFFSET) 
                        & BITS_RXPKG_LEN_MASK;
-                rlen -= 4;
+                rlen -= EXCESS_SIZE;
                 if (rlen > HIETH_MAX_FRAME_SIZE) {
                     HDF_LOGE("ERROR: recv len=%d", rlen);
                 }
@@ -463,7 +470,7 @@ bool HiethHwInit(struct EthDevice *ethDevice)
 
     if (!priv->phy->initDone) {
         HiethHwExternalPhyReset();
-        mdelay(300);
+        mdelay(TIME_LONG);
         priv->phy->initDone = true;
 
         if (g_userSetPhyAddr == PHY_ADDR_SET) {
@@ -499,7 +506,7 @@ bool HiethHwInit(struct EthDevice *ethDevice)
     }
 
     HiethHwExternalPhyReset();
-    mdelay(100);
+    mdelay(TIME_MEDIUM);
     HiethFephyTrim(ld, priv->phy);
     HDF_LOGE("Detected phy addr %d, phyid: 0x%x.", priv->phy->phyAddr, ld->phyId);
 
