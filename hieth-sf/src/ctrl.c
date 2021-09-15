@@ -181,16 +181,14 @@ int32_t HiethHwSetMacAddress(struct HiethNetdevLocal *ld, int32_t ena, const uin
     reg = mac[1] | (mac[0] << 8);
     if (ld->port == UP_PORT) {
         HiethWrite(ld, reg, GLB_HOSTMAC_H16);
-    }
-    else {
+    } else {
         HiethWrite(ld, reg, GLB_DN_HOSTMAC_H16);
     }
 
     reg = mac[5] | (mac[4] << 8) | (mac[3] << 16) | (mac[2] << 24);
     if (ld->port == UP_PORT) {
         HiethWrite(ld, reg, GLB_HOSTMAC_L32);
-    }
-    else {
+    } else {
         HiethWrite(ld, reg, GLB_DN_HOSTMAC_L32);
     }
     return HDF_SUCCESS;
@@ -202,8 +200,7 @@ int32_t HiethHwGetMacAddress(struct HiethNetdevLocal *ld, uint8_t *mac)
 
     if (ld->port == UP_PORT) {
         reg = HiethRead(ld, GLB_HOSTMAC_H16);
-    }
-    else {
+    } else {
         reg = HiethRead(ld, GLB_DN_HOSTMAC_H16);
     }
     mac[0] = (reg >> 8) & 0xff;
@@ -211,8 +208,7 @@ int32_t HiethHwGetMacAddress(struct HiethNetdevLocal *ld, uint8_t *mac)
 
     if (ld->port == UP_PORT) {
         reg = HiethRead(ld, GLB_HOSTMAC_L32);
-    }
-    else {
+    } else {
         reg = HiethRead(ld, GLB_DN_HOSTMAC_L32);
     }
     mac[2] = (reg >> 24) & 0xff;
@@ -401,8 +397,8 @@ int32_t HiethFeedHw(struct HiethNetdevLocal *ld, HiethPriv *priv)
         }
 
         /* drop some bytes for making alignment of net dma cache */
-        netBuf->bufs[E_DATA_BUF].offset += (ALIGN((uintptr_t)NetBufGetAddress(netBuf, E_DATA_BUF), CACHE_ALIGNED_SIZE) - 
-            (uintptr_t)NetBufGetAddress(netBuf, E_DATA_BUF));
+        netBuf->bufs[E_DATA_BUF].offset += (ALIGN((uintptr_t)NetBufGetAddress(netBuf, E_DATA_BUF),
+            CACHE_ALIGNED_SIZE) - (uintptr_t)NetBufGetAddress(netBuf, E_DATA_BUF));
 
 #if ETH_PAD_SIZE
         /* drop the padding word */
