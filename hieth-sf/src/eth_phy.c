@@ -45,7 +45,7 @@ bool HiethGetPhyStat(struct HiethNetdevLocal *ld, EthPhyAccess *phyAccess, uint3
         if ((uint32_t)phyState & BMSR_LINK) {
             *state |= ETH_PHY_STAT_LINK;
         }
-         return true;
+        return true;
     }
     return false;
 }

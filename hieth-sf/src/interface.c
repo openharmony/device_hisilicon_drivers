@@ -277,7 +277,6 @@ static void HiethDeliver(struct EthDevice *ethDevice)
     HiethClearIrqstatus(ld, UD_BIT_NAME(HIETH_INT_TXQUE_RDY));
 
     ints = HiethReadIrqstatus(ld);
-
     if (ints & BITS_IRQS_MASK_U) {
         if ((ints & UD_BIT_NAME(HIETH_INT_MULTI_RXRDY))) {
             while (IsRecvPacket(ld)) {
