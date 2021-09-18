@@ -1635,7 +1635,7 @@ hi_u32 wal_cfg80211_del_p2p_proc(wal_msg_write_stru *write_msg, oal_net_device_s
 {
 #ifdef _PRE_WLAN_FEATURE_P2P
     wlan_p2p_mode_enum_uint8 p2p_mode =
-    wal_wireless_iftype_to_mac_p2p_mode(GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype);
+        wal_wireless_iftype_to_mac_p2p_mode(GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype);
     if (p2p_mode == WLAN_P2P_BUTT) {
         oam_error_log0(0, OAM_SF_ANY, "{wal_cfg80211_del_virtual_intf::get p2p mode err}");
         return HI_ERR_CODE_PTR_NULL;
