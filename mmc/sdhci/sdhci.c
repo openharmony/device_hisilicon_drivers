@@ -15,7 +15,6 @@
 
 #include "sdhci.h"
 #include "sdhci_proc.h"
-#include "securec.h"
 
 #define HDF_LOG_TAG sdhci_adapter
 
