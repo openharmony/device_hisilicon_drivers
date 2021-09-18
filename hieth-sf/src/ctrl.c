@@ -123,7 +123,7 @@ void HiethHwMacCoreInit(struct HiethNetdevLocal *ld)
     ld->txHwCnt = 0;
 
     /* setup hardware */
-    HiethSetHwqDepth(ld);
+    (void)HiethSetHwqDepth(ld);
 }
 
 void HiethHwExternalPhyReset(void)
