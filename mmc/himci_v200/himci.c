@@ -15,7 +15,6 @@
 
 #include "himci.h"
 #include "himci_proc.h"
-#include "securec.h"
 
 #define HDF_LOG_TAG himci_adapter
 
@@ -761,6 +760,36 @@ static bool HimciWaitCardComplete(struct HimciHost *host)
     return false;
 }
 
+static int32_t HimciCmdDatePrepare(struct MmcCntlr *cntlr, struct MmcCmd *cmd, struct HimciHost *host)
+{
+    int32_t ret;
+    host->cmd = cmd;
+    if (cmd->data != NULL) {
+        if (HimciIsMultiBlock(cmd) == true && HimciNeedAutoStop(cntlr) == false) {
+            ret = HimciSendCmd23(host, cmd->data->blockNum);
+            if (ret != HDF_SUCCESS) {
+                cmd->returnError = ret;
+                return ret;
+            }
+        }
+        host->cmd = cmd;
+        ret = HimciFillDmaSg(host, cmd->data);
+        if (ret != HDF_SUCCESS) {
+            return ret;
+        }
+        ret = HimciSetupData(host, cmd->data);
+        if (ret != HDF_SUCCESS) {
+            cmd->data->returnError = ret;
+            HDF_LOGE("setup data fail, err = %d.", ret);
+            return ret;
+        }
+    } else {
+        HIMCI_WRITEL(0, (uintptr_t)host->base + MMC_BYTCNT);
+        HIMCI_WRITEL(0, (uintptr_t)host->base + MMC_BLKSIZ);
+    }
+    return HDF_SUCCESS;
+}
+
 static int32_t HimciDoRequest(struct MmcCntlr *cntlr, struct MmcCmd *cmd)
 {
     struct HimciHost *host = NULL;
@@ -783,29 +812,8 @@ static int32_t HimciDoRequest(struct MmcCntlr *cntlr, struct MmcCmd *cmd)
         goto _END;
     }
 
-    host->cmd = cmd;
-    if (cmd->data != NULL) {
-        if (HimciIsMultiBlock(cmd) == true && HimciNeedAutoStop(cntlr) == false) {
-            ret = HimciSendCmd23(host, cmd->data->blockNum);
-            if (ret != HDF_SUCCESS) {
-                cmd->returnError = ret;
-                goto _END;
-            }
-        }
-        host->cmd = cmd;
-        ret = HimciFillDmaSg(host, cmd->data);
-        if (ret != HDF_SUCCESS) {
-            return ret;
-        }
-        ret = HimciSetupData(host, cmd->data);
-        if (ret != HDF_SUCCESS) {
-            cmd->data->returnError = ret;
-            HDF_LOGE("setup data fail, err = %d.", ret);
-            goto _END;
-        }
-    } else {
-        HIMCI_WRITEL(0, (uintptr_t)host->base + MMC_BYTCNT);
-        HIMCI_WRITEL(0, (uintptr_t)host->base + MMC_BLKSIZ);
+    if (HimciCmdDatePrepare(cntlr, cmd, host) !=  HDF_SUCCESS) {
+        goto _END;
     }
 
     ret = HimciExecCmd(host);
