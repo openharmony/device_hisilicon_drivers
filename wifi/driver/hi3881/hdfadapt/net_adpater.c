@@ -1243,7 +1243,7 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
         return HI_FAIL;
     }
 #ifdef _PRE_WLAN_FEATURE_P2P
-    /* 填写下发net_device 对应p2p 模式 */
+    /* Enter the P2P mode for delivering net_device */
     oal_wireless_dev *wdev = (oal_wireless_dev *)netdev->ieee80211Ptr;
     param->p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(wdev->iftype);
     if (param->p2p_mode == WLAN_P2P_BUTT) {
@@ -1440,7 +1440,7 @@ int32_t GetIfName(nl80211_iftype_uint8 type, char *ifName, uint32_t len)
     }
     switch (type) {
         case NL80211_IFTYPE_P2P_DEVICE:
-            if (snprintf_s(ifName, len, len-1, "p2p%d", 0) < 0) {
+            if (snprintf_s(ifName, len, len - 1, "p2p%d", 0) < 0) {
                 HDF_LOGE("%s:format ifName failed!", __func__);
                 return HI_FAIL;
             }
@@ -1448,7 +1448,7 @@ int32_t GetIfName(nl80211_iftype_uint8 type, char *ifName, uint32_t len)
         case NL80211_IFTYPE_P2P_CLIENT:
             /*  fall-through */
         case NL80211_IFTYPE_P2P_GO:
-            if (snprintf_s(ifName, len, len-1, "p2p-p2p0-%d", 0) < 0) {
+            if (snprintf_s(ifName, len, len - 1, "p2p-p2p0-%d", 0) < 0) {
                 HDF_LOGE("%s:format ifName failed!", __func__);
                 return HI_FAIL;
             }
