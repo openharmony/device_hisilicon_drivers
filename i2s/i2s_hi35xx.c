@@ -538,10 +538,10 @@ static int32_t I2sInit(struct I2sCntlr *cntlr, const struct HdfDeviceObject *dev
     configInfo->txVirData = NULL;
 
     // CLK RESET
-    PeriCrg103Set(configInfo);
+    (void)PeriCrg103Set(configInfo);
 
-    AiaoInit(configInfo);
-    CodecInit(configInfo);
+    (void)AiaoInit(configInfo);
+    (void)CodecInit(configInfo);
 
     cntlr->priv = configInfo;
     cntlr->method = &g_i2sCntlrMethod;
