@@ -98,6 +98,11 @@ ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_DSI), y)
     LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/mipi_dsi
 endif
 
+ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_CSI), y)
+    LITEOS_BASELIB += -lhdf_mipi_csi
+    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/mipi_csi
+endif
+
 ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_DMAC), y)
     LITEOS_BASELIB += -lhdf_dmac
     LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/dmac
