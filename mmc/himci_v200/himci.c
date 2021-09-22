@@ -664,7 +664,9 @@ static void HimciClearDmaSg(struct HimciHost *host, struct MmcData *data)
     len = data->blockNum * data->blockSize;
     if (host->alignedBuff != NULL && data->dataBuffer != NULL && len > 0 && host->buffLen > 0) {
         if ((data->dataFlags & DATA_READ) > 0) {
-            (void)memcpy_s(data->dataBuffer, len, host->alignedBuff, host->buffLen);
+            if (memcpy_s(data->dataBuffer, len, host->alignedBuff, host->buffLen) != EOK) {
+                HDF_LOGE("%s: memcpy_s failed!", __func__);
+            }
         }
     }
     if (host->alignedBuff != NULL) {
