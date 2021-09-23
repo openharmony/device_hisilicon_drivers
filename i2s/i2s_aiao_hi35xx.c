@@ -669,9 +669,6 @@ int32_t UpdateTxBuffData(struct I2sConfigInfo *i2sCfg, struct I2sMsg *msgs, uint
     uint32_t ddrtxDataLen;
     uint32_t txWptr = Hi35xxI2sRegRead(i2sCfg->regBase + TX_BUFF_WPTR);
     uint32_t txRptr = Hi35xxI2sRegRead(i2sCfg->regBase + TX_BUFF_RPTR);
-
-
-
     if (txRptr <= txWptr) {
         ddrtxDataLen = i2sCfg->txSize - (txWptr - txRptr);
         if (ddrtxDataLen < (msgs->len + I2S_TX_DATA_MIN)) {
