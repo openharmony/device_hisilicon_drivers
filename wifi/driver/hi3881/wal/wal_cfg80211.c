@@ -1634,7 +1634,8 @@ static oal_wireless_dev *wal_cfg80211_add_virtual_intf(oal_wiphy_stru *wiphy, co
 hi_u32 wal_cfg80211_del_p2p_proc(wal_msg_write_stru *write_msg, oal_net_device_stru *netdev, mac_vap_stru *mac_vap)
 {
 #ifdef _PRE_WLAN_FEATURE_P2P
-    wlan_p2p_mode_enum_uint8 p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype);
+    wlan_p2p_mode_enum_uint8 p2p_mode =
+        wal_wireless_iftype_to_mac_p2p_mode(GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype);
     if (p2p_mode == WLAN_P2P_BUTT) {
         oam_error_log0(0, OAM_SF_ANY, "{wal_cfg80211_del_virtual_intf::get p2p mode err}");
         return HI_ERR_CODE_PTR_NULL;
@@ -4247,7 +4248,7 @@ hi_u32 wal_cfg80211_change_virtual_intf(oal_wiphy_stru *wiphy, oal_net_device_st
             (uintptr_t)netdev, (uintptr_t)params);
         return HI_ERR_CODE_PTR_NULL;
     }
-    oam_warning_log1(0, OAM_SF_CFG, "wal_cfg80211_change_virtual_intf::iftype[%d],enter",type);
+    oam_warning_log1(0, OAM_SF_CFG, "wal_cfg80211_change_virtual_intf::iftype[%d],enter", type);
 
     if (GET_NET_DEV_CFG80211_WIRELESS(netdev) == NULL)
     {
@@ -4792,7 +4793,7 @@ hi_s32 wal_cfg80211_mgmt_tx(oal_wiphy_stru *wiphy, oal_wireless_dev *wdev, oal_c
         ret = wal_mgmt_do_tx(netdev, &mgmt_tx, en_need_offchan, wait);
         retry++;
     } while ((ret != HI_SUCCESS) && (ret != HI_INVALID) && (retry < = WAL_MGMT_TX_RETRY_CNT) && 
-        (oal_time_before(OAL_TIME_JIFFY, start_time_stamp + OAL_MSECS_TO_JIFFIES(wait))));
+        (oal_time_before(start_time_stamp, start_time_stamp + OAL_MSECS_TO_JIFFIES(wait))));
 
     if (ret != HI_SUCCESS) {
         /* 发送失败，处理超时帧的bitmap */
