@@ -1501,10 +1501,13 @@ hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
 
 hi_s32 DeinitNetdev(nl80211_iftype_uint8 type)
 {
-    char ifName[WIFI_IFNAME_MAX_SIZE] = {0};
     struct NetDevice *netDevice = NULL;
     hi_s32 ret;
-
+    char *ifName = (char *)oal_mem_alloc(OAL_MEM_POOL_ID_LOCAL, WIFI_IFNAME_MAX_SIZE);
+    if (oal_unlikely(ifName == HI_NULL)) {
+        oam_error_log0(0, OAM_SF_ANY, "{alloc mem, pst_ifName is null ptr!}");
+        return HI_ERR_CODE_PTR_NULL;
+    }
     if (GetIfName(type, ifName, WIFI_IFNAME_MAX_SIZE) != HI_SUCCESS) {
         HDF_LOGE("%s:get ifName failed!", __func__);
         return HI_FAIL;
@@ -1521,7 +1524,10 @@ hi_s32 DeinitNetdev(nl80211_iftype_uint8 type)
         HDF_LOGE("%s:NetDeviceDeInit failed!", __func__);
         return ret;
     }
-
+    if (ifName != HI_NULL) {
+        oal_mem_free(ifName);
+    }
+    
     return ret;
 }
 
