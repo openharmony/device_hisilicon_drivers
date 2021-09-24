@@ -21,7 +21,6 @@
 #include "asm/platform.h"
 #include "device_resource_if.h"
 #include "linux/scatterlist.h"
-#include "los_bitmap.h"
 #include "los_event.h"
 #include "los_vm_iomap.h"
 #include "los_vm_zone.h"

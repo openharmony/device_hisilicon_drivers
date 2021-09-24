@@ -1566,7 +1566,7 @@ static void HimciHostRegistersInit(struct HimciHost *host)
     /*
      * Walkaround: controller config gpio
      * the value of this register should be 0x80a400,
-     * but the reset value is 0xa400. 
+     * but the reset value is 0xa400.
      */
     value = HIMCI_READL((uintptr_t)host->base + MMC_GPIO);
     value |= DTO_FIX_ENABLE;
@@ -1653,7 +1653,7 @@ static struct MmcCntlrOps g_himciHostOps = {
 static uint32_t HimciCmdIrq(struct HimciHost *host, uint32_t state)
 {
     struct MmcCmd *cmd = host->cmd;
-    struct MmcData *data = cmd->data;
+    struct MmcData *data = NULL;
     uint32_t writeEvent = 0;
     uint32_t mask;
     int32_t error = HDF_SUCCESS;
@@ -1665,13 +1665,17 @@ static uint32_t HimciCmdIrq(struct HimciHost *host, uint32_t state)
     }
 
     mask = (CD_INT_STATUS | VOLT_SWITCH_INT_STATUS);
+    if (cmd != NULL) {
+        data = cmd->data;
+    }
     if (data == NULL && (state & mask) > 0) {
         writeEvent = 1;
     }
 
-    /* If there is a response timeout(RTO) error,
+    /*
+     * If there is a response timeout(RTO) error,
      * then the DWC_mobile_storage does not attempt any data transfer and
-     * the “Data Transfer Over” bit is never set.
+     * the "data Transfer Over" bit is never set.
      */
     mask = (CD_INT_STATUS | RTO_INT_STATUS);
     if ((state & mask) == mask) {
