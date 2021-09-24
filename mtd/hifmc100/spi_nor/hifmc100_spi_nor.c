@@ -371,7 +371,7 @@ static int32_t HifmcCntlrDmaWriteRead(struct MtdDevice *mtdDevice, off_t offset,
 
     sizeR = len;
 
-    for (i = 0, num=*sizeArray[0]; i < (sizeof(sizeArray) / sizeof(sizeArray[0])); i++) {
+    for (i = 0, num = *sizeArray[0]; i < (sizeof(sizeArray) / sizeof(sizeArray[0])); i++) {
         num = *sizeArray[i];
         if (num == 0) {
             continue;
@@ -383,7 +383,7 @@ static int32_t HifmcCntlrDmaWriteRead(struct MtdDevice *mtdDevice, off_t offset,
             }
         }
         ret = HifmcCntlrDmaTransfer(cntlr, spi, offset,
-            (uint8_t *)(uintptr_t)LOS_PaddrQuery((void *)(i != 1 ? cntlr->dmaBuffer : buf)), num, wr);
+            (uint8_t *)(uintptr_t)LOS_PaddrQuery((void *)((i != 1) ? (cntlr->dmaBuffer) : buf)), num, wr);
         if (ret != HDF_SUCCESS) {
             HDF_LOGE("%s: size[%d] = %u dma trans failed", __func__, i, num);
             return HDF_ERR_IO;
