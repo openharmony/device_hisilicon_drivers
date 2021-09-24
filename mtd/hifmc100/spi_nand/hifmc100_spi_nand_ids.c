@@ -129,7 +129,7 @@ static int32_t HifmcCntlrSpinandQeEnableDefault(struct SpiFlash *spi)
         feature &= ~MTD_SPI_FEATURE_QE_ENABLE;
     }
 #ifdef MTD_DEBUG
-    HDF_LOGD("%s: spi nand %s quad", __func__, enable == 1 ? "enable" : "disable");
+    HDF_LOGD("%s: spi nand %s quad", __func__, (enable == 1) ? "enable" : "disable");
 #endif
     ret = HifmcCntlrDevFeatureOp(cntlr, spi, false, MTD_SPI_NAND_FEATURE_ADDR, &feature);
     if (ret != HDF_SUCCESS) {
@@ -142,10 +142,10 @@ static int32_t HifmcCntlrSpinandQeEnableDefault(struct SpiFlash *spi)
         return ret;
     }
     if (!!(feature & MTD_SPI_FEATURE_QE_ENABLE) == enable) {
-        HDF_LOGD("%s: spi nand %s quad success", __func__, enable == 1 ? "enable" : "disable");
+        HDF_LOGD("%s: spi nand %s quad success", __func__, (enable == 1) ? "enable" : "disable");
         return HDF_SUCCESS;
     } else {
-        HDF_LOGE("%s: spi nand %s quad failed", __func__, enable == 1 ? "enable" : "disable");
+        HDF_LOGE("%s: spi nand %s quad failed", __func__, (enable == 1) ? "enable" : "disable");
         return HDF_ERR_IO;
     }
 }
