@@ -1527,7 +1527,6 @@ hi_s32 DeinitNetdev(nl80211_iftype_uint8 type)
     if (ifName != HI_NULL) {
         oal_mem_free(ifName);
     }
-    
     return ret;
 }
 
