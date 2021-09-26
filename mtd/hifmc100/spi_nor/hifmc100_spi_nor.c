@@ -414,7 +414,7 @@ static int32_t HifmcCntlrDmaWriteRead(struct MtdDevice *mtdDevice, off_t offset,
 
     sizeR = len;
 
-    for (i = 0, num=*sizeArray[0]; i < (sizeof(sizeArray) / sizeof(sizeArray[0])); i++) {
+    for (i = 0, num = * sizeArray[0]; i < (sizeof(sizeArray) / sizeof(sizeArray[0])); i++) {
         num = *sizeArray[i];
         ret = HifmcCntlrDmaWriteReadOnce(spi, offset, buf, num, wr);
         if (ret != HDF_SUCCESS) {

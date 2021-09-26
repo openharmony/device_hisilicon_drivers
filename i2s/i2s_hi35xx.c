@@ -86,7 +86,10 @@ static int32_t Hi35xxI2sDisable(struct I2sCntlr *cntlr)
     }
 
     struct I2sConfigInfo *i2sCfg = (struct I2sConfigInfo *)cntlr->priv;
-    Hi35xxI2sRegWrite(0x0, i2sCfg->crg103Addr);
+    if (Hi35xxI2sRegWrite(0x0, i2sCfg->crg103Addr) != HDF_SUCCESS) {
+        I2S_PRINT_LOG_ERR("%s: Hi35xxI2sRegWrite i2sCfg->crg103Addr failed", __func__);
+        return HDF_FAILURE;
+    }
 
     return HDF_SUCCESS;
 }
@@ -230,7 +233,10 @@ static int32_t Hi35xxI2sStopWrite(struct I2sCntlr *cntlr)
     uint32_t value = Hi35xxI2sRegRead(i2sCfg->regBase + TX_DSP_CTRL);
     value &= ~TX_DISABLE;
     value |= (0x0 << TX_DISABLE_SHIFT);
-    Hi35xxI2sRegWrite(value, i2sCfg->regBase + TX_DSP_CTRL);
+    if (Hi35xxI2sRegWrite(value, i2sCfg->regBase + TX_DSP_CTRL) != HDF_SUCCESS) {
+        I2S_PRINT_LOG_ERR("%s: Hi35xxI2sRegWrite i2sCfg->regBase + TX_DSP_CTRL failed", __func__);
+        return HDF_FAILURE;
+    }
 
     while (1) {
         value = Hi35xxI2sRegRead(i2sCfg->regBase + TX_DSP_CTRL);
@@ -300,7 +306,10 @@ static int32_t Hi35xxI2sStopRead(struct I2sCntlr *cntlr)
     uint32_t value = Hi35xxI2sRegRead(i2sCfg->regBase + RX_DSP_CTRL);
     value &= ~RX_DISABLE;
     value |= (0x0 << RX_DISABLE_SHIFT);
-    Hi35xxI2sRegWrite(value, i2sCfg->regBase + RX_DSP_CTRL);
+    if (Hi35xxI2sRegWrite(value, i2sCfg->regBase + RX_DSP_CTRL) != HDF_SUCCESS) {
+        I2S_PRINT_LOG_ERR("%s: Hi35xxI2sRegWrite i2sCfg->regBase + RX_DSP_CTRL failed", __func__);
+        return HDF_FAILURE;
+    }
 
     while (1) {
         value = Hi35xxI2sRegRead(i2sCfg->regBase + RX_DSP_CTRL);
@@ -349,7 +358,10 @@ static int32_t Hi35xxI2sRead(struct I2sCntlr *cntlr, struct I2sMsg *msgs)
         return HDF_SUCCESS;
     }
 
-    Hi35xxI2sRegWrite(rptrOffset, i2sCfg->regBase + RX_BUFF_RPTR);
+    if (Hi35xxI2sRegWrite(rptrOffset, i2sCfg->regBase + RX_BUFF_RPTR) != HDF_SUCCESS) {
+        I2S_PRINT_LOG_ERR("%s: Hi35xxI2sRegWrite i2sCfg->regBase + RX_BUFF_RPTR failed", __func__);
+        return HDF_FAILURE;
+    }
     return HDF_SUCCESS;
 }
 
@@ -394,7 +406,11 @@ static int32_t Hi35xxI2sWrite(struct I2sCntlr *cntlr, struct I2sMsg *msgs)
         I2S_PRINT_LOG_DBG("%s: tx buff full, wait to write.", __func__);
         return HDF_SUCCESS;
     }
-    Hi35xxI2sRegWrite(offset, i2sCfg->regBase + TX_BUFF_WPTR);
+
+    if (Hi35xxI2sRegWrite(offset, i2sCfg->regBase + TX_BUFF_WPTR) != HDF_SUCCESS) {
+        I2S_PRINT_LOG_ERR("%s: Hi35xxI2sRegWrite i2sCfg->regBase + TX_BUFF_WPTR failed", __func__);
+        return HDF_FAILURE;
+    }
 
     return HDF_SUCCESS;
 }
@@ -499,7 +515,10 @@ static int32_t PeriCrg103Set(struct I2sConfigInfo *configInfo)
         return HDF_FAILURE;
     }
 
-    Hi35xxI2sRegWrite(configInfo->PERICRG103, configInfo->crg103Addr);
+    if (Hi35xxI2sRegWrite(configInfo->PERICRG103, configInfo->crg103Addr) != HDF_SUCCESS) {
+        I2S_PRINT_LOG_ERR("%s: Hi35xxI2sRegWrite configInfo->crg103Addr failed", __func__);
+        return HDF_FAILURE;
+    }
 
     return HDF_SUCCESS;
 }
@@ -539,7 +558,6 @@ static int32_t I2sInit(struct I2sCntlr *cntlr, const struct HdfDeviceObject *dev
 
     // CLK RESET
     (void)PeriCrg103Set(configInfo);
-
     (void)AiaoInit(configInfo);
     (void)CodecInit(configInfo);
 
