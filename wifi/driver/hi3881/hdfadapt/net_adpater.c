@@ -1510,6 +1510,7 @@ hi_s32 DeinitNetdev(nl80211_iftype_uint8 type)
     }
     if (GetIfName(type, ifName, WIFI_IFNAME_MAX_SIZE) != HI_SUCCESS) {
         HDF_LOGE("%s:get ifName failed!", __func__);
+        oal_mem_free(ifName);
         return HI_FAIL;
     }
     netDevice = NetDeviceGetInstByName(ifName);
