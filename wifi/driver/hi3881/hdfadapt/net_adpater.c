@@ -1518,11 +1518,13 @@ hi_s32 DeinitNetdev(nl80211_iftype_uint8 type)
     ret = wal_deinit_drv_wlan_netdev(netDevice);
     if (ret != HDF_SUCCESS) {
         HDF_LOGE("%s:wal_deinit_drv_wlan_netdev failed!", __func__);
+        oal_mem_free(ifName);
         return ret;
     }
     ret = NetDeviceDeInit(netDevice);
     if (ret != HDF_SUCCESS) {
         HDF_LOGE("%s:NetDeviceDeInit failed!", __func__);
+        oal_mem_free(ifName);
         return ret;
     }
     if (ifName != HI_NULL) {
