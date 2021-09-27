@@ -334,6 +334,49 @@ static int32_t HifmcCntlrDmaTransfer(struct HifmcCntlr *cntlr, struct SpiFlash *
     return HDF_SUCCESS;
 }
 
+static int32_t HifmcCntlrDmaWriteReadOnce(struct SpiFlash *spi, off_t offset, uint8_t *buf, size_t num, int wr)
+{
+    int32_t ret;
+    struct HifmcCntlr *cntlr = (struct HifmcCntlr *)spi->mtd.cntlr;
+
+    if (num == 0) {
+        return HDF_SUCCESS;
+    }
+
+    if (num > HIFMC_DMA_ALIGN_MASK) {
+        if (((uintptr_t)buf & HIFMC_DMA_ALIGN_MASK) != 0) {
+            HDF_LOGE("%s: block buf not aligned by : %u", __func__, HIFMC_DMA_ALIGN_MASK);
+            return HDF_ERR_INVALID_PARAM;
+        }
+        ret = HifmcCntlrDmaTransfer(cntlr, spi, offset,
+            (uint8_t *)(uintptr_t)LOS_PaddrQuery((void *)(buf)), num, wr);
+        return ret;
+    }
+
+    if (wr == 1) { // write
+        if (LOS_CopyToKernel((void *)cntlr->dmaBuffer, num, (void *)buf, num) != 0) {
+            HDF_LOGE("%s: copy from user failed, num = %zu", __func__, num);
+            return HDF_ERR_IO;
+        }
+    }
+
+    ret = HifmcCntlrDmaTransfer(cntlr, spi, offset,
+        (uint8_t *)(uintptr_t)LOS_PaddrQuery((void *)(cntlr->dmaBuffer)), num, wr);
+    if (ret != HDF_SUCCESS) {
+        HDF_LOGE("%s: dma transfer failed : %d(num = %zu)", __func__, ret, num);
+        return ret;
+    }
+
+    if (wr == 0) { // read
+        if (LOS_CopyFromKernel((void *)buf, num, (void *)cntlr->dmaBuffer, num) != 0) {
+            HDF_LOGE("%s: copy to user failed, num = %zu", __func__, num);
+            return HDF_ERR_IO;
+        }
+    }
+
+    return ret;    
+}
+
 static int32_t HifmcCntlrDmaWriteRead(struct MtdDevice *mtdDevice, off_t offset, size_t len, uint8_t *buf, int wr)
 {
     unsigned int i;
@@ -371,28 +414,12 @@ static int32_t HifmcCntlrDmaWriteRead(struct MtdDevice *mtdDevice, off_t offset,
 
     sizeR = len;
 
-    for (i = 0, num = *sizeArray[0]; i < (sizeof(sizeArray) / sizeof(sizeArray[0])); i++) {
+    for (i = 0, num = * sizeArray[0]; i < (sizeof(sizeArray) / sizeof(sizeArray[0])); i++) {
         num = *sizeArray[i];
-        if (num == 0) {
-            continue;
-        }
-        if (i != 1 && wr != 0) {
-            if (LOS_CopyToKernel((void *)cntlr->dmaBuffer, num, (void *)buf, num) != 0) {
-                HDF_LOGE("%s: size[%d] = %u memcpy failed", __func__, i, num);
-                return HDF_ERR_IO;
-            }
-        }
-        ret = HifmcCntlrDmaTransfer(cntlr, spi, offset,
-            (uint8_t *)(uintptr_t)LOS_PaddrQuery((void *)((i != 1) ? (cntlr->dmaBuffer) : buf)), num, wr);
+        ret = HifmcCntlrDmaWriteReadOnce(spi, offset, buf, num, wr);
         if (ret != HDF_SUCCESS) {
-            HDF_LOGE("%s: size[%d] = %u dma trans failed", __func__, i, num);
+            HDF_LOGE("%s: dma trans failed(num = %zu)", __func__, num);
             return HDF_ERR_IO;
-        }
-        if (i != 1 && wr == 0) {
-            if (LOS_CopyFromKernel((void *)buf, num, (void *)cntlr->dmaBuffer, num) != 0) {
-                HDF_LOGE("%s: size[%d] = %u memcpy failed", __func__, i, num);
-                return HDF_ERR_IO;
-            }
         }
         offset += num;
         buf += num;
