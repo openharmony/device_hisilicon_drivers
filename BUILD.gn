@@ -22,6 +22,7 @@ group("drivers") {
     "hisi_sdk",
     "i2c",
     "i2s",
+    "mipi_csi",
     "mipi_dsi",
     "mmc",
     "mtd",
