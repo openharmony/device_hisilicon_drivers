@@ -83,7 +83,8 @@ Note:If the text contains special characters, please escape them according to th
             <filefilter name="copyrightPolicyFilter" desc="Filters for copyright header policies" >
                 <filteritem type="filename" name="LICENSE" desc="license file"/>
                 <filteritem type="filename" name="README.OpenSource"/>
-                <filteritem type="filename" name="README"/>
+		<filteritem type="filename" name="README"/>
+		<filteritem type="filename" name="BUILD.gn" desc="build scripts"/>
                 <filteritem type="filepath" name="dir name underproject/.*" desc="Describe the reason for filtering scan results"/>
             </filefilter>
             <filefilter name="licenseFileNamePolicyFilter" desc="Filters for LICENSE file policies" >
