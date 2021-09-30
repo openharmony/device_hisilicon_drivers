@@ -18,7 +18,6 @@
 #include "mipi_rx_reg.h"
 #include "osal_io.h"
 #include "osal_irq.h"
-#include "osal_mem.h"
 #include "osal_time.h"
 
 #ifdef __cplusplus
