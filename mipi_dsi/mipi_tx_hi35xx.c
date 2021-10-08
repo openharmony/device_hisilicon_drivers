@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include "mipi_tx_hi35xx.h"
 #include "hdf_log.h"
 #include <los_hw.h>
@@ -359,11 +360,12 @@ static void MipiTxDrvSetPhyHsLpSwitchTime(const MipiTxPhyTimingParamTag *tp)
 
 static void MipiTxDrvSetPhyCfg(const ComboDevCfgTag *cfg)
 {
+    MipiTxPhyTimingParamTag tp = {0};
+
     if (cfg == NULL) {
         HDF_LOGE("%s: cfg is NULL!", __func__);
         return;
     }
-    MipiTxPhyTimingParamTag tp = {0};
 
     /* set phy pll parameters setx */
     MipiTxDrvSetPhyPllSetX(cfg->phyDataRate);
