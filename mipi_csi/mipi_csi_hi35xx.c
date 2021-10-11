@@ -15,10 +15,7 @@
  
 #include "mipi_csi_hi35xx.h"
 #include "hdf_log.h"
-#include "mipi_csi_core.h"
-#include "mipi_csi_dev.h"
 #include "mipi_rx_hi2121.h"
-#include "osal_mem.h"
 #include "securec.h"
 
 #ifdef __cplusplus

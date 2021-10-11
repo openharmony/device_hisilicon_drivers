@@ -20,7 +20,6 @@
 #include "osal_io.h"
 #include "osal_irq.h"
 #include "osal_time.h"
-#include "uart_if.h"
 #include "uart_pl011.h"
 
 #define HDF_LOG_TAG       uart_pl011
