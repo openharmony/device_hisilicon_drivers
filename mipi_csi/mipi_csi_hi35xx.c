@@ -1000,7 +1000,7 @@ static void Hi35xxGetPhyErrIntCnt(struct MipiCsiCntlr *cntlr, unsigned int phyId
         HDF_LOGE("%s: [MipiRxHalGetPhyErrIntCnt] failed.", __func__);
         return;
     }
-    ret = memcpy_s(errInfo, sizeof(PhyErrIntCnt), &err, sizeof(PhyErrIntCnt));
+    ret = memcpy_s(errInfo, sizeof(PhyErrIntCnt), err, sizeof(PhyErrIntCnt));
     if (ret != EOK) {
         HDF_LOGE("%s: [memcpy_s] failed.", __func__);
     } else {
@@ -1019,7 +1019,7 @@ static void Hi35xxGetMipiErrInt(struct MipiCsiCntlr *cntlr, unsigned int phyId, 
         HDF_LOGE("%s: [MipiRxHalGetMipiErrInt] failed.", __func__);
         return;
     }
-    ret = memcpy_s(errInfo, sizeof(MipiErrIntCnt), &err, sizeof(MipiErrIntCnt));
+    ret = memcpy_s(errInfo, sizeof(MipiErrIntCnt), err, sizeof(MipiErrIntCnt));
     if (ret != EOK) {
         HDF_LOGE("%s: [memcpy_s] failed.", __func__);
     } else {
@@ -1038,7 +1038,7 @@ static void Hi35xxGetLvdsErrIntCnt(struct MipiCsiCntlr *cntlr, unsigned int phyI
         HDF_LOGE("%s: [MipiRxHalGetLvdsErrIntCnt] failed.", __func__);
         return;
     }
-    ret = memcpy_s(errInfo, sizeof(LvdsErrIntCnt), &err, sizeof(LvdsErrIntCnt));
+    ret = memcpy_s(errInfo, sizeof(LvdsErrIntCnt), err, sizeof(LvdsErrIntCnt));
     if (ret != EOK) {
         HDF_LOGE("%s: [memcpy_s] failed.", __func__);
     } else {
@@ -1057,7 +1057,7 @@ static void Hi35xxGetAlignErrIntCnt(struct MipiCsiCntlr *cntlr, unsigned int phy
         HDF_LOGE("%s: [MipiRxHalGetAlignErrIntCnt] failed.", __func__);
         return;
     }
-    ret = memcpy_s(errInfo, sizeof(AlignErrIntCnt), &err, sizeof(AlignErrIntCnt));
+    ret = memcpy_s(errInfo, sizeof(AlignErrIntCnt), err, sizeof(AlignErrIntCnt));
     if (ret != EOK) {
         HDF_LOGE("%s: [memcpy_s] failed.", __func__);
     } else {
