@@ -14,7 +14,7 @@
  */
 
 #include "device_resource_if.h"
-#include "gpio_core.h"
+#include "gpio/gpio_core.h"
 #ifdef PL061_GPIO_USER_SUPPORT
 #include "gpio_dev.h"
 #endif
