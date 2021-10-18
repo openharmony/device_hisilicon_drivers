@@ -7286,8 +7286,7 @@ hi_u32 wal_hipriv_get_customer_mac(oal_net_device_stru *netdev, hi_char *pc_para
 
     /* 优先检查返回wifi_cfg中的mac地址 */
     if (cfg_get_mac(mac_addr, WLAN_MAC_ADDR_LEN) && (wal_macaddr_check(&mac_addr[0]) == HI_SUCCESS)) {
-        printk("+EFUSEMAC:%02x:%02x:%02x:%02x:%02x:%02x\r\nOK\r\n", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3],
-            mac_addr[4], mac_addr[5]); /* 0:1:2:3:4:5 */
+        printk("+EFUSEMAC:XX:XX:XX:%02x:%02x:%02x\r\nOK\r\n", mac_addr[3], mac_addr[4], mac_addr[5]); /* 0:1:2:3:4:5 */
         return HI_SUCCESS;
     }
     /* 从efuse读 */

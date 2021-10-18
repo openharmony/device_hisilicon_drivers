@@ -5816,8 +5816,7 @@ hi_u32 hmac_print_ate_mac(const oal_at_rsp_stru *rsp, const hi_u8 *param, hi_u8 
     }
     hi_u8 *mac = (hi_u8 *)(param + sizeof(oal_at_rsp_stru));
 
-    printk("+EFUSEMAC:%02x:%02x:%02x:%02x:%02x:%02x\r\n",
-        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]); /* 0 1 2 3 4 5：mac地址偏移 */
+    printk("+EFUSEMAC:XX:XX:XX:%02x:%02x:%02x\r\n", mac[3], mac[4], mac[5]); /* 0 1 2 3 4 5：mac地址偏移 */
     hi_u32 *times_left = (hi_u32 *)(param + sizeof(oal_at_rsp_stru) + AT_ATE_MAC_SIZE);
     printk("+EFUSEMAC:Efuse mac chance(s) left:%d times.\r\n", *times_left); /* 剩余写机会总数 */
 
