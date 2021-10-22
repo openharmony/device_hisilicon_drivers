@@ -1338,13 +1338,14 @@ struct wlan_pm_info *wlan_pm_init(void)
 unsigned long wlan_pm_exit(hi_void)
 {
     oal_channel_stru *hi_sdio = NULL;
+	hi_s32 ret;
     struct wlan_pm_info *wlan_pm = wlan_pm_get_drv();
 
     if (wlan_pm == HI_NULL || wlan_pm->bus == HI_NULL) {
         return HI_SUCCESS;
     }
     hi_wifi_plat_pm_disable();
-    hi_s32 ret = wlan_pm_stop_wdg();
+    ret = wlan_pm_stop_wdg();
     if (ret != HI_SUCCESS) {
         oam_error_log0(0, OAM_SF_PWR, "wlan_pm_stop_wdg fail\r\n");
     }
