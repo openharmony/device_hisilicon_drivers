@@ -121,6 +121,7 @@ enum UserDefData {
     DEF3_DATA
 };
 
+#define HDF_LOG_TAG mipi_rx_hi2121
 /* macro definition */
 #define MIPI_RX_REGS_ADDR      0x113A0000
 #define MIPI_RX_REGS_SIZE      0x10000
@@ -1273,7 +1274,7 @@ static int MipiRxHalSetLvdsSofWdr(uint8_t devno, WdrMode wdrMode,
         lvdsWdr.bits.lvds_wdr_mode = 0x2;
     } else {
         HDF_LOGE("%s: not support vsync type: %d", __func__, vsyncAttr->syncType);
-        return HDF_FAILURE;
+        return HDF_ERR_INVALID_PARAM;
     }
 
     ctrlReg->LVDS_WDR.u32 = lvdsWdr.u32;
@@ -1313,7 +1314,7 @@ static int MipiRxHalSetLvdsDolWdr(uint8_t devno, WdrMode wdrMode,
             }
         } else {
             HDF_LOGE("%s: not support fid type: %d", __func__, fidAttr->fidType);
-            return HDF_FAILURE;
+            return HDF_ERR_INVALID_PARAM;
         }
     } else if (vsyncAttr->syncType == LVDS_VSYNC_HCONNECT) {
         /*
@@ -1324,11 +1325,11 @@ static int MipiRxHalSetLvdsDolWdr(uint8_t devno, WdrMode wdrMode,
             lvdsWdr.bits.lvds_wdr_mode = 0x5;
         } else {
             HDF_LOGE("%s: not support fid type: %d", __func__, fidAttr->fidType);
-            return HDF_FAILURE;
+            return HDF_ERR_INVALID_PARAM;
         }
     } else {
         HDF_LOGE("%s: not support vsync type: %d", __func__, vsyncAttr->syncType);
-        return HDF_FAILURE;
+        return HDF_ERR_INVALID_PARAM;
     }
 
     ctrlReg->LVDS_WDR.u32 = lvdsWdr.u32;
@@ -1374,17 +1375,19 @@ int MipiRxDrvSetLvdsWdrMode(uint8_t devno, WdrMode wdrMode, const LvdsVsyncAttr 
 
     if (wdrMode == HI_WDR_MODE_BUTT) {
         HDF_LOGE("%s: not support WDR_MODE: %d", __func__, wdrMode);
-        return HDF_FAILURE;
+        return HDF_ERR_NOT_SUPPORT;
     }
 
     ret = MipiRxHalSetLvdsWdrEn(devno, wdrMode);
     if (ret != HDF_SUCCESS) {
+        HDF_LOGE("%s: [MipiRxHalSetLvdsWdrEn] failed.", __func__);
         return ret;
     }
 
     if (wdrMode != HI_WDR_MODE_NONE) {
         ret = MipiRxHalSetLvdsWdrType(devno, wdrMode, vsyncAttr, fidAttr);
         if (ret != HDF_SUCCESS) {
+            HDF_LOGE("%s: [MipiRxHalSetLvdsWdrType] failed.", __func__);
             return ret;
         }
 
