@@ -205,7 +205,6 @@ static int32_t Pl022Config(struct Pl022 *pl022)
     uint32_t scr;
     uint32_t cpsdvsr;
 
-    Pl022Disable(pl022);
     /* Check if we can provide the requested rate */
     if (pl022->speed > pl022->maxSpeedHz) {
         HDF_LOGW("%s: invalid speed:%d, use max:%d instead", __func__, pl022->speed, pl022->maxSpeedHz);
@@ -606,6 +605,7 @@ static int32_t Pl022Transfer(struct SpiCntlr *cntlr, struct SpiMsg *msg, uint32_
     if (dev == NULL) {
         goto __ERR;
     }
+    Pl022Disable(pl022);
     pl022->mode = dev->cfg.mode;
     pl022->transferMode = dev->cfg.transferMode;
     pl022->bitsPerWord = dev->cfg.bitsPerWord;
