@@ -363,6 +363,7 @@ hi_void mac_ie_proc_ht_sta(const mac_vap_stru *mac_vap, const hi_u8 *puc_payload
     mac_user_ht_hdl_stru  ht_hdl_value;
     mac_user_ht_hdl_stru *ht_hdl = &ht_hdl_value;
     hi_u8 mcs_bmp_index;
+	hi_u8 smps;
 
     mac_user_get_ht_hdl(mac_user, ht_hdl);
     /* 带有 HT Capability Element 的 AP，标示它具有HT capable. */
@@ -377,7 +378,7 @@ hi_void mac_ie_proc_ht_sta(const mac_vap_stru *mac_vap, const hi_u8 *puc_payload
     /* 提取AP所支持的带宽能力  */
     ht_hdl->ht_capinfo.supported_channel_width = ((*pus_ht_cap_info & BIT1) >> 1);
     /* 检查空间复用节能模式 B2~B3 */
-    hi_u8 smps = (*pus_ht_cap_info & (BIT2 | BIT3));
+    smps = (*pus_ht_cap_info & (BIT2 | BIT3));
     ht_hdl->ht_capinfo.sm_power_save = mac_ie_proc_sm_power_save_field(smps);
 
     ht_hdl->ht_capinfo.ht_green_field = ((*pus_ht_cap_info & BIT4) >> 4); /* 提取AP支持Greenfield情况,右移4bit */

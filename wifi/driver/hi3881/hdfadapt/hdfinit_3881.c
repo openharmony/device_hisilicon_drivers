@@ -59,7 +59,8 @@ int32_t InitHi3881Chip(struct HdfWlanDevice *device)
 int32_t DeinitHi3881Chip(struct HdfWlanDevice *device)
 {
     (void)device;
-    int32_t ret = hi_wifi_deinit();
+	int32_t ret;
+    ret = hi_wifi_deinit();
     if (ret != 0) {
         HDF_LOGE("%s:Deinit failed!ret=%d", __func__, ret);
     }
@@ -69,11 +70,11 @@ int32_t DeinitHi3881Chip(struct HdfWlanDevice *device)
 int32_t Hi3881Init(struct HdfChipDriver *chipDriver, struct NetDevice *netDevice)
 {
     HDF_LOGI("%s: start...", __func__);
-    hi_u16 mode = wal_get_vap_mode();
+    hi_u16 mode;
     int32_t ret;
     nl80211_iftype_uint8 type;
     (void)chipDriver;
-
+	 mode = wal_get_vap_mode();
     if (mode >= WAL_WIFI_MODE_BUTT) {
         oam_error_log1(0, 0, "wal_init_drv_netdev:: invalid mode[%d]", mode);
         return HI_FAIL;

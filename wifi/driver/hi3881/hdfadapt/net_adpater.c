@@ -81,6 +81,7 @@ hi_u8 g_wait_mac_set = 1;
 **************************************************************************** */
 hi_void wal_init_dev_addr(hi_void)
 {
+	hi_u32 ret;
     hi_u32 wait_count = 10;
     if ((cfg_get_mac(&g_dev_addr.ac_addr[0], ETHER_ADDR_LEN)) &&
         (wal_macaddr_check(&g_dev_addr.ac_addr[0]) == HI_SUCCESS)) { /* 优先从nv读取MAC地址 */
@@ -93,7 +94,7 @@ hi_void wal_init_dev_addr(hi_void)
         g_dev_addr.us_status = 0;
         g_efuseMacExist = false;
         /* 尝试下发事件从efuse读取MAC地址 */
-        hi_u32 ret = wal_get_efuse_mac_addr();
+        ret = wal_get_efuse_mac_addr();
         if (oal_unlikely(ret != HI_SUCCESS)) {
             oam_warning_log1(0, OAM_SF_ANY, "{wal_get_efuse_mac::return err code [%u]!}", ret);
         }
@@ -110,6 +111,7 @@ hi_u32 wal_get_efuse_mac_addr(hi_void)
 {
     oal_net_device_stru *netdev;
     wal_msg_write_stru write_msg = { 0 };
+	hi_u32 ret;
 
     netdev = oal_get_netdev_by_name(WLAN_CFG_VAP_NAME);
     if (netdev == HI_NULL) {
@@ -124,7 +126,7 @@ hi_u32 wal_get_efuse_mac_addr(hi_void)
                                 抛事件到wal层处理
     ************************************************************************** */
     wal_write_msg_hdr_init(&write_msg, WLAN_CFGID_GET_EFUSE_MAC_ADDR, sizeof(hi_s32));
-    hi_u32 ret = wal_send_cfg_event(netdev, WAL_MSG_TYPE_WRITE, WAL_MSG_WRITE_MSG_HDR_LENGTH + sizeof(hi_s32),
+    ret = wal_send_cfg_event(netdev, WAL_MSG_TYPE_WRITE, WAL_MSG_WRITE_MSG_HDR_LENGTH + sizeof(hi_s32),
         (hi_u8 *)(&write_msg), HI_FALSE, HI_NULL);
     if (oal_unlikely(ret != HI_SUCCESS)) {
         oam_warning_log1(0, OAM_SF_ANY, "{wal_get_efuse_mac_addr::return err code [%u]!}\r\n", ret);
@@ -618,6 +620,9 @@ hi_void wal_lwip_status_callback(oal_net_device_stru *netDev, NetIfStatus status
    g_ast_dmac_host_crx_table数组的成员，其中dmac_cfg_vap_init_event对变量进行了修改，lint_t e818告警屏蔽 */
 hi_u32 wal_report_sta_assoc_info(frw_event_mem_stru *event_mem)
 {
+	frw_event_stru *event = HI_NULL;
+    hmac_sta_report_assoc_info_stru *sta_asoc_param = HI_NULL;
+    oal_net_device_stru *netdev = HI_NULL;
 #ifdef _PRE_WLAN_FEATURE_MESH_LWIP_RIPPLE
     oal_event_ap_conn_stru ap_conn_info;
 #endif
@@ -626,11 +631,9 @@ hi_u32 wal_report_sta_assoc_info(frw_event_mem_stru *event_mem)
         oam_error_log0(0, OAM_SF_ANY, "{wal_report_sta_assoc_info::pst_event_mem is null!}");
         return HI_ERR_CODE_PTR_NULL;
     }
-
-    frw_event_stru *event = (frw_event_stru *)event_mem->puc_data;
-    hmac_sta_report_assoc_info_stru *sta_asoc_param = (hmac_sta_report_assoc_info_stru *)event->auc_event_data;
-    oal_net_device_stru *netdev = hmac_vap_get_net_device(event->event_hdr.vap_id);
-
+    event = (frw_event_stru *)event_mem->puc_data;
+    sta_asoc_param = (hmac_sta_report_assoc_info_stru *)event->auc_event_data;
+    netdev = hmac_vap_get_net_device(event->event_hdr.vap_id);
     if (netdev == HI_NULL) {
         oam_error_log0(event->event_hdr.vap_id, OAM_SF_ANY, "{wal_report_sta_assoc_info::net device null}");
         return HI_ERR_CODE_PTR_NULL;
@@ -889,12 +892,13 @@ hi_u32 wal_netdev_open_send_event(oal_net_device_stru *netdev)
     wal_msg_write_stru write_msg;
     wal_msg_stru *rsp_msg = HI_NULL;
     hi_u32 ret;
+	wlan_p2p_mode_enum_uint8 p2p_mode;
 
     wal_write_msg_hdr_init(&write_msg, WLAN_CFGID_START_VAP, sizeof(mac_cfg_start_vap_param_stru));
     ((mac_cfg_start_vap_param_stru *)write_msg.auc_value)->net_dev = netdev;
 
 #ifdef _PRE_WLAN_FEATURE_P2P
-    wlan_p2p_mode_enum_uint8 p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype);
+    p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype);
     if (p2p_mode == WLAN_P2P_BUTT) {
         oam_error_log0(0, OAM_SF_ANY, "{wal_netdev_open::wal_wireless_iftype_to_mac_p2p_mode return BUFF}");
         wal_wake_unlock();
@@ -946,6 +950,9 @@ hi_s32 wal_netdev_open(oal_net_device_stru *netdev)
     wal_msg_query_stru query_msg;
     wal_msg_stru *rsp_msg = HI_NULL;
     hi_u32 ret;
+	wal_msg_rsp_stru *query_rsp_msg = HI_NULL;
+    mac_cfg_ssid_param_stru *ssid = HI_NULL;
+    hi_u8 ssid_len;
 
     if (oal_unlikely(netdev == HI_NULL)) {
         oam_error_log0(0, OAM_SF_ANY, "{wal_netdev_open::pst_net_dev is null ptr!}");
@@ -972,9 +979,9 @@ hi_s32 wal_netdev_open(oal_net_device_stru *netdev)
         }
 
         /* 处理返回消息 */
-        wal_msg_rsp_stru *query_rsp_msg = (wal_msg_rsp_stru *)(rsp_msg->auc_msg_data);
-        mac_cfg_ssid_param_stru *ssid = (mac_cfg_ssid_param_stru *)(query_rsp_msg->auc_value);
-        hi_u8 ssid_len = ssid->ssid_len;
+        query_rsp_msg = (wal_msg_rsp_stru *)(rsp_msg->auc_msg_data);
+        ssid = (mac_cfg_ssid_param_stru *)(query_rsp_msg->auc_value);
+        ssid_len = ssid->ssid_len;
 
         oal_free(rsp_msg);
 
@@ -1006,6 +1013,7 @@ hi_s32 wal_netdev_open(oal_net_device_stru *netdev)
 
 hi_u32 wal_netdev_stop_del_vap(const oal_net_device_stru *netdev)
 {
+	 mac_device_stru *mac_dev = HI_NULL;
     /* wlan0/p2p0 down时 删除VAP */
     if (GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype == NL80211_IFTYPE_AP ||
         GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype == NL80211_IFTYPE_STATION ||
@@ -1021,7 +1029,7 @@ hi_u32 wal_netdev_stop_del_vap(const oal_net_device_stru *netdev)
             wal_wake_unlock();
             return HI_SUCCESS;
         }
-        mac_device_stru *mac_dev = mac_res_get_dev(); /* 用于删除p2p小组 */
+        mac_dev = mac_res_get_dev(); /* 用于删除p2p小组 */
         if (mac_dev != HI_NULL) {
             wal_del_p2p_group(mac_dev);
         }
@@ -1051,6 +1059,8 @@ hi_s32 wal_netdev_stop(oal_net_device_stru *netdev)
 {
     wal_msg_write_stru write_msg;
     wal_msg_stru *rsp_msg = HI_NULL;
+	wlan_p2p_mode_enum_uint8 p2p_mode;
+    hi_u32 ret;
 
     if (oal_unlikely((netdev == HI_NULL) || (GET_NET_DEV_CFG80211_WIRELESS(netdev) == NULL))) {
         oam_warning_log0(0, OAM_SF_ANY, "{wal_netdev_stop::pst_net_dev/ieee80211_ptr is null ptr!}");
@@ -1077,7 +1087,7 @@ hi_s32 wal_netdev_stop(oal_net_device_stru *netdev)
     wal_write_msg_hdr_init(&write_msg, WLAN_CFGID_DOWN_VAP, sizeof(mac_cfg_down_vap_param_stru));
     ((mac_cfg_down_vap_param_stru *)write_msg.auc_value)->net_dev = netdev;
 #ifdef _PRE_WLAN_FEATURE_P2P
-    wlan_p2p_mode_enum_uint8 p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype);
+    p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(GET_NET_DEV_CFG80211_WIRELESS(netdev)->iftype);
     if (p2p_mode == WLAN_P2P_BUTT) {
         oam_error_log0(0, OAM_SF_ANY, "{wal_netdev_stop::wal_wireless_iftype_to_mac_p2p_mode return BUFF}");
         wal_wake_unlock();
@@ -1087,7 +1097,7 @@ hi_s32 wal_netdev_stop(oal_net_device_stru *netdev)
 #endif
 
     /* 发送消息 */
-    hi_u32 ret = wal_send_cfg_event(netdev, WAL_MSG_TYPE_WRITE,
+    ret = wal_send_cfg_event(netdev, WAL_MSG_TYPE_WRITE,
         WAL_MSG_WRITE_MSG_HDR_LENGTH + sizeof(mac_cfg_down_vap_param_stru), (hi_u8 *)&write_msg, HI_TRUE, &rsp_msg);
     if (oal_unlikely(ret != HI_SUCCESS)) {
         oam_warning_log1(0, OAM_SF_ANY, "{wal_netdev_stop::wal_alloc_cfg_event return err code %u!}", ret);
@@ -1203,6 +1213,9 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
 {
     oal_sockaddr_stru *mac_addr = HI_NULL;
     wal_msg_write_stru write_msg;
+	mac_cfg_staion_id_param_stru *param = HI_NULL;
+    oal_wireless_dev *wdev = HI_NULL;
+    hi_u32 ret;
 
     if (oal_unlikely((netdev == HI_NULL) || (addr == HI_NULL))) {
         oam_error_log2(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::pst_net_dev or p_addr null ptr error %p, %p!}",
@@ -1235,7 +1248,7 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
                      抛事件到wal层处理
     **************************************************************************** */
     wal_write_msg_hdr_init(&write_msg, WLAN_CFGID_STATION_ID, sizeof(mac_cfg_staion_id_param_stru));
-    mac_cfg_staion_id_param_stru *param = (mac_cfg_staion_id_param_stru *)(write_msg.auc_value);
+    param = (mac_cfg_staion_id_param_stru *)(write_msg.auc_value);
 
     /* 设置配置命令参数 */
     if (memcpy_s((param->auc_station_id), WLAN_MAC_ADDR_LEN, (mac_addr->sa_data), WLAN_MAC_ADDR_LEN) != EOK) {
@@ -1244,7 +1257,7 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
     }
 #ifdef _PRE_WLAN_FEATURE_P2P
     /* Enter the P2P mode for delivering net_device */
-    oal_wireless_dev *wdev = (oal_wireless_dev *)netdev->ieee80211Ptr;
+    wdev = (oal_wireless_dev *)netdev->ieee80211Ptr;
     param->p2p_mode = wal_wireless_iftype_to_mac_p2p_mode(wdev->iftype);
     if (param->p2p_mode == WLAN_P2P_BUTT) {
         oam_warning_log0(0, OAM_SF_ANY, 
@@ -1253,7 +1266,7 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
     }
 #endif
 
-    hi_u32 ret = wal_send_cfg_event(netdev, WAL_MSG_TYPE_WRITE,
+    ret = wal_send_cfg_event(netdev, WAL_MSG_TYPE_WRITE,
         WAL_MSG_WRITE_MSG_HDR_LENGTH + sizeof(mac_cfg_staion_id_param_stru), (hi_u8 *)&write_msg, HI_FALSE, HI_NULL);
     if (oal_unlikely(ret != HI_SUCCESS)) {
         oam_warning_log1(0, OAM_SF_ANY, "{hwal_lwip_set_mnid::return err code [%u]!}", ret);
@@ -1296,6 +1309,7 @@ oal_net_device_ops_stru *wal_get_net_dev_ops(hi_void)
 
 hi_s32 wal_init_netdev(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
 {
+	oal_wireless_dev *wdev = HI_NULL;
     hi_u8 ac_addr[ETHER_ADDR_LEN] = {0};
 
     /* 对netdevice进行赋值 */
@@ -1321,7 +1335,7 @@ hi_s32 wal_init_netdev(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
 
     oal_netdevice_watchdog_timeo(netdev) = 5; /* 固定设置为 5 */
 
-    oal_wireless_dev *wdev = (oal_wireless_dev *)oal_mem_alloc(OAL_MEM_POOL_ID_LOCAL, sizeof(oal_wireless_dev));
+    wdev = (oal_wireless_dev *)oal_mem_alloc(OAL_MEM_POOL_ID_LOCAL, sizeof(oal_wireless_dev));
     if (oal_unlikely(wdev == HI_NULL)) {
         oam_error_log0(0, OAM_SF_ANY, "{alloc mem, pst_wdev is null ptr!}");
         return HI_ERR_CODE_PTR_NULL;
@@ -1369,7 +1383,8 @@ hi_s32 wal_init_netif(nl80211_iftype_uint8 type, oal_net_device_stru *netdev)
 {
     (void)type;
     /* 注册net_device */
-    hi_u32 ret = NetDeviceAdd(netdev);
+	hi_u32 ret;
+    ret = NetDeviceAdd(netdev);
     if (oal_unlikely(ret != 0)) {
         oam_warning_log1(0, OAM_SF_ANY, "{wal_init_netif::NetDeviceAdd return error code %d}", ret);
         oal_net_unregister_netdev(netdev);
@@ -1462,14 +1477,15 @@ int32_t GetIfName(nl80211_iftype_uint8 type, char *ifName, uint32_t len)
 
 hi_s32 InitNetdev(struct NetDevice *netDevice, nl80211_iftype_uint8 type)
 {
-    if (netDevice == NULL) {
-        HDF_LOGE("%s:para is null!", __func__);
-        return HI_FAIL;
-    }
+    
     struct NetDevice *netdev = NULL;
     char ifName[WIFI_IFNAME_MAX_SIZE] = {0};
     struct HdfWifiNetDeviceData *data = NULL;
     hi_s32 ret;
+	if (netDevice == NULL) {
+        HDF_LOGE("%s:para is null!", __func__);
+        return HI_FAIL;
+    }
 
     if (GetIfName(type, ifName, WIFI_IFNAME_MAX_SIZE) != HI_SUCCESS) {
         HDF_LOGE("%s:get ifName failed!", __func__);
