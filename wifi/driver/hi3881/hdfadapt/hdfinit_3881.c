@@ -81,9 +81,11 @@ int32_t Hi3881Init(struct HdfChipDriver *chipDriver, struct NetDevice *netDevice
 
     if (mode == WAL_WIFI_MODE_STA) {
         type = NL80211_IFTYPE_STATION;
+#ifdef _PRE_WLAN_FEATURE_P2P
         if (InitNetdev(netDevice, NL80211_IFTYPE_P2P_DEVICE) != HI_SUCCESS) {
             return HI_FAIL;
         }
+#endif
     } else if (mode == WAL_WIFI_MODE_AP) {
         type = NL80211_IFTYPE_AP;
     } else {
