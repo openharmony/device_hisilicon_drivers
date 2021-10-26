@@ -93,8 +93,10 @@ static hi_void wal_inform_bss_frame(const oal_net_device_stru *netdev, wal_scann
     oal_wiphy_stru               *wiphy = HI_NULL;
     oal_ieee80211_channel_stru   *ieee80211_channel = HI_NULL;
 
-#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION) && (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
     struct timespec ts;
+#endif
 #endif
 
     if ((scanned_bss_info == HI_NULL) || (data == HI_NULL)) {
@@ -115,11 +117,13 @@ static hi_void wal_inform_bss_frame(const oal_net_device_stru *netdev, wal_scann
 
     scanned_bss_info->l_signal = scanned_bss_info->l_signal * 100; /* 100 扩大100倍 */
 
-#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION) && (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
     /* 由于驱动缓存扫描结果，导致cts认证2次扫描的bss的timestamp时间一致(后一次没有扫描到) */
     get_monotonic_boottime(&ts);
     scanned_bss_info->mgmt->u.probe_resp.timestamp = ((hi_u64)ts.tv_sec * 1000000) /* 1000000 时间戳单位转换为s */
         + ts.tv_nsec / 1000;                                                       /* 1000 时间戳单位转换为s */
+#endif
 #endif
     /* 扫描维测 */
     oam_info_log3(0, OAM_SF_SCAN, "{wal_inform_bss_frame::bssid:0x%x:XX:XX:XX:0x%x:0x%x}",

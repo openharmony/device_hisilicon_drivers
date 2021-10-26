@@ -39,7 +39,8 @@ hi_u32 hi_get_milli_seconds(hi_void)
     return ((hi_u32)(LOS_TickCountGet() & 0xffffffff) * HI_MILLISECOND_PER_TICK);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
 hi_u32 hi_get_seconds(hi_void)
 {
     struct timespec tp;
@@ -87,4 +88,5 @@ hi_u32 hi_set_real_time(hi_u32 sec)
         return (hi_u32)(HI_ERR_FAILURE);
     }
 }
+#endif
 #endif
