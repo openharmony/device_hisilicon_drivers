@@ -19,7 +19,11 @@
 #ifndef __HI_TYPES_BASE_H__
 #define __HI_TYPES_BASE_H__
 
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
 #include <linux/version.h>
+#else
+#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + ((c) > 255 ? 255 : (c)))
+#endif
 
 #if defined(__CC_ARM)
 #define HI_HAVE_CROSS_COMPILER_ARM_ARMCC
