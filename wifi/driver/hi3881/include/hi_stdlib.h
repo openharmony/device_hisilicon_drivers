@@ -301,8 +301,10 @@ extern int strncmp(const char *str1, const char *str2, size_t n);
 #define UT_CONST
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
 extern unsigned long strtoul(const char *nptr, char **endptr, int base);
+#endif
 #endif
 extern UT_CONST char *strstr(const char *str1, const char *str2);
 extern UT_CONST char *strchr(const char *s, int c);

@@ -82,7 +82,8 @@ CNcomment:该接口调用处必须包含头文件hi_time.h，否则按照未声�
 hi_u64 hi_get_tick64(hi_void);
 
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
 /* *
  * @ingroup  iot_time
  * @brief  Obtains the system time (unit: s).CNcomment:获取系统时间（单位：s）。CNend
@@ -155,6 +156,7 @@ CNcomment:将系统实时时间设置为该值。CNend
 * @since Hi3861_V100R001C00
 */
 hi_u32 hi_set_real_time(hi_u32 seconds);
+#endif
 #endif
 
 #endif
