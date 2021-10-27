@@ -58,8 +58,10 @@ extern "C" {
 #endif
 
 /* 获取高精度毫秒时间戳,精度1ms */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
 #define OAL_TIME_GET_HIGH_PRECISION_MS() oal_get_time_stamp_from_timeval()
+#endif
 #endif
 
 #define OAL_ENABLE_CYCLE_COUNT()
@@ -135,7 +137,7 @@ typedef struct rtc_time oal_rtctime_stru;
 **************************************************************************** */
 #if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
 /* ****************************************************************************
  功能描述  : 获取微妙精度级的时间戳
  输入参数  : pst_usec: 时间结构体指针
@@ -172,7 +174,7 @@ static inline oal_time_t_stru oal_ktime_sub(const oal_time_t_stru lhs, const oal
     return ktime_sub(lhs, rhs);
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
 /* ****************************************************************************
  功能描述  : 获取时间精度
  输入参数  : 无
