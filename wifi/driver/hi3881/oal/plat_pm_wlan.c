@@ -248,7 +248,7 @@ hi_s32 wlan_pm_close_done_callback(void *data)
 
 hi_void wlan_pm_wkfail_send_sig(void)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,0,0)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,0,0))
     struct kernel_siginfo info = { 0 };
 #else
     struct siginfo info = { 0 };

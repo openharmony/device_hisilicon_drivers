@@ -829,6 +829,7 @@ int32_t WalGetHwCapability(struct NetDevice *netDev, struct WlanHwCapability **c
     return HI_SUCCESS;
 }
 
+#ifdef _PRE_WLAN_FEATURE_P2P
 int32_t WalRemainOnChannel(struct NetDevice *netDev, WifiOnChannel *onChannel)
 {
     if (netDev == NULL || onChannel == NULL) {
@@ -1016,6 +1017,7 @@ int32_t WalSendAction(struct NetDevice *netDev, WifiActionData *actionData)
 
     return HI_SUCCESS;
 }
+#endif
 
 int32_t WalGetIftype(struct NetDevice *netDev, uint8_t *iftype)
 {
@@ -1033,6 +1035,7 @@ static struct HdfMac80211BaseOps g_baseOps = {
     .SetTxPower = WalSetTxPower,
     .GetValidFreqsWithBand = WalGetValidFreqsWithBand,
     .GetHwCapability = WalGetHwCapability,
+#ifdef _PRE_WLAN_FEATURE_P2P
     .RemainOnChannel = WalRemainOnChannel,
     .CancelRemainOnChannel = WalCancelRemainOnChannel,
     .ProbeReqReport = WalProbeReqReport,
@@ -1041,6 +1044,7 @@ static struct HdfMac80211BaseOps g_baseOps = {
     .SetApWpsP2pIe = WalSetApWpsP2pIe,
     .GetDriverFlag = WalGetDriverFlag,
     .SendAction = WalSendAction,
+#endif
     .GetIftype = WalGetIftype,
 };
 
