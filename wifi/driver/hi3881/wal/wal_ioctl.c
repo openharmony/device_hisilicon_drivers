@@ -2803,13 +2803,13 @@ hi_u32 wal_deinit_wlan_vap(oal_net_device_stru *netdev)
 
     if (HI_SUCCESS != wal_check_and_release_msg_resp(rsp_msg)) {
         oam_warning_log0(0, 0, "wal_deinit_wlan_vap::wal_check_and_release_msg_resp fail.");
+    } else {
+        oal_net_dev_priv(netdev) = NULL;
     }
 
     if (oal_unlikely(ret != HI_SUCCESS)) {
         oam_error_log1(mac_vap->vap_id, 0, "{wal_deinit_wlan_vap::return error code %d}\r\n", ret);
     }
-
-    oal_net_dev_priv(netdev) = NULL;
 
     return ret;
 }
