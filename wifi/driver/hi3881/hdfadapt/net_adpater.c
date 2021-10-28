@@ -111,7 +111,7 @@ hi_u32 wal_get_efuse_mac_addr(hi_void)
 {
     oal_net_device_stru *netdev;
     wal_msg_write_stru write_msg = { 0 };
-	hi_u32 ret;
+    hi_u32 ret;
 
     netdev = oal_get_netdev_by_name(WLAN_CFG_VAP_NAME);
     if (netdev == HI_NULL) {
@@ -949,7 +949,7 @@ hi_s32 wal_netdev_open(oal_net_device_stru *netdev)
     wal_msg_query_stru query_msg;
     wal_msg_stru *rsp_msg = HI_NULL;
     hi_u32 ret;
-	wal_msg_rsp_stru *query_rsp_msg = HI_NULL;
+    wal_msg_rsp_stru *query_rsp_msg = HI_NULL;
     mac_cfg_ssid_param_stru *ssid = HI_NULL;
     hi_u8 ssid_len;
 
