@@ -59,7 +59,7 @@ int32_t InitHi3881Chip(struct HdfWlanDevice *device)
 int32_t DeinitHi3881Chip(struct HdfWlanDevice *device)
 {
     (void)device;
-	int32_t ret;
+    int32_t ret = 0;
     ret = hi_wifi_deinit();
     if (ret != 0) {
         HDF_LOGE("%s:Deinit failed!ret=%d", __func__, ret);
@@ -69,17 +69,16 @@ int32_t DeinitHi3881Chip(struct HdfWlanDevice *device)
 
 int32_t Hi3881Init(struct HdfChipDriver *chipDriver, struct NetDevice *netDevice)
 {
-    HDF_LOGI("%s: start...", __func__);
     hi_u16 mode;
     int32_t ret;
     nl80211_iftype_uint8 type;
     (void)chipDriver;
-	 mode = wal_get_vap_mode();
+    HDF_LOGI("%s: start...", __func__);
+    mode = wal_get_vap_mode();
     if (mode >= WAL_WIFI_MODE_BUTT) {
         oam_error_log1(0, 0, "wal_init_drv_netdev:: invalid mode[%d]", mode);
         return HI_FAIL;
     }
-
     if (mode == WAL_WIFI_MODE_STA) {
         type = NL80211_IFTYPE_STATION;
         if (InitNetdev(netDevice, NL80211_IFTYPE_P2P_DEVICE) != HI_SUCCESS) {
@@ -91,7 +90,6 @@ int32_t Hi3881Init(struct HdfChipDriver *chipDriver, struct NetDevice *netDevice
         oam_error_log1(0, 0, "wal_init_drv_netdev:: invalid mode[%d]", mode);
         return HI_FAIL;
     }
-
     ret = wal_init_drv_wlan_netdev(type, WAL_PHY_MODE_11N, netDevice);
     if (ret != HI_SUCCESS) {
         oam_error_log2(0, OAM_SF_ANY, "wal_init_drv_netdev %s failed.l_return:%d\n", netDevice->name, ret);
@@ -108,6 +106,5 @@ int32_t Hi3881Deinit(struct HdfChipDriver *chipDriver, struct NetDevice *netDevi
         oam_error_log1(0, OAM_SF_ANY, "Hi3881Deinit: DeinitNetdev p2p device fail, ret = %d\n",  ret);
         return ret;
     }
-
     return wal_deinit_drv_wlan_netdev(netDevice);
 }
