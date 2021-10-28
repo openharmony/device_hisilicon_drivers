@@ -1935,12 +1935,11 @@ static inline hi_void oal_net_stop_subqueue(oal_net_device_stru *netdev, hi_u16 
 
 static inline oal_net_device_stru *oal_net_alloc_netdev(hi_u32 sizeof_priv, const hi_char *netdev_name, hi_void *set_up)
 {
-	oal_net_device_stru *netdev = HI_NULL;
 #ifdef _PRE_HDF_LINUX
     if (netdev_name == HI_NULL || set_up == HI_NULL) {
         return HI_NULL;
     }
-    netdev = NetDeviceInit(netdev_name, strlen(netdev_name), WIFI_LINK, FULL_OS);
+    oal_net_device_stru *netdev = NetDeviceInit(netdev_name, strlen(netdev_name), WIFI_LINK, FULL_OS);
     if (netdev != NULL) {
         netdev->funType.wlanType = PROTOCOL_80211_IFTYPE_STATION;
     }
