@@ -363,7 +363,7 @@ hi_void mac_ie_proc_ht_sta(const mac_vap_stru *mac_vap, const hi_u8 *puc_payload
     mac_user_ht_hdl_stru  ht_hdl_value;
     mac_user_ht_hdl_stru *ht_hdl = &ht_hdl_value;
     hi_u8 mcs_bmp_index;
-
+    
     mac_user_get_ht_hdl(mac_user, ht_hdl);
     /* 带有 HT Capability Element 的 AP，标示它具有HT capable. */
     ht_hdl->ht_capable = HI_TRUE;

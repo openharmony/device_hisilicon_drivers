@@ -124,7 +124,6 @@ static inline hi_u32 oal_queue_enqueue(oal_queue_stru *queue, hi_void *element)
     if (queue->element_cnt == queue->max_elements) {
         return HI_FAIL;
     }
-
     hi_u8 tail_index = queue->tail_index;
     /* 将元素的地址保存在队列中 */
     queue->pul_buf[tail_index++] = (hi_u32)(uintptr_t)element;
@@ -147,14 +146,10 @@ static inline hi_void *oal_queue_dequeue(oal_queue_stru *queue)
     if (queue->element_cnt == 0) {
         return HI_NULL;
     }
-
     hi_u8 head_index = queue->head_index;
-
     hi_void *element = (hi_void *)queue->pul_buf[head_index++];
-
     queue->head_index = ((head_index >= queue->max_elements) ? 0 : head_index);
     queue->element_cnt--;
-
     return element;
 }
 
