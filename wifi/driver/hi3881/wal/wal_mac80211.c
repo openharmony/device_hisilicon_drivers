@@ -562,7 +562,7 @@ int32_t WalSetMode(NetDevice *netDev, enum WlanWorkMode iftype)
         .use_4addr = 0,
         .macaddr = NULL
     };
-    oam_error_log1(0, OAM_SF_ANY, "{WalSetMode enter iftype:%d!}", iftype);
+    oam_info_log1(0, OAM_SF_ANY, "{WalSetMode enter iftype:%d!}", iftype);
     if (iftype == WLAN_WORKMODE_STA || iftype == WLAN_WORKMODE_AP) {
         wal_deinit_drv_wlan_netdev(netDev);
         ret = RenewNetDevice(&netDev);
