@@ -13,14 +13,14 @@
  * limitations under the License.
  */
 
+#include "pwm_hi35xx.h"
 #include "device_resource_if.h"
-#include "hdf_base.h"
 #include "hdf_log.h"
 #include "osal_io.h"
 #include "osal_mem.h"
 #include "pwm_core.h"
-#include "pwm_hi35xx.h"
-#include "pwm_if.h"
+
+#define HDF_LOG_TAG pwm_hi35xx
 
 struct HiPwm {
     struct PwmDev dev;
@@ -32,48 +32,49 @@ struct HiPwm {
 int32_t HiPwmSetConfig(struct PwmDev *pwm, struct PwmConfig *config)
 {
     struct HiPwm *hp = (struct HiPwm *)pwm;
-
     if (hp == NULL || hp->reg == NULL || config == NULL) {
         HDF_LOGE("%s: hp reg or config is null", __func__);
         return HDF_ERR_INVALID_PARAM;
     }
-
-    if (pwm->cfg.polarity != config->polarity && !(hp->supportPolarity)) {
-        HDF_LOGE("%s: not support set pwm polarity", __func__);
-        return HDF_ERR_NOT_SUPPORT;
-    }
-
-    if (config->status == PWM_DISABLE_STATUS) {
-        HiPwmDisable(hp->reg);
-        return HDF_SUCCESS;
-    }
-
     if (config->polarity != PWM_NORMAL_POLARITY && config->polarity != PWM_INVERTED_POLARITY) {
         HDF_LOGE("%s: polarity %u is invalid", __func__, config->polarity);
         return HDF_ERR_INVALID_PARAM;
     }
-
     if (config->period < PWM_MIN_PERIOD) {
-        HDF_LOGE("%s: period %u is not support, min period %u", __func__, config->period, PWM_MIN_PERIOD);
+        HDF_LOGE("%s: period %u is not support, min period %d", __func__, config->period, PWM_MIN_PERIOD);
         return HDF_ERR_INVALID_PARAM;
     }
     if (config->duty < 1 || config->duty > config->period) {
-        HDF_LOGE("%s: duty %u is not support, min dutyCycle 1 max dutyCycle %u",
+        HDF_LOGE("%s: duty %u is not support, duty must in [1, period = %u].",
             __func__, config->duty, config->period);
         return HDF_ERR_INVALID_PARAM;
     }
-
     HiPwmDisable(hp->reg);
+    HDF_LOGI("%s: [HiPwmDisable] done.", __func__);
     if (pwm->cfg.polarity != config->polarity && hp->supportPolarity) {
         HiPwmSetPolarity(hp->reg, config->polarity);
+        HDF_LOGI("%s: [HiPwmSetPolarity] done, polarity: %u -> %u.", __func__, pwm->cfg.polarity, config->polarity);
     }
-    HiPwmSetPeriod(hp->reg, config->period);
-    HiPwmSetDuty(hp->reg, config->duty);
-    if (config->number == 0) {
-        HiPwmAlwaysOutput(hp->reg);
-    } else {
-        HiPwmOutputNumberSquareWaves(hp->reg, config->number);
+    if (pwm->cfg.period != config->period) {
+        HiPwmSetPeriod(hp->reg, config->period);
+        HDF_LOGI("%s: [HiPwmSetPeriod] done, period: %u -> %u", __func__, pwm->cfg.period, config->period);
     }
+    if (pwm->cfg.duty != config->duty) {
+        HiPwmSetDuty(hp->reg, config->duty);
+        HDF_LOGI("%s: [HiPwmSetDuty] done, duty: %u -> %u", __func__, pwm->cfg.duty, config->duty);
+    }
+    if (config->status == PWM_ENABLE_STATUS) {
+        if (config->number == 0) {
+            HiPwmAlwaysOutput(hp->reg);
+            HDF_LOGI("%s: [HiPwmAlwaysOutput] done, then enable.", __func__);
+        } else {
+            HiPwmOutputNumberSquareWaves(hp->reg, config->number);
+            HDF_LOGI("%s: [HiPwmOutputNumberSquareWaves] done, then enable.", __func__);
+        }
+    }
+    HDF_LOGI("%s: set PwmConfig done: number %u, period %u, duty %u, polarity %u, enable %u.",
+        __func__, config->number, config->period, config->duty, config->polarity, config->status);
+    HDF_LOGI("%s: success.", __func__);
     return HDF_SUCCESS;
 }
 
@@ -117,7 +118,7 @@ static int32_t HiPwmProbe(struct HiPwm *hp, struct HdfDeviceObject *obj)
     }
 
     hp->reg = (struct HiPwmRegs *)hp->base;
-    hp->supportPolarity = false;
+    hp->supportPolarity = true;
     hp->dev.method = &g_pwmOps;
     hp->dev.cfg.duty = PWM_DEFAULT_DUTY_CYCLE;
     hp->dev.cfg.period = PWM_DEFAULT_PERIOD;
@@ -127,8 +128,13 @@ static int32_t HiPwmProbe(struct HiPwm *hp, struct HdfDeviceObject *obj)
     hp->dev.busy = false;
     if (PwmDeviceAdd(obj, &(hp->dev)) != HDF_SUCCESS) {
         OsalIoUnmap((void *)hp->base);
+        HDF_LOGE("%s: [PwmDeviceAdd] failed.", __func__);
         return HDF_FAILURE;
     }
+    HDF_LOGI("%s: set PwmConfig: number %u, period %u, duty %u, polarity %u, enable %u.", __func__,
+        hp->dev.cfg.number, hp->dev.cfg.period, hp->dev.cfg.duty, hp->dev.cfg.polarity, hp->dev.cfg.status);
+    HDF_LOGI("%s: success.", __func__);
+
     return HDF_SUCCESS;
 }
 
