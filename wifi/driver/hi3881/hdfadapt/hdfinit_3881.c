@@ -58,8 +58,8 @@ int32_t InitHi3881Chip(struct HdfWlanDevice *device)
 
 int32_t DeinitHi3881Chip(struct HdfWlanDevice *device)
 {
+    int32_t ret;
     (void)device;
-    int32_t ret = 0;
     ret = hi_wifi_deinit();
     if (ret != 0) {
         HDF_LOGE("%s:Deinit failed!ret=%d", __func__, ret);
@@ -101,8 +101,8 @@ int32_t Hi3881Init(struct HdfChipDriver *chipDriver, struct NetDevice *netDevice
 
 int32_t Hi3881Deinit(struct HdfChipDriver *chipDriver, struct NetDevice *netDevice)
 {
-    (void)chipDriver;
     int32_t ret;
+    (void)chipDriver;
     ret = DeinitNetdev(NL80211_IFTYPE_P2P_DEVICE);
     if (ret != HI_SUCCESS) {
         oam_error_log1(0, OAM_SF_ANY, "Hi3881Deinit: DeinitNetdev p2p device fail, ret = %d\n",  ret);
