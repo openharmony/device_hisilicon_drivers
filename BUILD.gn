@@ -26,6 +26,7 @@ group("drivers") {
     "mipi_dsi",
     "mmc",
     "mtd",
+    "pin",
     "pwm",
     "rtc",
     "spi",
