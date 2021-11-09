@@ -44,6 +44,7 @@
 struct Hi35xxI2cCntlr {
     struct I2cCntlr cntlr;
     OsalSpinlock spin;
+    uint32_t irqSave;
     volatile unsigned char  *regBase;
     uint16_t regSize;
     int16_t bus;
@@ -452,7 +453,6 @@ static void Hi35xxI2cCntlrInit(struct Hi35xxI2cCntlr *hi35xx)
 static int32_t Hi35xxI2cTransfer(struct I2cCntlr *cntlr, struct I2cMsg *msgs, int16_t count)
 {
     int32_t ret = HDF_SUCCESS;
-    unsigned long irqSave;
     struct Hi35xxI2cCntlr *hi35xx = NULL;
     struct Hi35xxTransferData td;
 
@@ -470,7 +470,6 @@ static int32_t Hi35xxI2cTransfer(struct I2cCntlr *cntlr, struct I2cMsg *msgs, in
     td.count = count;
     td.index = 0;
 
-    irqSave = LOS_IntLock();
     while (td.index < td.count) {
         ret = Hi35xxI2cXferOneMsgPolling(hi35xx, &td);
         if (ret != 0) {
@@ -478,7 +477,6 @@ static int32_t Hi35xxI2cTransfer(struct I2cCntlr *cntlr, struct I2cMsg *msgs, in
         }
         td.index++;
     }
-    LOS_IntRestore(irqSave);
     return (td.index > 0) ? td.index : ret;
 }
 
@@ -490,7 +488,7 @@ static int32_t Hi35xxI2cLock(struct I2cCntlr *cntlr)
 {
     struct Hi35xxI2cCntlr *hi35xx = (struct Hi35xxI2cCntlr *)cntlr;
     if (hi35xx != NULL) {
-        return OsalSpinLock(&hi35xx->spin);
+        return OsalSpinLockIrqSave(&hi35xx->spin, &hi35xx->irqSave);
     }
     return HDF_SUCCESS;
 }
@@ -499,7 +497,7 @@ static void Hi35xxI2cUnlock(struct I2cCntlr *cntlr)
 {
     struct Hi35xxI2cCntlr *hi35xx = (struct Hi35xxI2cCntlr *)cntlr;
     if (hi35xx != NULL) {
-        (void)OsalSpinUnlock(&hi35xx->spin);
+        (void)OsalSpinUnlockIrqRestore(&hi35xx->spin, &hi35xx->irqSave);
     }
 }
 
