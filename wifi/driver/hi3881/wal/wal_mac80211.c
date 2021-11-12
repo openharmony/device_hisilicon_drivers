@@ -946,6 +946,7 @@ int32_t WalGetDriverFlag(struct NetDevice *netDev, WifiGetDrvFlags **params)
     *params = getDrvFlag;
     return HI_SUCCESS;
 }
+#endif
 
 int32_t InitMsgHdr (wal_msg_write_stru *writeMsg, WifiActionData *actionData)
 {
@@ -1017,7 +1018,6 @@ int32_t WalSendAction(struct NetDevice *netDev, WifiActionData *actionData)
 
     return HI_SUCCESS;
 }
-#endif
 
 int32_t WalGetIftype(struct NetDevice *netDev, uint8_t *iftype)
 {
@@ -1035,16 +1035,7 @@ static struct HdfMac80211BaseOps g_baseOps = {
     .SetTxPower = WalSetTxPower,
     .GetValidFreqsWithBand = WalGetValidFreqsWithBand,
     .GetHwCapability = WalGetHwCapability,
-#ifdef _PRE_WLAN_FEATURE_P2P
-    .RemainOnChannel = WalRemainOnChannel,
-    .CancelRemainOnChannel = WalCancelRemainOnChannel,
-    .ProbeReqReport = WalProbeReqReport,
-    .AddIf = WalAddIf,
-    .RemoveIf = WalRemoveIf,
-    .SetApWpsP2pIe = WalSetApWpsP2pIe,
-    .GetDriverFlag = WalGetDriverFlag,
     .SendAction = WalSendAction,
-#endif
     .GetIftype = WalGetIftype,
 };
 
@@ -1067,6 +1058,16 @@ static struct HdfMac80211APOps g_apOps = {
     .GetAssociatedStasInfo = WalGetAssociatedStasInfo
 };
 
+static struct HdfMac80211P2POps g_p2pOps = {
+    .RemainOnChannel = WalRemainOnChannel,
+    .CancelRemainOnChannel = WalCancelRemainOnChannel,
+    .ProbeReqReport = WalProbeReqReport,
+    .AddIf = WalAddIf,
+    .RemoveIf = WalRemoveIf,
+    .SetApWpsP2pIe = WalSetApWpsP2pIe,
+    .GetDriverFlag = WalGetDriverFlag,
+};
+
 hi_void HiMac80211Init(struct HdfChipDriver *chipDriver)
 {
     if (chipDriver == NULL) {
@@ -1076,4 +1077,5 @@ hi_void HiMac80211Init(struct HdfChipDriver *chipDriver)
     chipDriver->ops = &g_baseOps;
     chipDriver->staOps = &g_staOps;
     chipDriver->apOps = &g_apOps;
+    chipDriver->p2pOps = &g_p2pOps;
 }
