@@ -24,7 +24,6 @@
 #include "osal_irq.h"
 #include "osal_mem.h"
 #include "osal_spinlock.h"
-#include "plat_log.h"
 
 #define HDF_LOG_TAG gpio_hi35xx
 #define PL061_GROUP_MAX 32
