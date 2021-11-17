@@ -23,7 +23,6 @@
 #include "osal_io.h"
 #include "osal_mem.h"
 #include "osal_time.h"
-#include "plat_log.h"
 
 #define HDF_LOG_TAG adc_hi35xx
 #define HI35XX_ADC_READ_DELAY    10

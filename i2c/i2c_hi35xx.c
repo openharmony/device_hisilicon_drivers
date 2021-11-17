@@ -26,7 +26,6 @@
 #include "osal_mem.h"
 #include "osal_spinlock.h"
 #include "osal_time.h"
-#include "plat_log.h"
 
 #define HDF_LOG_TAG i2c_hi35xx
 #define USER_VFS_SUPPORT
