@@ -48,7 +48,7 @@ struct HiPwmRegs {
 
 static inline void HiPwmDisable(struct HiPwmRegs *reg)
 {
-    reg->ctrl &= ~ 1;
+    reg->ctrl &= ~1;
 }
 
 static inline void HiPwmAlwaysOutput(struct HiPwmRegs *reg)
