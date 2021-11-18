@@ -628,7 +628,6 @@ static int32_t Pl061GpioInit(struct HdfDeviceObject *device)
     pl061->cntlr.count = pl061->groupNum * pl061->bitNum;
     pl061->cntlr.priv = (void *)device->property;
     pl061->cntlr.ops = &g_method;
-    pl061->cntlr.device = device;
     ret = GpioCntlrAdd(&pl061->cntlr);
     if (ret != HDF_SUCCESS) {
         HDF_LOGE("%s: err add controller:%d", __func__, ret);
