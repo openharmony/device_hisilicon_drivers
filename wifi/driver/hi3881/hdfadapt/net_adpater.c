@@ -1226,13 +1226,13 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
     if (oal_unlikely((netdev == HI_NULL) || (addr == HI_NULL))) {
         oam_error_log2(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::pst_net_dev or p_addr null ptr error %p, %p!}",
             (uintptr_t)netdev, (uintptr_t)addr);
-
+        OsalMemFree(mac_addr);
         return HI_ERR_CODE_PTR_NULL;
     }
 
     if (oal_netif_running(netdev)) { /* 业务需要,lin_t e506/e774告警屏蔽 */
         oam_warning_log0(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::cannot set address; device running!}");
-
+        OsalMemFree(mac_addr);
         return HI_FAIL;
     }
 
