@@ -30,6 +30,7 @@
 #include "oal_net.h"
 #include "wal_scan.h"
 #include "hdf_wlan_utils.h"
+#include "osal_mem.h"
 
 #if (_PRE_OS_VERSION_LITEOS == _PRE_OS_VERSION)
 #include "lwip/tcpip.h"
@@ -1216,26 +1217,39 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
     oal_wireless_dev *wdev = HI_NULL;
     hi_u32 ret;
 
+    mac_addr = OsalMemAlloc(sizeof(oal_sockaddr_stru));
+    if (mac_addr == NULL) {
+        oam_error_log0(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::OsalMemAlloc faile!}");
+        return HDF_ERR_MALLOC_FAIL;
+    }
+
     if (oal_unlikely((netdev == HI_NULL) || (addr == HI_NULL))) {
         oam_error_log2(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::pst_net_dev or p_addr null ptr error %p, %p!}",
             (uintptr_t)netdev, (uintptr_t)addr);
-
+        OsalMemFree(mac_addr);
         return HI_ERR_CODE_PTR_NULL;
     }
 
     if (oal_netif_running(netdev)) { /* 业务需要,lin_t e506/e774告警屏蔽 */
         oam_warning_log0(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::cannot set address; device running!}");
-
+        OsalMemFree(mac_addr);
         return HI_FAIL;
     }
-    mac_addr = (oal_sockaddr_stru *)addr;
+
+    if (memcpy_s((mac_addr->sa_data), WLAN_MAC_ADDR_LEN, (hi_u8 *)addr, WLAN_MAC_ADDR_LEN) != EOK) {
+        oam_error_log0(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::mem safe function err!}");
+        OsalMemFree(mac_addr);
+        return HI_FAIL;
+    }
     if (ether_is_multicast(mac_addr->sa_data)) {
         oam_warning_log0(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::can not set group/broadcast addr!}");
+        OsalMemFree(mac_addr);
         return HI_FAIL;
     }
     wal_wake_lock();
     if (memcpy_s((netdev->macAddr), WLAN_MAC_ADDR_LEN, (mac_addr->sa_data), WLAN_MAC_ADDR_LEN) != EOK) {
         oam_error_log0(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::mem safe function err!}");
+        OsalMemFree(mac_addr);
         return HI_FAIL;
     }
     /* 1131如果return则无法通过命令配置mac地址到寄存器 */
@@ -1249,6 +1263,7 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
     /* 设置配置命令参数 */
     if (memcpy_s((param->auc_station_id), WLAN_MAC_ADDR_LEN, (mac_addr->sa_data), WLAN_MAC_ADDR_LEN) != EOK) {
         oam_warning_log0(0, OAM_SF_ANY, "{wal_netdev_set_mac_addr::write_msg mem safe function err!}");
+        OsalMemFree(mac_addr);
         return HI_FAIL;
     }
 #ifdef _PRE_WLAN_FEATURE_P2P
@@ -1258,6 +1273,7 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
     if (param->p2p_mode == WLAN_P2P_BUTT) {
         oam_warning_log0(0, OAM_SF_ANY, 
             "{wal_netdev_set_mac_addr::wal_wireless_iftype_to_mac_p2p_mode return BUFF}\r\n");
+        OsalMemFree(mac_addr);
         return HI_FAIL;
     }
 #endif
@@ -1265,8 +1281,10 @@ static hi_s32 wal_netdev_set_mac_addr(oal_net_device_stru *netdev, void *addr)
         WAL_MSG_WRITE_MSG_HDR_LENGTH + sizeof(mac_cfg_staion_id_param_stru), (hi_u8 *)&write_msg, HI_FALSE, HI_NULL);
     if (oal_unlikely(ret != HI_SUCCESS)) {
         oam_warning_log1(0, OAM_SF_ANY, "{hwal_lwip_set_mnid::return err code [%u]!}", ret);
+        OsalMemFree(mac_addr);
         return (hi_s32)ret;
     }
+    OsalMemFree(mac_addr);
     return HI_SUCCESS;
 }
 
