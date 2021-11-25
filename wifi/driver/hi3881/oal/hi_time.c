@@ -18,7 +18,6 @@
 #include <hi_types_base.h>
 #include <los_sys.h>
 #include <hi_stdlib.h>
-#include <time.h>
 #include "hi_config.h"
 
 #define SEC_TO_US   1000000
