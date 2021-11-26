@@ -103,12 +103,12 @@ static int32_t Hi35xxPinSetFunc(struct PinCntlr *cntlr, uint32_t index, const ch
 {
     uint32_t value;
     int ret;
-    int32_t funcNum;
+    uint32_t funcNum;
     struct Hi35xxPinCntlr *hi35xx = NULL;
 
     hi35xx = (struct Hi35xxPinCntlr *)cntlr;
 
-    for (funcNum = 0; funcNum <= HI35XX_PIN_FUNC_MAX; funcNum++) {
+    for (funcNum = 0; funcNum < HI35XX_PIN_FUNC_MAX; funcNum++) {
         ret = strcmp(funcName, hi35xx->desc[index].func[funcNum]);
         if (ret == 0) {
             value = OSAL_READL(hi35xx->regBase + index * HI35XX_PIN_REG_SIZE);
@@ -125,7 +125,7 @@ static int32_t Hi35xxPinSetFunc(struct PinCntlr *cntlr, uint32_t index, const ch
 static int32_t Hi35xxPinGetFunc(struct PinCntlr *cntlr, uint32_t index, const char **funcName)
 {
     uint32_t value;
-    int32_t funcNum;
+    uint32_t funcNum;
     struct Hi35xxPinCntlr *hi35xx = NULL;
 
     hi35xx = (struct Hi35xxPinCntlr *)cntlr;
@@ -151,7 +151,7 @@ static int32_t Hi35xxPinReadFunc(struct Hi35xxPinDesc *desc,
                                  struct DeviceResourceIface *drsOps)
 {
     int32_t ret;
-    int32_t funcNum = 0;
+    uint32_t funcNum = 0;
     
     ret = drsOps->GetString(node, "F0", &desc->func[funcNum], "NULL");
     if (ret != HDF_SUCCESS) {
@@ -267,12 +267,12 @@ static int32_t Hi35xxPinCntlrInit(struct HdfDeviceObject *device, struct Hi35xxP
     hi35xx->cntlr.pinCount = hi35xx->pinCount;
     hi35xx->cntlr.number = hi35xx->number;
     hi35xx->regBase = OsalIoRemap(hi35xx->regStartBasePhy, hi35xx->regSize);
-    hi35xx->desc = (struct Hi35xxPinDesc *)OsalMemCalloc(sizeof(struct Hi35xxPinDesc) * hi35xx->pinCount);
-    hi35xx->cntlr.pins = (struct PinDesc *)OsalMemCalloc(sizeof(struct PinDesc) * hi35xx->pinCount);
     if (hi35xx->regBase == NULL) {
         HDF_LOGE("%s: remap Pin base failed", __func__);
         return HDF_ERR_IO;
     }
+    hi35xx->desc = (struct Hi35xxPinDesc *)OsalMemCalloc(sizeof(struct Hi35xxPinDesc) * hi35xx->pinCount);
+    hi35xx->cntlr.pins = (struct PinDesc *)OsalMemCalloc(sizeof(struct PinDesc) * hi35xx->pinCount);
     HDF_LOGD("%s: Pin Cntlr Init success", __func__);
     return HDF_SUCCESS;
 }

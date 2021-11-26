@@ -43,14 +43,14 @@ static unsigned int g_regMapFlag;
  */
 static bool g_enCfg = false;
 
-static void WriteReg32(unsigned long addr, unsigned int value, unsigned int mask)
+static void WriteReg32(unsigned long *addr, unsigned int value, unsigned int mask)
 {
     unsigned int t;
 
-    t = OSAL_READL((void *)addr);
+    t = OSAL_READL(addr);
     t &= ~mask;
     t |= value & mask;
-    OSAL_WRITEL(t, (void *)addr);
+    OSAL_WRITEL(t, addr);
 }
 
 static void OsalIsb(void)
@@ -938,9 +938,9 @@ static void MipiTxDrvRegExit(void)
 
 static void MipiTxDrvHwInit(int smooth)
 {
-    unsigned long mipiTxCrgAddr;
+    unsigned long *mipiTxCrgAddr;
 
-    mipiTxCrgAddr = (unsigned long)OsalIoRemap(MIPI_TX_CRG, (unsigned long)0x4);
+    mipiTxCrgAddr = (unsigned long *)OsalIoRemap(MIPI_TX_CRG, (unsigned long)0x4);
     /* mipi_tx gate clk enable */
     WriteReg32(mipiTxCrgAddr, 1, 0x1);
     /* reset */

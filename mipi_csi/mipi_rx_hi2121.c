@@ -175,26 +175,26 @@ AlignErrIntCnt *MipiRxHalGetAlignErrIntCnt(unsigned int phyId)
 }
 
 /* function definition */
-static void SetBit(unsigned long value, unsigned long offset, unsigned long addr)
+static void SetBit(unsigned long value, unsigned long offset, unsigned long *addr)
 {
     unsigned long t, mask;
 
     mask = 1 << offset;
-    t = OSAL_READL((const volatile void *)addr);
+    t = OSAL_READL(addr);
     t &= ~mask;
     t |= (value << offset) & mask;
-    OSAL_WRITEL(t, (volatile void *)addr);
+    OSAL_WRITEL(t, addr);
 }
 
-static void WriteReg32(unsigned long addr, unsigned int value, unsigned int mask)
+static void WriteReg32(unsigned long *addr, unsigned int value, unsigned int mask)
 {
     unsigned int t;
 
-    t = OSAL_READL((void *)addr);
+    t = OSAL_READL(addr);
     t &= ~mask;
     t |= value & mask;
 
-    OSAL_WRITEL(t, (void *)addr);
+    OSAL_WRITEL(t, addr);
 }
 
 static MipiRxPhyCfgTag *GetMipiRxPhyRegs(unsigned int phyId)
@@ -310,9 +310,9 @@ void MipiRxSetPhyRgLp1ModeEn(unsigned int phyId, int enable)
 
 void MipiRxDrvSetWorkMode(uint8_t devno, InputMode inputMode)
 {
-    unsigned long mipiRxWorkModeAddr;
+    unsigned long *mipiRxWorkModeAddr;
 
-    mipiRxWorkModeAddr = (unsigned long)OsalIoRemap(MIPI_RX_WORK_MODE_ADDR, (unsigned long)0x4);
+    mipiRxWorkModeAddr = (unsigned long *)OsalIoRemap(MIPI_RX_WORK_MODE_ADDR, (unsigned long)0x4);
     if (mipiRxWorkModeAddr == 0) {
         HDF_LOGE("%s: MipiRx work mode reg ioremap failed!", __func__);
         return;
@@ -1876,9 +1876,9 @@ void MipiRxDrvSetAlignIntMask(uint8_t devno, unsigned int mask)
 
 void MipiRxEnableDisableClock(uint8_t comboDev, int enable)
 {
-    unsigned long mipiRxClockAddr;
+    unsigned long *mipiRxClockAddr;
 
-    mipiRxClockAddr = (unsigned long)OsalIoRemap(MIPI_RX_CRG_ADDR, (unsigned long)0x4);
+    mipiRxClockAddr = (unsigned long *)OsalIoRemap(MIPI_RX_CRG_ADDR, (unsigned long)0x4);
     if (mipiRxClockAddr == 0) {
         HDF_LOGE("%s: MipiRx clock ioremap failed!", __func__);
         return;
@@ -1899,7 +1899,7 @@ void MipiRxDrvDisableClock(uint8_t comboDev)
 
 void SensorEnableDisableClock(uint8_t snsClkSource, int enable)
 {
-    unsigned long sensorClockAddr;
+    unsigned long *sensorClockAddr;
     unsigned offset;
 
     if (snsClkSource == 0) {
@@ -1911,7 +1911,7 @@ void SensorEnableDisableClock(uint8_t snsClkSource, int enable)
         return;
     }
 
-    sensorClockAddr = (unsigned long)OsalIoRemap(SNS_CRG_ADDR, (unsigned long)0x4);
+    sensorClockAddr = (unsigned long *)OsalIoRemap(SNS_CRG_ADDR, (unsigned long)0x4);
     if (sensorClockAddr == 0) {
         HDF_LOGE("%s: sensor clock ioremap failed!", __func__);
         return;
@@ -1932,7 +1932,7 @@ void SensorDrvDisableClock(uint8_t snsClkSource)
 
 void MipiRxCoreResetUnreset(uint8_t comboDev, int reset)
 {
-    SetBit(reset, (comboDev + 4), g_mipiRxCoreResetAddr); /* 4 -- mipi_pix0_core_srst_req bit[4] */
+    SetBit(reset, (comboDev + 4), (unsigned long *)(uintptr_t)g_mipiRxCoreResetAddr); /* 4 -- mipi_pix0_core_srst_req bit[4] */
 }
 
 void MipiRxDrvCoreReset(uint8_t comboDev)
@@ -1947,7 +1947,7 @@ void MipiRxDrvCoreUnreset(uint8_t comboDev)
 
 void SensorResetUnreset(uint8_t snsResetSource, int reset)
 {
-    unsigned long sensorResetAddr;
+    unsigned long *sensorResetAddr;
     unsigned offset;
 
     if (snsResetSource == 0) {
@@ -1959,7 +1959,7 @@ void SensorResetUnreset(uint8_t snsResetSource, int reset)
         return;
     }
 
-    sensorResetAddr = (unsigned long)OsalIoRemap(SNS_CRG_ADDR, (unsigned long)0x4);
+    sensorResetAddr = (unsigned long *)OsalIoRemap(SNS_CRG_ADDR, (unsigned long)0x4);
     if (sensorResetAddr == 0) {
         HDF_LOGE("%s: sensor reset ioremap failed!", __func__);
         return;
@@ -2425,10 +2425,10 @@ static void MipiRxUnregisterIrq(void)
 
 static void MipiRxDrvHwInit(void)
 {
-    unsigned long mipiRxCrgAddr;
+    unsigned long *mipiRxCrgAddr;
     int i;
 
-    mipiRxCrgAddr = (unsigned long)OsalIoRemap(MIPI_RX_CRG_ADDR, (unsigned long)0x4);
+    mipiRxCrgAddr = (unsigned long *)OsalIoRemap(MIPI_RX_CRG_ADDR, (unsigned long)0x4);
 
     WriteReg32(mipiRxCrgAddr, 1 << 0, 0x1 << 0); /* 0 -- cil_cken bit[0] */
     WriteReg32(mipiRxCrgAddr, 1 << 3, 0x1 << 3); /* 3 -- mipi_bus_cken bit[3] */
@@ -2447,9 +2447,9 @@ static void MipiRxDrvHwInit(void)
 
 static void MipiRxDrvHwExit(void)
 {
-    unsigned long mipiRxCrgAddr;
+    unsigned long *mipiRxCrgAddr;
 
-    mipiRxCrgAddr = (unsigned long)OsalIoRemap(MIPI_RX_CRG_ADDR, (unsigned long)0x4);
+    mipiRxCrgAddr = (unsigned long *)OsalIoRemap(MIPI_RX_CRG_ADDR, (unsigned long)0x4);
 
     WriteReg32(mipiRxCrgAddr, 1 << 6, 0x1 << 6); /* 6 -- mipi_bus_srst_req bit[6] */
     WriteReg32(mipiRxCrgAddr, 0, 0x1 << 0);      /* 0 -- cil_cken bit[0] */
