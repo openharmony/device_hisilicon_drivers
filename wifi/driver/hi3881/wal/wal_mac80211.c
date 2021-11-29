@@ -1058,6 +1058,7 @@ static struct HdfMac80211APOps g_apOps = {
     .GetAssociatedStasInfo = WalGetAssociatedStasInfo
 };
 
+#ifdef _PRE_WLAN_FEATURE_P2P
 static struct HdfMac80211P2POps g_p2pOps = {
     .RemainOnChannel = WalRemainOnChannel,
     .CancelRemainOnChannel = WalCancelRemainOnChannel,
@@ -1067,6 +1068,7 @@ static struct HdfMac80211P2POps g_p2pOps = {
     .SetApWpsP2pIe = WalSetApWpsP2pIe,
     .GetDriverFlag = WalGetDriverFlag,
 };
+#endif
 
 hi_void HiMac80211Init(struct HdfChipDriver *chipDriver)
 {
@@ -1077,5 +1079,7 @@ hi_void HiMac80211Init(struct HdfChipDriver *chipDriver)
     chipDriver->ops = &g_baseOps;
     chipDriver->staOps = &g_staOps;
     chipDriver->apOps = &g_apOps;
+#ifdef _PRE_WLAN_FEATURE_P2P
     chipDriver->p2pOps = &g_p2pOps;
+#endif
 }
