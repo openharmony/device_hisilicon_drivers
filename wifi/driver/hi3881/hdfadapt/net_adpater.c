@@ -671,7 +671,7 @@ hi_u32 wal_report_sta_assoc_info(frw_event_mem_stru *event_mem)
         ap_conn_info.addr.addrlen = WLAN_MAC_ADDR_LEN;
         ap_conn_info.rssi = -(sta_asoc_param->rssi);
         ap_conn_info.is_mesh_ap = sta_asoc_param->conn_to_mesh;
-#ifdef
+#ifdef _PRE_WLAN_FEATURE_MESH_LWIP_RIPPLE
         wal_report_sta_assoc(netdev);
 #endif
         (hi_void)netifapi_netif_add_ip6_linklocal_address(netdev->lwip_netif, HI_TRUE);
