@@ -611,23 +611,22 @@ hi_void wal_lwip_status_callback(oal_net_device_stru *netDev, NetIfStatus status
 
 #ifdef _PRE_WLAN_FEATURE_MESH_LWIP_RIPPLE
 hi_void wal_report_sta_assoc(oal_net_device_stru *netdev)
-{
-        
-        if (netdev->lwip_netif->linklayer_event != HI_NULL) {
-            oam_warning_log0(0, OAM_SF_ANY, "{wal_report_sta_assoc_info::LL_EVENT_AP_CONN}");
-            netdev->lwip_netif->linklayer_event(netdev->lwip_netif, LL_EVENT_AP_CONN, (hi_u8 *)&ap_conn_info);
-        } else {
-            oam_warning_log0(0, OAM_SF_ANY, "{wal_report_sta_assoc_info::linklayer_event callback isn't registed}");
-        }
+{    
+    if (netdev->lwip_netif->linklayer_event != HI_NULL) {
+        oam_warning_log0(0, OAM_SF_ANY, "{wal_report_sta_assoc_info::LL_EVENT_AP_CONN}");
+        netdev->lwip_netif->linklayer_event(netdev->lwip_netif, LL_EVENT_AP_CONN, (hi_u8 *)&ap_conn_info);
+    } else {
+        oam_warning_log0(0, OAM_SF_ANY, "{wal_report_sta_assoc_info::linklayer_event callback isn't registed}");
+    }
 
-        (hi_void)netifapi_netif_set_link_up(netdev->lwip_netif);
+    (hi_void)netifapi_netif_set_link_up(netdev->lwip_netif);
 #ifdef _PRE_WLAN_FEATURE_LWIP_IPV6_AUTOCONFIG
-        (hi_void)netifapi_set_ipv6_forwarding(netdev->lwip_netif, HI_FALSE);
-        (hi_void)netifapi_set_ra_enable(netdev->lwip_netif, HI_FALSE);
-        (hi_void)netifapi_set_ip6_autoconfig_enabled(netdev->lwip_netif);
-        (hi_void)netifapi_set_accept_ra(netdev->lwip_netif, HI_TRUE);
+    (hi_void)netifapi_set_ipv6_forwarding(netdev->lwip_netif, HI_FALSE);
+    (hi_void)netifapi_set_ra_enable(netdev->lwip_netif, HI_FALSE);
+    (hi_void)netifapi_set_ip6_autoconfig_enabled(netdev->lwip_netif);
+    (hi_void)netifapi_set_accept_ra(netdev->lwip_netif, HI_TRUE);
 #endif
-        (hi_void)netifapi_netif_add_ip6_linklocal_address(netdev->lwip_netif, HI_TRUE);
+    (hi_void)netifapi_netif_add_ip6_linklocal_address(netdev->lwip_netif, HI_TRUE);
 
 }
 #endif
@@ -672,8 +671,8 @@ hi_u32 wal_report_sta_assoc_info(frw_event_mem_stru *event_mem)
         ap_conn_info.addr.addrlen = WLAN_MAC_ADDR_LEN;
         ap_conn_info.rssi = -(sta_asoc_param->rssi);
         ap_conn_info.is_mesh_ap = sta_asoc_param->conn_to_mesh;
-#ifdef 
-       wal_report_sta_assoc(netdev);
+#ifdef
+        wal_report_sta_assoc(netdev);
 #endif
         (hi_void)netifapi_netif_add_ip6_linklocal_address(netdev->lwip_netif, HI_TRUE);
 #endif
