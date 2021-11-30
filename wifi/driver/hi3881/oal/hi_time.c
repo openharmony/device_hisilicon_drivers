@@ -18,7 +18,11 @@
 #include <hi_types_base.h>
 #include <los_sys.h>
 #include <hi_stdlib.h>
+#if (_PRE_OS_VERSION_LINUX == _PRE_OS_VERSION)
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,0,0))
 #include <time.h>
+#endif
+#endif
 #include "hi_config.h"
 
 #define SEC_TO_US   1000000
