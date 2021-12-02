@@ -1932,7 +1932,8 @@ void SensorDrvDisableClock(uint8_t snsClkSource)
 
 void MipiRxCoreResetUnreset(uint8_t comboDev, int reset)
 {
-    SetBit(reset, (comboDev + 4), (unsigned long *)(uintptr_t)g_mipiRxCoreResetAddr); /* 4 -- mipi_pix0_core_srst_req bit[4] */
+    /* 4 -- mipi_pix0_core_srst_req bit[4] */
+    SetBit(reset, (comboDev + 4), (unsigned long *)(uintptr_t)g_mipiRxCoreResetAddr); 
 }
 
 void MipiRxDrvCoreReset(uint8_t comboDev)
