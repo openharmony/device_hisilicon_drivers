@@ -14,14 +14,11 @@
  */
 
 #include "pin_hi35xx.h"
-#include "pin_core.h"
-#include "string.h"
 #include "device_resource_if.h"
-#include "hdf_device_desc.h"
 #include "hdf_log.h"
 #include "osal_io.h"
 #include "osal_mem.h"
-#include "osal_spinlock.h"
+#include "pin_core.h"
 
 #define HDF_LOG_TAG pin_hi35xx
 
@@ -347,8 +344,12 @@ static void Hi35xxPinRelease(struct HdfDeviceObject *device)
     cntlr = PinCntlrGetByNumber(number);
     PinCntlrRemove(cntlr);
     hi35xx = (struct Hi35xxPinCntlr *)cntlr;
-    OsalIoUnmap((void *)hi35xx->regBase);
-    OsalMemFree(hi35xx);
+    if (hi35xx != NULL) {
+        if (hi35xx->regBase != NULL) {
+            OsalIoUnmap((void *)hi35xx->regBase);
+        }
+        OsalMemFree(hi35xx);
+    }
 }
 
 static struct HdfDriverEntry g_hi35xxPinDriverEntry = {

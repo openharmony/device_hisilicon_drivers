@@ -15,11 +15,9 @@
 
 #include "mipi_tx_hi35xx.h"
 #include "hdf_log.h"
-#include <los_hw.h>
 #include "osal_io.h"
 #include "osal_mem.h"
 #include "osal_time.h"
-#include "osal_uaccess.h"
 #include "mipi_dsi_define.h"
 #include "mipi_dsi_core.h"
 #include "mipi_tx_reg.h"
