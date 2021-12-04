@@ -14,7 +14,7 @@
 SOC_COMPANY := $(subst $\",,$(LOSCFG_DEVICE_COMPANY))
 SOC_PLATFORM := $(subst $\",,$(LOSCFG_PLATFORM))
 SOC_BOARD := $(subst $\",,$(LOSCFG_PRODUCT_NAME))
-CUR_COMPILER := llvm
+CUR_COMPILER := $(if $(LOSCFG_COMPILER_CLANG_LLVM),llvm,gcc)
 CUR_OS := ohos
 
 
