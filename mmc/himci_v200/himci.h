@@ -182,7 +182,7 @@ enum HimciHostRegister {
 /*
  * MMC_CTRL(0x0000) details.
  * [25]Whether to use the built-in DMA to transfer data.
- * 0: The CPU uses the slave interface to transfer data. 1: The internal DMA is used to transfer data.
+ * 0: The CPU uses the device interface to transfer data. 1: The internal DMA is used to transfer data.
  * [4]Global interrupt enable. 0: disabled; 1: enabled.
  * The interrupt output is valid only when this bit is valid and an interrupt source is enabled.
  * [2]Soft reset control for the internal DMAC. 0: invalid; 1: Reset the internal DMA interface.
@@ -415,8 +415,8 @@ union HimciCmdRegArg {
         uint32_t cmdIndex : 6;   /* [5:0]Command sequence number. */
         uint32_t rspExpect : 1;  /*
                                   * Indicates whether a response exists.
-                                  * 0: No response is output from the slave card.
-                                  * 1: A response is output from the slave card.
+                                  * 0: No response is output from the card.
+                                  * 1: A response is output from the card.
                                   */
         uint32_t rspLen : 1;     /*
                                   * Response length. 0: The short response is output from the card.
