@@ -1285,7 +1285,7 @@ static void SdhciEnableSamplDll(uint32_t id)
     }
 
     val = OSAL_READL(offset[id]);
-    val |= SDHCI_SAMPL_DLL_SLAVE_EN;
+    val |= SDHCI_SAMPL_DLL_DEV_EN;
     OSAL_WRITEL(val, offset[id]);
 }
 
@@ -1334,7 +1334,7 @@ void SdhciWaitSamplDllReady(uint32_t id)
 
     for (i = 0; i < SDHCI_CLK_CTRL_RETRY_TIMES; i++) {
         val = OSAL_READL(offset[id]);
-        if ((val & SDHCI_SAMPL_DLL_SLAVE_READY) > 0) {
+        if ((val & SDHCI_SAMPL_DLL_DEV_READY) > 0) {
             return;
         }
         OsalMDelay(1);
