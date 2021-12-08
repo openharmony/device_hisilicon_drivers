@@ -37,7 +37,12 @@ group("drivers") {
 
 config("public") {
   include_dirs = []
-  lib_dirs = [ "libs/ohos/llvm/$LOSCFG_PLATFORM" ]
+  if (defined(LOSCFG_COMPILER_CLANG_LLVM)) {
+    cur_compiler = "llvm"
+  } else {
+    cur_compiler = "gcc"
+  }
+  lib_dirs = [ "libs/ohos/$cur_compiler/$LOSCFG_PLATFORM" ]
   ldflags = [ "-Wl,--push-state,--whole-archive" ]
   if (defined(LOSCFG_DRIVERS_HIEDMAC)) {
     ldflags += [ "-lhiedmac" ]
@@ -70,4 +75,9 @@ config("public") {
     ldflags += [ "-lhi3881" ]
   }
   ldflags += [ "-Wl,--pop-state" ]
+  if (defined(LOSCFG_DRIVERS_HDF_USB)) {
+    if (LOSCFG_PLATFORM == "hi3516dv300") {
+      ldflags += [ "-lusb_dwc3" ]
+    }
+  }
 }
