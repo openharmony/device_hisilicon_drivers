@@ -158,7 +158,7 @@ static inline void Hi35xxI2cSetWater(const struct Hi35xxI2cCntlr *hi35xx)
 }
 
 /*
- * config i2c slave addr
+ * config i2c device addr
  */
 static void Hi35xxI2cSetAddr(const struct Hi35xxI2cCntlr *hi35xx, const struct Hi35xxTransferData *td)
 {
