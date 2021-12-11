@@ -728,7 +728,6 @@ static int MipiTxDrvSetCmdInfo(const CmdInfoTag *cmdInfo)
         HDF_LOGE("%s: [MipiTxWaitWriteFifoEmpty] failed.", __func__);
         return HDF_FAILURE;
     }
-    HDF_LOGD("%s: cmdSize = 0x%x, dataType = 0x%x", __func__, cmdInfo->cmdSize, cmdInfo->dataType);
     return HDF_SUCCESS;
 }
 
@@ -850,7 +849,6 @@ static void MipiTxReset(void)
 static int MipiTxDrvGetCmdInfo(GetCmdInfoTag *getCmdInfo)
 {
     unsigned char *dataBuf = NULL;
-    HDF_LOGI("%s: enter!", __func__);
 
     dataBuf = (unsigned char*)OsalMemAlloc(getCmdInfo->getDataSize);
     if (dataBuf == NULL) {
@@ -874,7 +872,6 @@ static int MipiTxDrvGetCmdInfo(GetCmdInfoTag *getCmdInfo)
     LOS_CopyFromKernel(getCmdInfo->getData, getCmdInfo->getDataSize, dataBuf, getCmdInfo->getDataSize);
     OsalMemFree(dataBuf);
     dataBuf = NULL;
-    HDF_LOGI("%s: success!", __func__);
 
     return HDF_SUCCESS;
 
@@ -1036,7 +1033,6 @@ static int MipiTxCheckCombDevCfg(const ComboDevCfgTag *devCfg)
         return HDF_ERR_INVALID_PARAM;
     }
 
-    HDF_LOGI("%s: success!", __func__);
     return HDF_SUCCESS;
 }
 
@@ -1172,7 +1168,6 @@ static int MipiTxGetCmd(GetCmdInfoTag *getCmdInfo)
 static int32_t Hi35xxGetCmd(struct MipiDsiCntlr *cntlr, struct DsiCmdDesc *cmd, uint32_t readLen, uint8_t *out)
 {
     GetCmdInfoTag cmdInfo;
-    HDF_LOGI("%s: enter!", __func__);
 
     (void)cntlr;
     if (cmd == NULL || out == NULL) {
@@ -1219,7 +1214,6 @@ static struct MipiDsiCntlrMethod g_method = {
 static int32_t Hi35xxMipiTxInit(struct HdfDeviceObject *device)
 {
     int32_t ret;
-    HDF_LOGI("%s: enter!", __func__);
 
     g_mipiTx.priv = NULL;
     g_mipiTx.ops = &g_method;
