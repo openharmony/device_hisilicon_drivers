@@ -310,7 +310,7 @@ void MipiRxSetPhyRgLp1ModeEn(unsigned int phyId, int enable)
 
 void MipiRxDrvSetWorkMode(uint8_t devno, InputMode inputMode)
 {
-    unsigned long *mipiRxWorkModeAddr = (unsigned long *)OsalIoRemap(MIPI_RX_WORK_MODE_ADDR, (unsigned long)0x4);;
+    unsigned long *mipiRxWorkModeAddr = (unsigned long *)OsalIoRemap(MIPI_RX_WORK_MODE_ADDR, (unsigned long)0x4);
 
     if (mipiRxWorkModeAddr == 0) {
         HDF_LOGE("%s: MipiRx work mode reg ioremap failed!", __func__);
