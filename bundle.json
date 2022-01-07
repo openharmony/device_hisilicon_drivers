@@ -1,0 +1,56 @@
+{
+    "name": "@ohos/device_hisilicon_drivers",
+    "version": "",
+    "description": "Hi3516/Hi3518 platform driver | Hi3516/Hi3518平台驱动",
+    "homePage": "https://gitee.com/openharmony",
+    "license": "GPL V2",
+    "repository": "https://gitee.com/openharmony/device_hisilicon_drivers",
+    "domain": "os",
+    "language": "",
+    "publishAs": "code-segment",
+    "private": false,
+    "scripts": {},
+    "tags": [
+        "device"
+    ],
+    "keywords": [
+        "device",
+        "hisilicon",
+        "drivers"
+    ],
+    "envs": [],
+    "dirs": [],
+    "author": {
+        "name": "",
+        "email": "",
+        "url": ""
+    },
+    "contributors": [
+        {
+            "name": "",
+            "email": "",
+            "url": ""
+        }
+    ],
+    "segment": {
+        "destPath": "device/hisilicon/drivers"
+    },
+    "component": {
+        "name": "device_hisilicon_drivers",
+        "subsystem": "",
+        "syscap": [],
+        "features": [],
+        "adapted_system_type": [],
+        "rom": "",
+        "ram": "",
+        "deps": {
+            "components": [],
+            "third_party": []
+        },
+        "build": {
+            "sub_component": [],
+            "inner_kits": [],
+            "test": []
+        }
+    }
+}
